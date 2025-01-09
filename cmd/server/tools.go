@@ -16,8 +16,8 @@ type getDefinitionArgs struct {
 
 type applyTextEditArgs struct {
 	Path    string `json:"path"`
-	Start   string `json:"start"` // e.g. "1:1" for line 1, column 1
-	End     string `json:"end"`   // e.g. "1:10" for line 1, column 10
+	Start   string `json:"start"`
+	End     string `json:"end"`
 	NewText string `json:"newText"`
 }
 
@@ -39,7 +39,7 @@ func (s *server) registerTools() error {
 
 	err = s.mcpServer.RegisterTool(
 		"apply-text-edit",
-		"Apply a text edit to a file. Specify path, start position (`line:column` or just `line`), end position, and new text. Positions are 1-based.",
+		"Apply a text edit to a file. Specify path, start line, end line, and new text. Line numbers are 1-based.",
 		func(args applyTextEditArgs) (*mcp_golang.ToolResponse, error) {
 			start, err := parsePosition(args.Start)
 			if err != nil {
@@ -101,3 +101,4 @@ func parsePosition(pos string) (protocol.Position, error) {
 		Character: uint32(char - 1),
 	}, nil
 }
+

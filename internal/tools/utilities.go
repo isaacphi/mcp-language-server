@@ -131,9 +131,28 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 		symbolRange = loc.Range
 	}
 
+	// Modify the range to cover complete lines
+	path := strings.TrimPrefix(string(loc.URI), "file://")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", protocol.Location{}, fmt.Errorf("failed to read file: %w", err)
+	}
+	lines := strings.Split(string(content), "\n")
+
+	fullLineRange := protocol.Range{
+		Start: protocol.Position{
+			Line:      symbolRange.Start.Line,
+			Character: 0,
+		},
+		End: protocol.Position{
+			Line:      symbolRange.End.Line,
+			Character: uint32(len(lines[symbolRange.End.Line])),
+		},
+	}
+
 	text, err := ExtractTextFromLocation(protocol.Location{
 		URI:   loc.URI,
-		Range: symbolRange,
+		Range: fullLineRange,
 	})
 	if err != nil {
 		return "", protocol.Location{}, fmt.Errorf("failed to extract text from location: %v", err)
