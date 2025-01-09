@@ -12,7 +12,6 @@ import (
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
-	"github.com/isaacphi/mcp-language-server/internal/tools"
 	"github.com/metoro-io/mcp-golang"
 	"github.com/metoro-io/mcp-golang/transport/stdio"
 )
@@ -35,10 +34,6 @@ type lspCommand struct {
 	args    []string
 }
 
-type getDefinitionArgs struct {
-	SymbolName string `json:"symbolName" jsonschema:"required,description=The exact name of the symbol (function, class or something else) to fetch."`
-}
-
 func parseLSPCommand(cmdStr string) lspCommand {
 	parts := strings.Fields(cmdStr)
 	return lspCommand{
@@ -51,7 +46,7 @@ func parseConfig() (*config, error) {
 	config := &config{}
 
 	flag.StringVar(&config.workspaceDir, "workspace", "", "Path to workspace directory (optional)")
-	flag.StringVar(&config.lspCommandStr, "lsp", "gopls", "LSP command to run (e.g., 'gopls -remote=auto')")
+	flag.StringVar(&config.lspCommandStr, "lsp", "", "LSP command to run (e.g., 'gopls -remote=auto')")
 	flag.Parse()
 
 	workspaceDir, err := filepath.Abs(config.workspaceDir)
@@ -115,19 +110,9 @@ func (s *server) start() error {
 	}
 
 	s.mcpServer = mcp_golang.NewServer(stdio.NewStdioServerTransport())
-
-	err := s.mcpServer.RegisterTool(
-		"read-definition",
-		"Read the source code for a given symbol from the codebase",
-		func(args getDefinitionArgs) (*mcp_golang.ToolResponse, error) {
-			text, err := tools.GetDefinition(s.ctx, s.lspClient, args.SymbolName)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to get definition: %v", err)
-			}
-			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
-		})
+	err := s.registerTools()
 	if err != nil {
-		return fmt.Errorf("failed to register get definition handler: %v", err)
+		return fmt.Errorf("tool registration failed: %v", err)
 	}
 
 	return s.mcpServer.Serve()

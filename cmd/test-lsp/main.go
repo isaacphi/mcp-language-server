@@ -35,9 +35,11 @@ func main() {
 	var (
 		workspaceDir  string
 		lspCommandStr string
+		keyword       string
 	)
 
-	flag.StringVar(&workspaceDir, "workspace", "", "Path to workspace directory (optional)")
+	flag.StringVar(&keyword, "keyword", "main", "keyword")
+	flag.StringVar(&workspaceDir, "workspace", ".", "Path to workspace directory (optional)")
 	flag.StringVar(&lspCommandStr, "lsp", "gopls", "LSP command to run (e.g., 'gopls -remote=auto')")
 	flag.Parse()
 
@@ -92,32 +94,13 @@ func main() {
 		log.Fatalf("Server failed to become ready: %v", err)
 	}
 
-	// Test workspace/symbol
-	query := "main"
-	fmt.Println("\nLooking for symbol")
-	symbolResult, err := client.Symbol(ctx, protocol.WorkspaceSymbolParams{
-		Query: query,
-	})
+	// Test Tools
+	text, err := tools.ReadDefinition(ctx, client, keyword)
 	if err != nil {
-		log.Fatalf("Failed to fetch symbol: %v", err)
-	}
-	results, err := symbolResult.Results()
-	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("GetDefinition failed: %v", err)
 	}
 
-	for _, symbol := range results {
-		if symbol.GetName() != query {
-			continue
-		}
-		fmt.Printf("Symbol: %s\n", symbol.GetName())
-		definition, _, err := tools.GetFullDefinition(ctx, client, symbol.GetLocation())
-		if err != nil {
-			fmt.Printf("Error getting definition: %v\n", err)
-			continue
-		}
-		fmt.Printf("Definition:\n%s\n\n", definition)
-	}
+	fmt.Println(text)
 
 	// Cleanup
 	fmt.Println("\nShutting down...")
