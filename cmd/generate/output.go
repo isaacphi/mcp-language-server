@@ -241,7 +241,7 @@ func genStructs(model *Model) {
 	}
 
 	// base types
-	// (For URI and DocumentURI, see ../uri.go.)
+	// (For URI and DocumentUri, see ../uri.go.)
 	types["LSPAny"] = "type LSPAny = interface{}\n"
 	// A special case, the only previously existing Or type
 	types["DocumentDiagnosticReport"] = "type DocumentDiagnosticReport = Or_DocumentDiagnosticReport // (alias) \n"

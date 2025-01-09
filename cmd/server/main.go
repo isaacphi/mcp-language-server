@@ -117,7 +117,7 @@ func (s *server) start() error {
 	s.mcpServer = mcp_golang.NewServer(stdio.NewStdioServerTransport())
 
 	err := s.mcpServer.RegisterTool(
-		"Get definition",
+		"read-definition",
 		"Read the source code for a given symbol from the codebase",
 		func(args getDefinitionArgs) (*mcp_golang.ToolResponse, error) {
 			text, err := tools.GetDefinition(s.ctx, s.lspClient, args.SymbolName)
@@ -151,6 +151,8 @@ func (s *server) stop() {
 }
 
 func main() {
+	done := make(chan struct{})
+
 	config, err := parseConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -170,5 +172,5 @@ func main() {
 	}
 
 	// Wait forever
-	select {}
+	<-done
 }

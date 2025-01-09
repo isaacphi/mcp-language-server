@@ -114,7 +114,7 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 				Name:    "mcp-language-server",
 				Version: "0.1.0",
 			},
-			RootURI: protocol.DocumentURI("file://" + workspaceDir),
+			RootURI: protocol.DocumentUri("file://" + workspaceDir),
 			Capabilities: protocol.ClientCapabilities{
 				Workspace: protocol.WorkspaceClientCapabilities{
 					Configuration: true,

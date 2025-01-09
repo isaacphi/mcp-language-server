@@ -63,15 +63,15 @@ var renameProp = map[prop]string{
 	{"Diagnostic", "code"}:   "interface{}",
 	{"Diagnostic", "data"}:   "json.RawMessage", // delay unmarshalling quickfixes
 
-	{"DocumentDiagnosticReportPartialResult", "relatedDocuments"}: "map[DocumentURI]interface{}",
+	{"DocumentDiagnosticReportPartialResult", "relatedDocuments"}: "map[DocumentUri]interface{}",
 
 	{"ExecuteCommandParams", "arguments"}: "[]json.RawMessage",
 	{"FoldingRange", "kind"}:              "string",
 	{"Hover", "contents"}:                 "MarkupContent",
 	{"InlayHint", "label"}:                "[]InlayHintLabelPart",
 
-	{"RelatedFullDocumentDiagnosticReport", "relatedDocuments"}:      "map[DocumentURI]interface{}",
-	{"RelatedUnchangedDocumentDiagnosticReport", "relatedDocuments"}: "map[DocumentURI]interface{}",
+	{"RelatedFullDocumentDiagnosticReport", "relatedDocuments"}:      "map[DocumentUri]interface{}",
+	{"RelatedUnchangedDocumentDiagnosticReport", "relatedDocuments"}: "map[DocumentUri]interface{}",
 
 	// PJW: this one is tricky.
 	{"ServerCapabilities", "codeActionProvider"}: "interface{}",
@@ -119,15 +119,15 @@ var usedDisambiguate = make(map[string]bool)
 // For spec compliance, we keep only essential type mappings that don't override OR types
 var goplsType = map[string]string{
 	"ConfigurationParams": "ParamConfiguration",
-	"DocumentUri":         "DocumentURI",
-	"InitializeParams":    "ParamInitialize",
-	"LSPAny":              "interface{}",
-	"[]LSPAny":            "[]interface{}",
-	"[]uinteger":          "[]uint32",
-	"boolean":             "bool",
-	"decimal":             "float64",
-	"integer":             "int32",
-	"uinteger":            "uint32",
+	// "DocumentUri":         "DocumentUri",
+	"InitializeParams": "ParamInitialize",
+	"LSPAny":           "interface{}",
+	"[]LSPAny":         "[]interface{}",
+	"[]uinteger":       "[]uint32",
+	"boolean":          "bool",
+	"decimal":          "float64",
+	"integer":          "int32",
+	"uinteger":         "uint32",
 }
 
 var usedGoplsType = make(map[string]bool)

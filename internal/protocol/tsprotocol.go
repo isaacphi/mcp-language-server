@@ -133,7 +133,7 @@ type CallHierarchyItem struct {
 	// More detail for this item, e.g. the signature of a function.
 	Detail string `json:"detail,omitempty"`
 	// The resource identifier of this item.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The range enclosing this symbol not including leading/trailing whitespace but everything else, e.g. comments and code.
 	Range Range `json:"range"`
 	// The range that should be selected and revealed when this symbol is being picked, e.g. the name of a function.
@@ -1249,7 +1249,7 @@ type CreateFile struct {
 	// A create
 	Kind string `json:"kind"`
 	// The resource to create.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// Additional options
 	Options *CreateFileOptions `json:"options,omitempty"`
 	ResourceOperation
@@ -1380,7 +1380,7 @@ type DeleteFile struct {
 	// A delete
 	Kind string `json:"kind"`
 	// The file to delete.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// Delete options.
 	Options *DeleteFileOptions `json:"options,omitempty"`
 	ResourceOperation
@@ -1795,7 +1795,7 @@ type DocumentDiagnosticReportKind string
 //
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#documentDiagnosticReportPartialResult
 type DocumentDiagnosticReportPartialResult struct {
-	RelatedDocuments map[DocumentURI]interface{} `json:"relatedDocuments"`
+	RelatedDocuments map[DocumentUri]interface{} `json:"relatedDocuments"`
 }
 
 // A document filter describes a top level text document or
@@ -2237,7 +2237,7 @@ type FileDelete struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#fileEvent
 type FileEvent struct {
 	// The file's uri.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The change type.
 	Type FileChangeType `json:"type"`
 }
@@ -3136,7 +3136,7 @@ type Lit_SemanticTokensOptions_range_Item1 struct {
 //
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#location
 type Location struct {
-	URI   DocumentURI `json:"uri"`
+	URI   DocumentUri `json:"uri"`
 	Range Range       `json:"range"`
 }
 
@@ -3151,7 +3151,7 @@ type LocationLink struct {
 	// the definition position.
 	OriginSelectionRange *Range `json:"originSelectionRange,omitempty"`
 	// The target resource identifier of this link.
-	TargetURI DocumentURI `json:"targetUri"`
+	TargetURI DocumentUri `json:"targetUri"`
 	// The full target range of this link. If the target for example is a symbol then target range is the
 	// range enclosing this symbol not including leading/trailing whitespace but everything else
 	// like comments. This information is typically used to highlight the range in the editor.
@@ -3167,7 +3167,7 @@ type LocationLink struct {
 //
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#locationUriOnly
 type LocationUriOnly struct {
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 }
 
 // The log message parameters.
@@ -3342,7 +3342,7 @@ type NotebookCell struct {
 	Kind NotebookCellKind `json:"kind"`
 	// The URI of the cell's text document
 	// content.
-	Document DocumentURI `json:"document"`
+	Document DocumentUri `json:"document"`
 	// Additional metadata stored with the cell.
 	//
 	// Note: should always be an object literal (e.g. LSPObject)
@@ -4185,7 +4185,7 @@ type PrepareSupportDefaultBehavior uint32
 type PreviousResultID struct {
 	// The URI for which the client knowns a
 	// result id.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The value of the previous result id.
 	Value string `json:"value"`
 }
@@ -4198,7 +4198,7 @@ type PreviousResultID struct {
 type PreviousResultId struct {
 	// The URI for which the client knowns a
 	// result id.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The value of the previous result id.
 	Value string `json:"value"`
 }
@@ -4230,7 +4230,7 @@ type PublishDiagnosticsClientCapabilities struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#publishDiagnosticsParams
 type PublishDiagnosticsParams struct {
 	// The URI for which diagnostic information is reported.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// Optional the version number of the document the diagnostics are published for.
 	//
 	// @since 3.15.0
@@ -4348,7 +4348,7 @@ type RelatedFullDocumentDiagnosticReport struct {
 	// a.cpp and result in errors in a header file b.hpp.
 	//
 	// @since 3.17.0
-	RelatedDocuments map[DocumentURI]interface{} `json:"relatedDocuments,omitempty"`
+	RelatedDocuments map[DocumentUri]interface{} `json:"relatedDocuments,omitempty"`
 	FullDocumentDiagnosticReport
 }
 
@@ -4365,7 +4365,7 @@ type RelatedUnchangedDocumentDiagnosticReport struct {
 	// a.cpp and result in errors in a header file b.hpp.
 	//
 	// @since 3.17.0
-	RelatedDocuments map[DocumentURI]interface{} `json:"relatedDocuments,omitempty"`
+	RelatedDocuments map[DocumentUri]interface{} `json:"relatedDocuments,omitempty"`
 	UnchangedDocumentDiagnosticReport
 }
 
@@ -4417,9 +4417,9 @@ type RenameFile struct {
 	// A rename
 	Kind string `json:"kind"`
 	// The old (existing) location.
-	OldURI DocumentURI `json:"oldUri"`
+	OldURI DocumentUri `json:"oldUri"`
 	// The new location.
-	NewURI DocumentURI `json:"newUri"`
+	NewURI DocumentUri `json:"newUri"`
 	// Rename options.
 	Options *RenameFileOptions `json:"options,omitempty"`
 	ResourceOperation
@@ -5390,7 +5390,7 @@ type TextDocumentContentOptions struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#textDocumentContentParams
 type TextDocumentContentParams struct {
 	// The uri of the text document.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 }
 
 // Parameters for the `workspace/textDocumentContent/refresh` request.
@@ -5401,7 +5401,7 @@ type TextDocumentContentParams struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#textDocumentContentRefreshParams
 type TextDocumentContentRefreshParams struct {
 	// The uri of the text document to refresh.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 }
 
 // Text document content provider registration options.
@@ -5507,7 +5507,7 @@ type TextDocumentFilterScheme struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#textDocumentIdentifier
 type TextDocumentIdentifier struct {
 	// The text document's uri.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 }
 
 // An item to transfer a text document from the client to the
@@ -5516,7 +5516,7 @@ type TextDocumentIdentifier struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#textDocumentItem
 type TextDocumentItem struct {
 	// The text document's uri.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The text document's language identifier.
 	LanguageID LanguageKind `json:"languageId"`
 	// The version number of this document (it will increase after each
@@ -5670,7 +5670,7 @@ type TypeHierarchyItem struct {
 	// More detail for this item, e.g. the signature of a function.
 	Detail string `json:"detail,omitempty"`
 	// The resource identifier of this item.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The range enclosing this symbol not including leading/trailing whitespace
 	// but everything else, e.g. comments and code.
 	Range Range `json:"range"`
@@ -6154,7 +6154,7 @@ type WorkspaceFoldersServerCapabilities struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#workspaceFullDocumentDiagnosticReport
 type WorkspaceFullDocumentDiagnosticReport struct {
 	// The URI for which diagnostic information is reported.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The version number for which the diagnostics are reported.
 	// If the document is not marked as open `null` can be provided.
 	Version int32 `json:"version"`
@@ -6266,7 +6266,7 @@ type WorkspaceSymbolRegistrationOptions struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#workspaceUnchangedDocumentDiagnosticReport
 type WorkspaceUnchangedDocumentDiagnosticReport struct {
 	// The URI for which diagnostic information is reported.
-	URI DocumentURI `json:"uri"`
+	URI DocumentUri `json:"uri"`
 	// The version number for which the diagnostics are reported.
 	// If the document is not marked as open `null` can be provided.
 	Version int32 `json:"version"`
@@ -6306,7 +6306,7 @@ type XInitializeParams struct {
 	// `rootUri` wins.
 	//
 	// @deprecated in favour of workspaceFolders.
-	RootURI DocumentURI `json:"rootUri"`
+	RootURI DocumentUri `json:"rootUri"`
 	// The capabilities provided by the client (editor or tool)
 	Capabilities ClientCapabilities `json:"capabilities"`
 	// User provided initialization options.
@@ -6349,7 +6349,7 @@ type _InitializeParams struct {
 	// `rootUri` wins.
 	//
 	// @deprecated in favour of workspaceFolders.
-	RootURI DocumentURI `json:"rootUri"`
+	RootURI DocumentUri `json:"rootUri"`
 	// The capabilities provided by the client (editor or tool)
 	Capabilities ClientCapabilities `json:"capabilities"`
 	// User provided initialization options.

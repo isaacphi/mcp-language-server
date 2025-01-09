@@ -4,7 +4,7 @@
 
 package protocol
 
-// This file declares URI, DocumentURI, and its methods.
+// This file declares URI, DocumentUri, and its methods.
 //
 // For the LSP definition of these types, see
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
@@ -17,7 +17,7 @@ import (
 	"unicode"
 )
 
-// A DocumentURI is the URI of a client editor document.
+// A DocumentUri is the URI of a client editor document.
 //
 // According to the LSP specification:
 //
@@ -38,17 +38,16 @@ import (
 //	file:///C%3A/project/readme.md
 //
 // This is done during JSON unmarshalling;
-// see [DocumentURI.UnmarshalText] for details.
-type DocumentURI string
+// see [DocumentUri.UnmarshalText] for details.
 type DocumentUri string
 
 // A URI is an arbitrary URL (e.g. https), not necessarily a file.
 type URI = string
 
-// UnmarshalText implements decoding of DocumentURI values.
+// UnmarshalText implements decoding of DocumentUri values.
 //
 // In particular, it implements a systematic correction of various odd
-// features of the definition of DocumentURI in the LSP spec that
+// features of the definition of DocumentUri in the LSP spec that
 // appear to be workarounds for bugs in VS Code. For example, it may
 // URI-encode the URI itself, so that colon becomes %3A, and it may
 // send file://foo.go URIs that have two slashes (not three) and no
@@ -59,25 +58,25 @@ type URI = string
 // where there is no pointer of type *K or *V on which to call
 // UnmarshalJSON. (See Go issue #28189 for more detail.)
 //
-// Non-empty DocumentURIs are valid "file"-scheme URIs.
-// The empty DocumentURI is valid.
-func (uri *DocumentURI) UnmarshalText(data []byte) (err error) {
-	*uri, err = ParseDocumentURI(string(data))
+// Non-empty DocumentUris are valid "file"-scheme URIs.
+// The empty DocumentUri is valid.
+func (uri *DocumentUri) UnmarshalText(data []byte) (err error) {
+	*uri, err = ParseDocumentUri(string(data))
 	return
 }
 
 // Path returns the file path for the given URI.
 //
-// DocumentURI("").Path() returns the empty string.
+// DocumentUri("").Path() returns the empty string.
 //
 // Path panics if called on a URI that is not a valid filename.
-func (uri DocumentURI) Path() string {
+func (uri DocumentUri) Path() string {
 	filename, err := filename(uri)
 	if err != nil {
 		// e.g. ParseRequestURI failed.
 		//
-		// This can only affect DocumentURIs created by
-		// direct string manipulation; all DocumentURIs
+		// This can only affect DocumentUris created by
+		// direct string manipulation; all DocumentUris
 		// received from the client pass through
 		// ParseRequestURI, which ensures validity.
 		panic(err)
@@ -86,7 +85,7 @@ func (uri DocumentURI) Path() string {
 }
 
 // Dir returns the URI for the directory containing the receiver.
-func (uri DocumentURI) Dir() DocumentURI {
+func (uri DocumentUri) Dir() DocumentUri {
 	// This function could be more efficiently implemented by avoiding any call
 	// to Path(), but at least consolidates URI manipulation.
 	return URIFromPath(uri.DirPath())
@@ -94,11 +93,11 @@ func (uri DocumentURI) Dir() DocumentURI {
 
 // DirPath returns the file path to the directory containing this URI, which
 // must be a file URI.
-func (uri DocumentURI) DirPath() string {
+func (uri DocumentUri) DirPath() string {
 	return filepath.Dir(uri.Path())
 }
 
-func filename(uri DocumentURI) (string, error) {
+func filename(uri DocumentUri) (string, error) {
 	if uri == "" {
 		return "", nil
 	}
@@ -138,15 +137,15 @@ slow:
 	return u.Path, nil
 }
 
-// ParseDocumentURI interprets a string as a DocumentURI, applying VS
-// Code workarounds; see [DocumentURI.UnmarshalText] for details.
-func ParseDocumentURI(s string) (DocumentURI, error) {
+// ParseDocumentUri interprets a string as a DocumentUri, applying VS
+// Code workarounds; see [DocumentUri.UnmarshalText] for details.
+func ParseDocumentUri(s string) (DocumentUri, error) {
 	if s == "" {
 		return "", nil
 	}
 
 	if !strings.HasPrefix(s, "file://") {
-		return "", fmt.Errorf("DocumentURI scheme is not 'file': %s", s)
+		return "", fmt.Errorf("DocumentUri scheme is not 'file': %s", s)
 	}
 
 	// VS Code sends URLs with only two slashes,
@@ -170,12 +169,12 @@ func ParseDocumentURI(s string) (DocumentURI, error) {
 		path = path[:1] + strings.ToUpper(string(path[1])) + path[2:]
 	}
 	u := url.URL{Scheme: fileScheme, Path: path}
-	return DocumentURI(u.String()), nil
+	return DocumentUri(u.String()), nil
 }
 
-// URIFromPath returns DocumentURI for the supplied file path.
+// URIFromPath returns DocumentUri for the supplied file path.
 // Given "", it returns "".
-func URIFromPath(path string) DocumentURI {
+func URIFromPath(path string) DocumentUri {
 	if path == "" {
 		return ""
 	}
@@ -193,7 +192,7 @@ func URIFromPath(path string) DocumentURI {
 		Scheme: fileScheme,
 		Path:   path,
 	}
-	return DocumentURI(u.String())
+	return DocumentUri(u.String())
 }
 
 const fileScheme = "file"
