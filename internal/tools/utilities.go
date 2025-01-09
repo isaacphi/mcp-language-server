@@ -132,8 +132,8 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 	}
 
 	// Modify the range to cover complete lines
-	path := strings.TrimPrefix(string(loc.URI), "file://")
-	content, err := os.ReadFile(path)
+	filePath := strings.TrimPrefix(string(loc.URI), "file://")
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", protocol.Location{}, fmt.Errorf("failed to read file: %w", err)
 	}

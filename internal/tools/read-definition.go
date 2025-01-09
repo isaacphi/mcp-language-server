@@ -25,11 +25,18 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string) 
 
 	var definitions []string
 	for _, symbol := range results {
+		kind := ""
+		container := ""
 
 		// Skip symbols that we are not looking for. workspace/symbol may return
-		// a large number of fuzzy matches. SymbolInformation results have richer data
+		// a large number of fuzzy matches.
 		switch v := symbol.(type) {
 		case *protocol.SymbolInformation:
+			// SymbolInformation results have richer data.
+			kind = fmt.Sprintf("Kind: %s\n", protocol.TableKindMap[v.Kind])
+			if v.ContainerName != "" {
+				container = fmt.Sprintf("Container Name: %s\n", v.ContainerName)
+			}
 			if v.Kind == protocol.Method && strings.HasSuffix(symbol.GetName(), symbolName) {
 				break
 			}
@@ -50,6 +57,8 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string) 
 		locationInfo := fmt.Sprintf(
 			"Symbol: %s\n"+
 				"File: %s\n"+
+				kind+
+				container+
 				"Start Position: Line %d, Column %d\n"+
 				"End Position: Line %d, Column %d\n"+
 				"%s\n",

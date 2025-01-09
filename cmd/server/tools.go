@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -15,10 +16,10 @@ type getDefinitionArgs struct {
 }
 
 type applyTextEditArgs struct {
-	Path    string `json:"path"`
-	Start   string `json:"start"`
-	End     string `json:"end"`
-	NewText string `json:"newText"`
+	FilePath     string `json:"filePath"`
+	StartLineNum string `json:"startLineNum"`
+	EndLineNum   string `json:"endLineNum"`
+	NewText      string `json:"newText"`
 }
 
 func (s *server) registerTools() error {
@@ -39,26 +40,17 @@ func (s *server) registerTools() error {
 
 	err = s.mcpServer.RegisterTool(
 		"apply-text-edit",
-		"Apply a text edit to a file. Specify path, start line, end line, and new text. Line numbers are 1-based.",
+		"Apply a text edit to a file. Specify path, start line number, end line number, and new text. Line numbers are 1-based.",
 		func(args applyTextEditArgs) (*mcp_golang.ToolResponse, error) {
-			start, err := parsePosition(args.Start)
+			rng, err := getPosition(args.StartLineNum, args.EndLineNum, args.FilePath)
 			if err != nil {
-				return nil, fmt.Errorf("invalid start position: %v", err)
-			}
-
-			end, err := parsePosition(args.End)
-			if err != nil {
-				return nil, fmt.Errorf("invalid end position: %v", err)
+				return nil, fmt.Errorf("invalid position: %v", err)
 			}
 
 			edit := protocol.WorkspaceEdit{
 				Changes: map[protocol.DocumentUri][]protocol.TextEdit{
-					protocol.DocumentUri(args.Path): {{
-						Range: protocol.Range{
-							Start: start,
-							End:   end,
-						},
-						NewText: args.NewText,
+					protocol.DocumentUri(args.FilePath): {{
+						Range: rng, NewText: args.NewText,
 					}},
 				},
 			}
@@ -76,29 +68,35 @@ func (s *server) registerTools() error {
 	return nil
 }
 
-func parsePosition(pos string) (protocol.Position, error) {
-	parts := strings.Split(pos, ":")
-	if len(parts) != 1 && len(parts) != 2 {
-		return protocol.Position{}, fmt.Errorf("position must be in format line[:column]")
-	}
-
-	line, err := strconv.Atoi(parts[0])
+func getPosition(startPos, endPos, filePath string) (protocol.Range, error) {
+	startLine, err := strconv.Atoi(startPos)
 	if err != nil {
-		return protocol.Position{}, fmt.Errorf("invalid line number: %v", err)
+		return protocol.Range{}, fmt.Errorf("invalid line number: %v", err)
 	}
 
-	char := 1 // Default to column 1 if not specified
-	if len(parts) == 2 {
-		char, err = strconv.Atoi(parts[1])
-		if err != nil {
-			return protocol.Position{}, fmt.Errorf("invalid column number: %v", err)
-		}
+	endLine, err := strconv.Atoi(endPos)
+	if err != nil {
+		return protocol.Range{}, fmt.Errorf("invalid line number: %v", err)
 	}
 
-	// Convert from 1-based to 0-based indexing
-	return protocol.Position{
-		Line:      uint32(line - 1),
-		Character: uint32(char - 1),
-	}, nil
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return protocol.Range{}, fmt.Errorf("failed to read file: %w", err)
+	}
+	lines := strings.Split(string(content), "\n")
+
+	// Convert to 0 based index
+	rng := protocol.Range{
+		Start: protocol.Position{
+			Line:      uint32(startLine - 1),
+			Character: 0,
+		},
+		End: protocol.Position{
+			Line:      uint32(endLine - 1),
+			Character: uint32(len(lines[endLine-1])),
+		},
+	}
+
+	return rng, nil
 }
 
