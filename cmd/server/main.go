@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
@@ -17,8 +16,9 @@ import (
 )
 
 type config struct {
-	workspaceDir  string
-	lspCommandStr string
+	workspaceDir string
+	lspCommand   string
+	lspArgs      []string
 }
 
 type server struct {
@@ -29,42 +29,44 @@ type server struct {
 	cancelFunc context.CancelFunc
 }
 
-type lspCommand struct {
-	command string
-	args    []string
-}
-
-func parseLSPCommand(cmdStr string) lspCommand {
-	parts := strings.Fields(cmdStr)
-	return lspCommand{
-		command: parts[0],
-		args:    parts[1:],
-	}
-}
-
 func parseConfig() (*config, error) {
-	config := &config{}
-
-	flag.StringVar(&config.workspaceDir, "workspace", "", "Path to workspace directory (optional)")
-	flag.StringVar(&config.lspCommandStr, "lsp", "", "LSP command to run (e.g., 'gopls -remote=auto')")
+	cfg := &config{}
+	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory")
+	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (args should be passed after --)")
 	flag.Parse()
 
-	workspaceDir, err := filepath.Abs(config.workspaceDir)
+	// Get remaining args after -- as LSP arguments
+	cfg.lspArgs = flag.Args()
+
+	// Validate workspace directory
+	if cfg.workspaceDir == "" {
+		return nil, fmt.Errorf("workspace directory is required")
+	}
+
+	workspaceDir, err := filepath.Abs(cfg.workspaceDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path for workspace: %v", err)
 	}
-	config.workspaceDir = workspaceDir
+	cfg.workspaceDir = workspaceDir
 
-	if _, err := os.Stat(config.workspaceDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("workspace directory does not exist: %s", config.workspaceDir)
+	if _, err := os.Stat(cfg.workspaceDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("workspace directory does not exist: %s", cfg.workspaceDir)
 	}
 
-	return config, nil
+	// Validate LSP command
+	if cfg.lspCommand == "" {
+		return nil, fmt.Errorf("LSP command is required")
+	}
+
+	if _, err := exec.LookPath(cfg.lspCommand); err != nil {
+		return nil, fmt.Errorf("LSP command not found: %s", cfg.lspCommand)
+	}
+
+	return cfg, nil
 }
 
 func newServer(config *config) (*server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-
 	return &server{
 		config:     *config,
 		ctx:        ctx,
@@ -73,17 +75,11 @@ func newServer(config *config) (*server, error) {
 }
 
 func (s *server) initializeLSP() error {
-	lspCmd := parseLSPCommand(s.config.lspCommandStr)
-
-	if _, err := exec.LookPath(lspCmd.command); err != nil {
-		return fmt.Errorf("LSP command not found: %s", lspCmd.command)
-	}
-
 	if err := os.Chdir(s.config.workspaceDir); err != nil {
 		return fmt.Errorf("failed to change to workspace directory: %v", err)
 	}
 
-	client, err := lsp.NewClient(lspCmd.command, lspCmd.args...)
+	client, err := lsp.NewClient(s.config.lspCommand, s.config.lspArgs...)
 	if err != nil {
 		return fmt.Errorf("failed to create LSP client: %v", err)
 	}
@@ -150,7 +146,7 @@ func main() {
 	defer server.stop()
 
 	log.Printf("Using workspace: %s\n", config.workspaceDir)
-	log.Printf("Starting %s...\n", config.lspCommandStr)
+	log.Printf("Starting %s %v...\n", config.lspCommand, config.lspArgs)
 
 	if err := server.start(); err != nil {
 		log.Fatal(err)

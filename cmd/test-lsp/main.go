@@ -8,83 +8,77 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 	"github.com/isaacphi/mcp-language-server/internal/tools"
 )
 
-type LSPCommand struct {
-	WorkspaceDir string
-	Command      string
-	Args         []string
+type config struct {
+	workspaceDir string
+	lspCommand   string
+	lspArgs      []string
+	keyword      string
 }
 
-// Parse a command string into command and arguments
-func parseLSPCommand(cmdStr string) LSPCommand {
-	parts := strings.Fields(cmdStr)
-	return LSPCommand{
-		Command: parts[0],
-		Args:    parts[1:],
+func parseConfig() (*config, error) {
+	cfg := &config{}
+
+	flag.StringVar(&cfg.keyword, "keyword", "main", "keyword to look up definition for")
+	flag.StringVar(&cfg.workspaceDir, "workspace", ".", "Path to workspace directory (optional)")
+	flag.StringVar(&cfg.lspCommand, "lsp", "gopls", "LSP command to run")
+	flag.Parse()
+
+	// Get remaining args after -- as LSP arguments
+	cfg.lspArgs = flag.Args()
+
+	// Validate and resolve workspace directory
+	workspaceDir, err := filepath.Abs(cfg.workspaceDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path for workspace: %v", err)
 	}
+	cfg.workspaceDir = workspaceDir
+
+	if _, err := os.Stat(cfg.workspaceDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("workspace directory does not exist: %s", cfg.workspaceDir)
+	}
+
+	// Validate LSP command
+	if _, err := exec.LookPath(cfg.lspCommand); err != nil {
+		return nil, fmt.Errorf("LSP command not found: %s", cfg.lspCommand)
+	}
+
+	return cfg, nil
 }
 
 func main() {
-	// Define command line flags
-	var (
-		workspaceDir  string
-		lspCommandStr string
-		keyword       string
-	)
-
-	flag.StringVar(&keyword, "keyword", "main", "keyword")
-	flag.StringVar(&workspaceDir, "workspace", ".", "Path to workspace directory (optional)")
-	flag.StringVar(&lspCommandStr, "lsp", "gopls", "LSP command to run (e.g., 'gopls -remote=auto')")
-	flag.Parse()
-
-	// Handle workspace directory
-	workspaceDir, err := filepath.Abs(workspaceDir)
+	cfg, err := parseConfig()
 	if err != nil {
-		log.Fatalf("Failed to get absolute path for workspace: %v", err)
-	}
-
-	// Validate workspace directory
-	if _, err := os.Stat(workspaceDir); os.IsNotExist(err) {
-		log.Fatalf("Workspace directory does not exist: %s", workspaceDir)
-	}
-
-	// Parse LSP command
-	lspCmd := parseLSPCommand(lspCommandStr)
-
-	// Verify the LSP command exists
-	if _, err := exec.LookPath(lspCmd.Command); err != nil {
-		log.Fatalf("LSP command not found: %s", lspCmd.Command)
+		log.Fatal(err)
 	}
 
 	// Change to the workspace directory
-	if err := os.Chdir(workspaceDir); err != nil {
+	if err := os.Chdir(cfg.workspaceDir); err != nil {
 		log.Fatalf("Failed to change to workspace directory: %v", err)
 	}
 
-	fmt.Printf("Using workspace: %s\n", workspaceDir)
+	fmt.Printf("Using workspace: %s\n", cfg.workspaceDir)
+	fmt.Printf("Starting %s %v...\n", cfg.lspCommand, cfg.lspArgs)
 
 	// Create a new LSP client
-	fmt.Printf("Starting %s...\n", lspCmd.Command)
-	client, err := lsp.NewClient(lspCmd.Command, lspCmd.Args...)
+	client, err := lsp.NewClient(cfg.lspCommand, cfg.lspArgs...)
 	if err != nil {
 		log.Fatalf("Failed to create LSP client: %v", err)
 	}
 	defer client.Close()
-	// Initialize
+
 	ctx := context.Background()
-	initResult, err := client.InitializeLSPClient(ctx, workspaceDir)
+	initResult, err := client.InitializeLSPClient(ctx, cfg.workspaceDir)
 	if err != nil {
 		log.Fatalf("Initialize failed: %v", err)
 	}
 	fmt.Printf("Server capabilities: %+v\n\n", initResult.Capabilities)
 
-	// Send initialized notification
 	err = client.Initialized(ctx, protocol.InitializedParams{})
 	if err != nil {
 		log.Fatalf("Initialized notification failed: %v", err)
@@ -95,7 +89,7 @@ func main() {
 	}
 
 	// Test Tools
-	text, err := tools.ReadDefinition(ctx, client, keyword)
+	text, err := tools.ReadDefinition(ctx, client, cfg.keyword)
 	if err != nil {
 		log.Fatalf("GetDefinition failed: %v", err)
 	}
