@@ -2,6 +2,7 @@ package protocol
 
 import "fmt"
 
+// TextEditResult is an interface for types that represent workspace symbols
 type WorkspaceSymbolResult interface {
 	GetName() string
 	GetLocation() Location
@@ -26,6 +27,9 @@ func (si *SymbolInformation) isWorkspaceSymbol()    {}
 
 // Results converts the Value to a slice of WorkspaceSymbolResult
 func (r Or_Result_workspace_symbol) Results() ([]WorkspaceSymbolResult, error) {
+	if r.Value == nil {
+		return make([]WorkspaceSymbolResult, 0), nil
+	}
 	switch v := r.Value.(type) {
 	case []WorkspaceSymbol:
 		results := make([]WorkspaceSymbolResult, len(v))
@@ -44,6 +48,7 @@ func (r Or_Result_workspace_symbol) Results() ([]WorkspaceSymbolResult, error) {
 	}
 }
 
+// TextEditResult is an interface for types that represent document symbols
 type DocumentSymbolResult interface {
 	GetRange() Range
 	GetName() string
@@ -61,6 +66,9 @@ func (si *SymbolInformation) isDocumentSymbol() {}
 
 // Results converts the Value to a slice of DocumentSymbolResult
 func (r Or_Result_textDocument_documentSymbol) Results() ([]DocumentSymbolResult, error) {
+	if r.Value == nil {
+		return make([]DocumentSymbolResult, 0), nil
+	}
 	switch v := r.Value.(type) {
 	case []DocumentSymbol:
 		results := make([]DocumentSymbolResult, len(v))
@@ -92,6 +100,9 @@ func (te *TextEdit) isTextEdit()        {}
 
 // Convert Or_TextDocumentEdit_edits_Elem to TextEdit
 func (e Or_TextDocumentEdit_edits_Elem) AsTextEdit() (TextEdit, error) {
+	if e.Value == nil {
+		return TextEdit{}, fmt.Errorf("nil text edit")
+	}
 	switch v := e.Value.(type) {
 	case TextEdit:
 		return v, nil
