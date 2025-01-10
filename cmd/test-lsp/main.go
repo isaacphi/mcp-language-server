@@ -88,6 +88,7 @@ func main() {
 		log.Fatalf("Server failed to become ready: %v", err)
 	}
 
+	///////////////////////////////////////////////////////////////////////////
 	// Test Tools
 	text, err := tools.ReadDefinition(ctx, client, tools.ReadDefinitionArgs{
 		SymbolName:      cfg.keyword,
@@ -101,10 +102,10 @@ func main() {
 
 	edits := []tools.TextEdit{
 		tools.TextEdit{
-			Type:      tools.Delete,
+			Type:      tools.Replace,
 			StartLine: 2,
-			EndLine:   3,
-			NewText:   "",
+			EndLine:   2,
+			NewText:   "\n",
 		},
 	}
 	response, err := tools.ApplyTextEdits(tools.ApplyTextEditArgs{
@@ -116,6 +117,7 @@ func main() {
 	}
 	fmt.Println(response)
 
+	///////////////////////////////////////////////////////////////////////////
 	// Cleanup
 	fmt.Println("\nShutting down...")
 	err = client.Shutdown(ctx)

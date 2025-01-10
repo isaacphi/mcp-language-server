@@ -284,20 +284,13 @@ func applyTextEdit(lines []string, edit protocol.TextEdit, lineEnding string) ([
 
 	// Handle the edit
 	if edit.NewText == "" {
-		// For empty replacement, just join prefix and suffix
-		if startLine == endLine {
-			// Single line deletion
+		if prefix+suffix != "" {
 			result = append(result, prefix+suffix)
-		} else {
-			// Multi-line deletion
-			if prefix+suffix != "" {
-				result = append(result, prefix+suffix)
-			}
 		}
 	} else {
 		// Split new text into lines, being careful not to add extra newlines
-		// newLines := strings.Split(strings.TrimRight(edit.NewText, "\n"), "\n")
-		newLines := strings.Split(edit.NewText, "\n")
+		newLines := strings.Split(strings.TrimRight(edit.NewText, "\n"), "\n")
+		// newLines := strings.Split(edit.NewText, "\n")
 
 		if len(newLines) == 1 {
 			// Single line change
