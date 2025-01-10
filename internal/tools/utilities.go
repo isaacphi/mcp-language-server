@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -131,32 +132,79 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 		symbolRange = loc.Range
 	}
 
-	// Modify the range to cover complete lines
-	filePath := strings.TrimPrefix(string(loc.URI), "file://")
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", protocol.Location{}, fmt.Errorf("failed to read file: %w", err)
-	}
-	lines := strings.Split(string(content), "\n")
+	if found {
+		// Convert URI to filesystem path
+		filePath, err := url.PathUnescape(strings.TrimPrefix(string(loc.URI), "file://"))
+		if err != nil {
+			return "", protocol.Location{}, fmt.Errorf("failed to unescape URI: %w", err)
+		}
 
-	fullLineRange := protocol.Range{
-		Start: protocol.Position{
-			Line:      symbolRange.Start.Line,
-			Character: 0,
-		},
-		End: protocol.Position{
-			Line:      symbolRange.End.Line,
-			Character: uint32(len(lines[symbolRange.End.Line])),
-		},
+		// Read the file
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return "", protocol.Location{}, fmt.Errorf("failed to read file: %w", err)
+		}
+
+		lines := strings.Split(string(content), "\n")
+
+		// Extend start to beginning of line
+		symbolRange.Start.Character = 0
+
+		// Get the line at the end of the range
+		if int(symbolRange.End.Line) >= len(lines) {
+			return "", protocol.Location{}, fmt.Errorf("line number out of range")
+		}
+
+		line := lines[symbolRange.End.Line]
+		trimmedLine := strings.TrimSpace(line)
+
+		if len(trimmedLine) > 0 {
+			lastChar := trimmedLine[len(trimmedLine)-1]
+			if lastChar == '(' || lastChar == '[' || lastChar == '{' || lastChar == '<' {
+				// Find matching closing bracket
+				bracketStack := []rune{rune(lastChar)}
+				lineNum := symbolRange.End.Line + 1
+
+				for lineNum < uint32(len(lines)) {
+					line := lines[lineNum]
+					for pos, char := range line {
+						if char == '(' || char == '[' || char == '{' || char == '<' {
+							bracketStack = append(bracketStack, char)
+						} else if char == ')' || char == ']' || char == '}' || char == '>' {
+							if len(bracketStack) > 0 {
+								lastOpen := bracketStack[len(bracketStack)-1]
+								if (lastOpen == '(' && char == ')') ||
+									(lastOpen == '[' && char == ']') ||
+									(lastOpen == '{' && char == '}') ||
+									(lastOpen == '<' && char == '>') {
+									bracketStack = bracketStack[:len(bracketStack)-1]
+									if len(bracketStack) == 0 {
+										// Found matching bracket - update range
+										symbolRange.End.Line = lineNum
+										symbolRange.End.Character = uint32(pos + 1)
+										goto foundClosing
+									}
+								}
+							}
+						}
+					}
+					lineNum++
+				}
+			foundClosing:
+			}
+		}
+
+		// Update location with new range
+		loc.Range = symbolRange
+
+		// Return the text within the range
+		if int(symbolRange.End.Line) >= len(lines) {
+			return "", protocol.Location{}, fmt.Errorf("end line out of range")
+		}
+
+		selectedLines := lines[symbolRange.Start.Line : symbolRange.End.Line+1]
+		return strings.Join(selectedLines, "\n"), loc, nil
 	}
 
-	text, err := ExtractTextFromLocation(protocol.Location{
-		URI:   loc.URI,
-		Range: fullLineRange,
-	})
-	if err != nil {
-		return "", protocol.Location{}, fmt.Errorf("failed to extract text from location: %v", err)
-	}
-
-	return text, protocol.Location{URI: loc.URI, Range: symbolRange}, nil
+	return "", protocol.Location{}, fmt.Errorf("symbol not found")
 }
