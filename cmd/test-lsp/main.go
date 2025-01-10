@@ -102,10 +102,16 @@ func main() {
 
 	edits := []tools.TextEdit{
 		tools.TextEdit{
-			Type:      tools.Replace,
+			Type:      tools.Insert,
 			StartLine: 2,
 			EndLine:   2,
-			NewText:   "\n",
+			NewText:   "two\n",
+		},
+		tools.TextEdit{
+			Type:      tools.Replace,
+			StartLine: 4,
+			EndLine:   4,
+			NewText:   "",
 		},
 	}
 	response, err := tools.ApplyTextEdits(tools.ApplyTextEditArgs{

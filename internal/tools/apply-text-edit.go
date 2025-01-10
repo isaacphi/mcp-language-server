@@ -194,7 +194,7 @@ func applyTextEdits(uri protocol.DocumentUri, edits []protocol.TextEdit) error {
 	}
 
 	// Track if file ends with a newline
-	// endsWithNewline := len(content) > 0 && bytes.HasSuffix(content, []byte(lineEnding))
+	endsWithNewline := len(content) > 0 && bytes.HasSuffix(content, []byte(lineEnding))
 
 	// Split into lines without the endings
 	lines := strings.Split(string(content), lineEnding)
@@ -236,10 +236,10 @@ func applyTextEdits(uri protocol.DocumentUri, edits []protocol.TextEdit) error {
 		newContent.WriteString(line)
 	}
 
-	// Preserve final newline if it existed
-	// if endsWithNewline {
-	// 	newContent.WriteString(lineEnding)
-	// }
+	// Only add a newline if the original file had one and we haven't already added it
+	if endsWithNewline && !strings.HasSuffix(newContent.String(), lineEnding) {
+		newContent.WriteString(lineEnding)
+	}
 
 	if err := os.WriteFile(path, []byte(newContent.String()), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
@@ -289,8 +289,8 @@ func applyTextEdit(lines []string, edit protocol.TextEdit, lineEnding string) ([
 		}
 	} else {
 		// Split new text into lines, being careful not to add extra newlines
-		newLines := strings.Split(strings.TrimRight(edit.NewText, "\n"), "\n")
-		// newLines := strings.Split(edit.NewText, "\n")
+		// newLines := strings.Split(strings.TrimRight(edit.NewText, "\n"), "\n")
+		newLines := strings.Split(edit.NewText, "\n")
 
 		if len(newLines) == 1 {
 			// Single line change
