@@ -83,13 +83,14 @@ func containsPosition(r protocol.Range, p protocol.Position) bool {
 }
 
 // Gets the full code block surrounding the start of the input location
-func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Location) (string, protocol.Location, error) {
+func GetFullDefinition(ctx context.Context, client *lsp.Client, startLocation protocol.Location) (string, protocol.Location, error) {
 	symParams := protocol.DocumentSymbolParams{
 		TextDocument: protocol.TextDocumentIdentifier{
-			URI: loc.URI,
+			URI: startLocation.URI,
 		},
 	}
 
+	// Get all symbols in document
 	symResult, err := client.DocumentSymbol(ctx, symParams)
 	if err != nil {
 		return "", protocol.Location{}, fmt.Errorf("failed to get document symbols: %w", err)
@@ -103,10 +104,11 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 	var symbolRange protocol.Range
 	found := false
 
+	// Search for symbol at startLocation
 	var searchSymbols func(symbols []protocol.DocumentSymbolResult) bool
 	searchSymbols = func(symbols []protocol.DocumentSymbolResult) bool {
 		for _, sym := range symbols {
-			if containsPosition(sym.GetRange(), loc.Range.Start) {
+			if containsPosition(sym.GetRange(), startLocation.Range.Start) {
 				symbolRange = sym.GetRange()
 				found = true
 				return true
@@ -129,17 +131,18 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 
 	if !found {
 		// Fall back to the original location if we can't find a better range
-		symbolRange = loc.Range
+		symbolRange = startLocation.Range
 	}
 
 	if found {
 		// Convert URI to filesystem path
-		filePath, err := url.PathUnescape(strings.TrimPrefix(string(loc.URI), "file://"))
+		filePath, err := url.PathUnescape(strings.TrimPrefix(string(startLocation.URI), "file://"))
 		if err != nil {
 			return "", protocol.Location{}, fmt.Errorf("failed to unescape URI: %w", err)
 		}
 
-		// Read the file
+		// Read the file to get the full lines of the definition
+		// because we may have a start and end column
 		content, err := os.ReadFile(filePath)
 		if err != nil {
 			return "", protocol.Location{}, fmt.Errorf("failed to read file: %w", err)
@@ -158,6 +161,8 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 		line := lines[symbolRange.End.Line]
 		trimmedLine := strings.TrimSpace(line)
 
+		// In some cases, constant definitions do not include the full body and instead
+		// end with an opening bracket. In this case, parse the file until the closing bracket
 		if len(trimmedLine) > 0 {
 			lastChar := trimmedLine[len(trimmedLine)-1]
 			if lastChar == '(' || lastChar == '[' || lastChar == '{' || lastChar == '<' {
@@ -195,7 +200,7 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 		}
 
 		// Update location with new range
-		loc.Range = symbolRange
+		startLocation.Range = symbolRange
 
 		// Return the text within the range
 		if int(symbolRange.End.Line) >= len(lines) {
@@ -203,7 +208,7 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, loc protocol.Loc
 		}
 
 		selectedLines := lines[symbolRange.Start.Line : symbolRange.End.Line+1]
-		return strings.Join(selectedLines, "\n"), loc, nil
+		return strings.Join(selectedLines, "\n"), startLocation, nil
 	}
 
 	return "", protocol.Location{}, fmt.Errorf("symbol not found")

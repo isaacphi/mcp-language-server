@@ -12,14 +12,14 @@ import (
 )
 
 type getDefinitionArgs struct {
-	SymbolName string `json:"symbolName" jsonschema:"required,description=The exact name of the symbol (function, class or something else) to fetch."`
+	SymbolName string `json:"symbolName" jsonschema:"required,description=The exact name of the symbol to fetch. Method names must be fully specified e.g. MyClass.MyMethod"`
 }
 
 type applyTextEditArgs struct {
-	FilePath     string `json:"filePath"`
-	StartLineNum string `json:"startLineNum"`
-	EndLineNum   string `json:"endLineNum"`
-	NewText      string `json:"newText"`
+	FilePath     string `json:"filePath" jsonschema:"required,description=Full path to file"`
+	StartLineNum string `json:"startLineNum" jsonschema:"required,description=1 based start line number"`
+	EndLineNum   string `json:"endLineNum" jsonschema:"required,description=1 based end line number"`
+	NewText      string `json:"newText" jsonschema:"required,description=Text to insert"`
 }
 
 func (s *server) registerTools() error {
@@ -40,7 +40,7 @@ func (s *server) registerTools() error {
 
 	err = s.mcpServer.RegisterTool(
 		"apply-text-edit",
-		"Apply a text edit to a file. Specify path, start line number, end line number, and new text. Line numbers are 1-based.",
+		"Apply a text edit to a file.",
 		func(args applyTextEditArgs) (*mcp_golang.ToolResponse, error) {
 			rng, err := getPosition(args.StartLineNum, args.EndLineNum, args.FilePath)
 			if err != nil {
