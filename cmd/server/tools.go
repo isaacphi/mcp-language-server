@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
+	"sort"
 	"strings"
 
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
@@ -16,11 +16,15 @@ type getDefinitionArgs struct {
 	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"default=false,description=If true, adds line numbers to the output"`
 }
 
-type applyTextEditArgs struct {
-	FilePath     string `json:"filePath" jsonschema:"required,description=Full path to file"`
-	StartLineNum string `json:"startLineNum" jsonschema:"required,description=1 based start line number"`
-	EndLineNum   string `json:"endLineNum" jsonschema:"required,description=1 based end line number"`
-	NewText      string `json:"newText" jsonschema:"required,description=Text to insert"`
+type TextEdit struct {
+	StartLine int    `json:"startLine"`
+	EndLine   int    `json:"endLine"`
+	NewText   string `json:"newText"`
+}
+
+type ApplyTextEditArgs struct {
+	FilePath string     `json:"filePath"`
+	Edits    []TextEdit `json:"edits"`
 }
 
 func (s *server) registerTools() error {
@@ -41,27 +45,40 @@ func (s *server) registerTools() error {
 
 	err = s.mcpServer.RegisterTool(
 		"apply-text-edit",
-		"Apply a text edit to a file.",
-		func(args applyTextEditArgs) (*mcp_golang.ToolResponse, error) {
-			rng, err := getPosition(args.StartLineNum, args.EndLineNum, args.FilePath)
-			if err != nil {
-				return nil, fmt.Errorf("invalid position: %v", err)
+		"Apply multiple text edits to a file.",
+		func(args ApplyTextEditArgs) (*mcp_golang.ToolResponse, error) {
+			// Sort edits by line number in descending order to process from bottom to top
+			// This way line numbers don't shift under us as we make edits
+			sort.Slice(args.Edits, func(i, j int) bool {
+				return args.Edits[i].StartLine > args.Edits[j].StartLine
+			})
+
+			var textEdits []protocol.TextEdit
+			for _, edit := range args.Edits {
+				rng, err := getRange(edit.StartLine, edit.EndLine, args.FilePath)
+				if err != nil {
+					return nil, fmt.Errorf("invalid position: %v", err)
+				}
+
+				textEdits = append(textEdits, protocol.TextEdit{
+					Range:   rng,
+					NewText: edit.NewText,
+				})
 			}
 
 			edit := protocol.WorkspaceEdit{
 				Changes: map[protocol.DocumentUri][]protocol.TextEdit{
-					protocol.DocumentUri(args.FilePath): {{
-						Range: rng, NewText: args.NewText,
-					}},
+					protocol.DocumentUri(args.FilePath): textEdits,
 				},
 			}
 
 			if err := tools.ApplyWorkspaceEdit(edit); err != nil {
-				return nil, fmt.Errorf("failed to apply text edit: %v", err)
+				return nil, fmt.Errorf("failed to apply text edits: %v", err)
 			}
 
-			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent("Successfully applied text edit")), nil
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent("Successfully applied text edits")), nil
 		})
+
 	if err != nil {
 		return fmt.Errorf("failed to register tool: %v", err)
 	}
@@ -69,35 +86,42 @@ func (s *server) registerTools() error {
 	return nil
 }
 
-func getPosition(startPos, endPos, filePath string) (protocol.Range, error) {
-	startLine, err := strconv.Atoi(startPos)
-	if err != nil {
-		return protocol.Range{}, fmt.Errorf("invalid line number: %v", err)
-	}
-
-	endLine, err := strconv.Atoi(endPos)
-	if err != nil {
-		return protocol.Range{}, fmt.Errorf("invalid line number: %v", err)
-	}
-
+func getRange(startLine, endLine int, filePath string) (protocol.Range, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return protocol.Range{}, fmt.Errorf("failed to read file: %w", err)
 	}
-	lines := strings.Split(string(content), "\n")
 
-	// Convert to 0 based index
-	rng := protocol.Range{
+	// Split into lines while preserving line endings
+	lines := strings.SplitAfter(string(content), "\n")
+
+	if startLine < 1 || startLine > len(lines) {
+		return protocol.Range{}, fmt.Errorf("start line out of range")
+	}
+
+	// For end of file insertions, point to the end of the last line
+	if endLine > len(lines) {
+		endLine = len(lines)
+	}
+
+	// Convert to 0-based index
+	startIdx := startLine - 1
+	endIdx := endLine - 1
+
+	// Get the true line length, excluding the trailing newline if present
+	lineLen := len(lines[endIdx])
+	if strings.HasSuffix(lines[endIdx], "\n") {
+		lineLen--
+	}
+
+	return protocol.Range{
 		Start: protocol.Position{
-			Line:      uint32(startLine - 1),
+			Line:      uint32(startIdx),
 			Character: 0,
 		},
 		End: protocol.Position{
-			Line:      uint32(endLine - 1),
-			Character: uint32(len(lines[endLine-1])),
+			Line:      uint32(endIdx),
+			Character: uint32(lineLen),
 		},
-	}
-
-	return rng, nil
+	}, nil
 }
-

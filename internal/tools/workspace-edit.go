@@ -27,7 +27,6 @@ func ApplyWorkspaceEdit(edit protocol.WorkspaceEdit) error {
 	return nil
 }
 
-// applyTextEdits applies a sequence of TextEdits to a file
 func applyTextEdits(uri protocol.DocumentUri, edits []protocol.TextEdit) error {
 	path := strings.TrimPrefix(string(uri), "file://")
 
@@ -37,7 +36,10 @@ func applyTextEdits(uri protocol.DocumentUri, edits []protocol.TextEdit) error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
+	// Split into lines while preserving empty lines
+	// Use strings.Split instead of SplitAfter since we'll handle newlines separately
 	lines := strings.Split(string(content), "\n")
+	endsWithNewline := len(content) > 0 && content[len(content)-1] == '\n'
 
 	// Sort edits in reverse order to avoid position shifting
 	sortedEdits := make([]protocol.TextEdit, len(edits))
@@ -54,67 +56,83 @@ func applyTextEdits(uri protocol.DocumentUri, edits []protocol.TextEdit) error {
 
 	// Write back to file
 	newContent := strings.Join(lines, "\n")
+	if endsWithNewline {
+		newContent += "\n"
+	}
+
 	if err := os.WriteFile(path, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return nil
 }
-
-// applyTextEdit applies a single TextEdit to the given lines
 func applyTextEdit(lines []string, edit protocol.TextEdit) ([]string, error) {
 	startLine := int(edit.Range.Start.Line)
 	endLine := int(edit.Range.End.Line)
 	startChar := int(edit.Range.Start.Character)
 	endChar := int(edit.Range.End.Character)
 
-	if startLine < 0 || startLine >= len(lines) || endLine < 0 || endLine >= len(lines) {
-		return nil, fmt.Errorf("invalid line range: %v", edit.Range)
+	if startLine < 0 || startLine >= len(lines) {
+		return nil, fmt.Errorf("invalid start line: %d", startLine)
+	}
+	if endLine < 0 || endLine >= len(lines) {
+		return nil, fmt.Errorf("invalid end line: %d", endLine)
 	}
 
-	// Handle single-line edit
-	if startLine == endLine {
-		line := lines[startLine]
-		if startChar < 0 || startChar > len(line) || endChar < 0 || endChar > len(line) {
-			return nil, fmt.Errorf("invalid character range: %v", edit.Range)
+	// Create result slice with initial capacity
+	result := make([]string, 0, len(lines))
+
+	// Copy lines before the edit
+	result = append(result, lines[:startLine]...)
+
+	// Get the prefix of the start line up to the edit start
+	startLineContent := lines[startLine]
+	if startChar < 0 || startChar > len(startLineContent) {
+		return nil, fmt.Errorf("invalid start character: %d", startChar)
+	}
+	prefix := startLineContent[:startChar]
+
+	// Get the suffix of the end line after the edit end
+	endLineContent := lines[endLine]
+	if endChar < 0 || endChar > len(endLineContent) {
+		return nil, fmt.Errorf("invalid end character: %d", endChar)
+	}
+	suffix := endLineContent[endChar:]
+
+	// Split the new text into lines
+	newLines := strings.Split(edit.NewText, "\n")
+
+	if len(newLines) == 0 {
+		// Handle empty replacement
+		if startLine == endLine {
+			// Single line edit
+			result = append(result, prefix+suffix)
+		} else {
+			// Multi-line removal
+			result = append(result, prefix+suffix)
 		}
-
-		newLine := line[:startChar] + edit.NewText + line[endChar:]
-		lines[startLine] = newLine
-		return lines, nil
-	}
-
-	// Handle multi-line edit
-	newLines := make([]string, 0, len(lines))
-
-	// Add lines before edit
-	newLines = append(newLines, lines[:startLine]...)
-
-	// Add first line of edit
-	firstLine := lines[startLine]
-	if startChar < 0 || startChar > len(firstLine) {
-		return nil, fmt.Errorf("invalid start character: %v", edit.Range.Start)
-	}
-	newLineContent := firstLine[:startChar] + edit.NewText
-
-	// Split new content into lines if it contains newlines
-	if strings.Contains(edit.NewText, "\n") {
-		splitNewContent := strings.Split(newLineContent, "\n")
-		newLines = append(newLines, splitNewContent...)
 	} else {
-		newLines = append(newLines, newLineContent)
-	}
+		// Handle the first and last lines of the new content specially
+		firstNew := newLines[0]
+		lastNew := newLines[len(newLines)-1]
 
-	// Add remaining lines after edit
-	if endLine+1 < len(lines) {
-		lastLine := lines[endLine]
-		if endChar >= 0 && endChar <= len(lastLine) {
-			newLines[len(newLines)-1] += lastLine[endChar:]
+		if len(newLines) == 1 {
+			// Single line insertion/replacement
+			result = append(result, prefix+firstNew+suffix)
+		} else {
+			// Multi-line insertion/replacement
+			result = append(result, prefix+firstNew)
+			result = append(result, newLines[1:len(newLines)-1]...)
+			result = append(result, lastNew+suffix)
 		}
-		newLines = append(newLines, lines[endLine+1:]...)
 	}
 
-	return newLines, nil
+	// Add remaining lines after the edit
+	if endLine+1 < len(lines) {
+		result = append(result, lines[endLine+1:]...)
+	}
+
+	return result, nil
 }
 
 // applyDocumentChange applies a DocumentChange (create/rename/delete operations)
