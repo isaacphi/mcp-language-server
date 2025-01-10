@@ -11,8 +11,8 @@ func (s *server) registerTools() error {
 
 	err := s.mcpServer.RegisterTool(
 		"read-definition",
-		"Read the source code for a given symbol from the codebase",
-		func(args tools.GetDefinitionArgs) (*mcp_golang.ToolResponse, error) {
+		"Read the source code for a given symbol from the codebase.",
+		func(args tools.ReadDefinitionArgs) (*mcp_golang.ToolResponse, error) {
 			text, err := tools.ReadDefinition(s.ctx, s.lspClient, args)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get definition: %v", err)
@@ -25,7 +25,7 @@ func (s *server) registerTools() error {
 
 	err = s.mcpServer.RegisterTool(
 		"apply-text-edit",
-		"Apply multiple text edits to a file.",
+		"Apply multiple text edits to a file. WARNING: line numbers may change between calls to this tool.",
 		func(args tools.ApplyTextEditArgs) (*mcp_golang.ToolResponse, error) {
 			response, err := tools.ApplyTextEdits(args)
 			if err != nil {

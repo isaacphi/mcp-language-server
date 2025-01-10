@@ -22,7 +22,7 @@ type TextEdit struct {
 	Type      TextEditType `json:"type" jsonschema:"required,enum=replace|insert|delete,description=Type of edit operation (replace, insert, delete)"`
 	StartLine int          `json:"startLine" jsonschema:"required,description=Start line to replace, inclusive"`
 	EndLine   int          `json:"endLine" jsonschema:"required,description=End line to replace, inclusive"`
-	NewText   string       `json:"newText" jsonschema:"description=Replacement text (optional)"`
+	NewText   string       `json:"newText" jsonschema:"description=Replacement text. Leave blank to clear lines."`
 }
 
 type ApplyTextEditArgs struct {
