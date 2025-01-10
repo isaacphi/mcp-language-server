@@ -89,12 +89,32 @@ func main() {
 	}
 
 	// Test Tools
-	text, err := tools.ReadDefinition(ctx, client, cfg.keyword, true)
+	text, err := tools.ReadDefinition(ctx, client, tools.ReadDefinitionArgs{
+		SymbolName:      cfg.keyword,
+		ShowLineNumbers: true,
+	})
 	if err != nil {
-		log.Fatalf("GetDefinition failed: %v", err)
+		log.Fatalf("ReadDefinition failed: %v", err)
 	}
 
 	fmt.Println(text)
+
+	edits := []tools.TextEdit{
+		tools.TextEdit{
+			Type:      tools.Delete,
+			StartLine: 2,
+			EndLine:   3,
+			NewText:   "",
+		},
+	}
+	response, err := tools.ApplyTextEdits(tools.ApplyTextEditArgs{
+		FilePath: cfg.keyword,
+		Edits:    edits,
+	})
+	if err != nil {
+		log.Fatalf("ApplyTextEdits failed: %v", err)
+	}
+	fmt.Println(response)
 
 	// Cleanup
 	fmt.Println("\nShutting down...")
