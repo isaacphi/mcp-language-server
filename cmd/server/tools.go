@@ -12,7 +12,8 @@ import (
 )
 
 type getDefinitionArgs struct {
-	SymbolName string `json:"symbolName" jsonschema:"required,description=The exact name of the symbol to fetch. Method names must be fully specified e.g. MyClass.MyMethod"`
+	SymbolName      string `json:"symbolName" jsonschema:"required,description=The exact name of the symbol to fetch. Method names must be fully specified e.g. MyClass.MyMethod"`
+	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"default=false,description=If true, adds line numbers to the output"`
 }
 
 type applyTextEditArgs struct {
@@ -28,7 +29,7 @@ func (s *server) registerTools() error {
 		"read-definition",
 		"Read the source code for a given symbol from the codebase",
 		func(args getDefinitionArgs) (*mcp_golang.ToolResponse, error) {
-			text, err := tools.ReadDefinition(s.ctx, s.lspClient, args.SymbolName)
+			text, err := tools.ReadDefinition(s.ctx, s.lspClient, args.SymbolName, args.ShowLineNumbers)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get definition: %v", err)
 			}

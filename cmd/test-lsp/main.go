@@ -89,7 +89,7 @@ func main() {
 	}
 
 	// Test Tools
-	text, err := tools.ReadDefinition(ctx, client, cfg.keyword)
+	text, err := tools.ReadDefinition(ctx, client, cfg.keyword, false)
 	if err != nil {
 		log.Fatalf("GetDefinition failed: %v", err)
 	}

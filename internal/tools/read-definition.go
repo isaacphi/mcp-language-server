@@ -10,7 +10,7 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
-func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string) (string, error) {
+func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string, showLineNumbers bool) (string, error) {
 	symbolResult, err := client.Symbol(ctx, protocol.WorkspaceSymbolParams{
 		Query: symbolName,
 	})
@@ -73,6 +73,10 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string) 
 		if err != nil {
 			log.Printf("Error getting definition: %v\n", err)
 			continue
+		}
+
+		if showLineNumbers {
+			definition = addLineNumbers(definition, int(loc.Range.Start.Line)+1)
 		}
 
 		definitions = append(definitions, banner+locationInfo+definition+"\n")

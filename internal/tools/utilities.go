@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
@@ -212,4 +213,21 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, startLocation pr
 	}
 
 	return "", protocol.Location{}, fmt.Errorf("symbol not found")
+}
+
+// addLineNumbers adds line numbers to each line of text with proper padding, starting from startLine
+func addLineNumbers(text string, startLine int) string {
+	lines := strings.Split(text, "\n")
+	// Calculate padding width based on the number of digits in the last line number
+	lastLineNum := startLine + len(lines)
+	padding := len(strconv.Itoa(lastLineNum))
+
+	var result strings.Builder
+	for i, line := range lines {
+		// Format line number with padding and separator
+		lineNum := strconv.Itoa(startLine + i)
+		linePadding := strings.Repeat(" ", padding-len(lineNum))
+		result.WriteString(fmt.Sprintf("%s%s|%s\n", linePadding, lineNum, line))
+	}
+	return result.String()
 }
