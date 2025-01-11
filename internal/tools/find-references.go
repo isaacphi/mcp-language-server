@@ -61,9 +61,15 @@ func FindReferences(ctx context.Context, client *lsp.Client, args FindReferences
 			refsByFile[ref.URI] = append(refsByFile[ref.URI], ref)
 		}
 
+		banner := strings.Repeat("=", 80) + "\n"
+		header := fmt.Sprintf("References for symbol: %s\n", args.SymbolName)
+		allReferences = append(allReferences, banner+header+banner)
+
 		// Process each file's references
 		for uri, fileRefs := range refsByFile {
-			fileInfo := fmt.Sprintf("\nReferences in %s:\n", strings.TrimPrefix(string(uri), "file://"))
+			fileInfo := fmt.Sprintf("\nFile: %s\n%s\n",
+				strings.TrimPrefix(string(uri), "file://"),
+				strings.Repeat("-", 80))
 			allReferences = append(allReferences, fileInfo)
 
 			for _, ref := range fileRefs {
@@ -77,7 +83,7 @@ func FindReferences(ctx context.Context, client *lsp.Client, args FindReferences
 					snippet = addLineNumbers(snippet, int(ref.Range.Start.Line)+1)
 				}
 
-				refInfo := fmt.Sprintf("  Line %d, Column %d:\n%s\n",
+				refInfo := fmt.Sprintf("Reference at Line %d, Column %d:\n%s\n",
 					ref.Range.Start.Line+1,
 					ref.Range.Start.Character+1,
 					snippet,
@@ -89,7 +95,9 @@ func FindReferences(ctx context.Context, client *lsp.Client, args FindReferences
 	}
 
 	if len(allReferences) == 0 {
-		return fmt.Sprintf("No references found for %s", args.SymbolName), nil
+		banner := strings.Repeat("=", 80) + "\n"
+		return fmt.Sprintf("%sNo references found for symbol: %s\n%s",
+			banner, args.SymbolName, banner), nil
 	}
 
 	return strings.Join(allReferences, "\n"), nil
