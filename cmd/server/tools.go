@@ -33,7 +33,20 @@ func (s *server) registerTools() error {
 			}
 			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(response)), nil
 		})
+	if err != nil {
+		return fmt.Errorf("failed to register tool: %v", err)
+	}
 
+	err = s.mcpServer.RegisterTool(
+		"find-references",
+		"Find all references to a symbol in the codebase.",
+		func(args tools.FindReferencesArgs) (*mcp_golang.ToolResponse, error) {
+			text, err := tools.FindReferences(s.ctx, s.lspClient, args)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to find references: %v", err)
+			}
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
+		})
 	if err != nil {
 		return fmt.Errorf("failed to register tool: %v", err)
 	}
