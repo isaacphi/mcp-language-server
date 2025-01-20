@@ -22,6 +22,10 @@ type ApplyTextEditArgs struct {
 	Edits    []tools.TextEdit `json:"edits"`
 }
 
+type GetDiagnosticsArgs struct {
+	FilePath string `json:"filePath" jsonschema:"description=The path to the file to get diagnostics for"`
+}
+
 func (s *server) registerTools() error {
 
 	err := s.mcpServer.RegisterTool(
@@ -59,6 +63,20 @@ func (s *server) registerTools() error {
 			text, err := tools.FindReferences(s.ctx, s.lspClient, args.SymbolName, args.ShowLineNumbers)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to find references: %v", err)
+			}
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
+		})
+	if err != nil {
+		return fmt.Errorf("failed to register tool: %v", err)
+	}
+
+	err = s.mcpServer.RegisterTool(
+		"get-diagnostics",
+		"Get diagnostic information for a specific file from the language server.",
+		func(args GetDiagnosticsArgs) (*mcp_golang.ToolResponse, error) {
+			text, err := tools.GetDiagnostics(s.ctx, s.lspClient, args.FilePath)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get diagnostics: %v", err)
 			}
 			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
 		})

@@ -21,6 +21,7 @@ func WriteMessage(w io.Writer, msg *Message) error {
 	}
 
 	if debug {
+		log.Printf("%v", msg.Method)
 		log.Printf("-> Sending: %s", string(data))
 	}
 
@@ -116,7 +117,7 @@ func (c *Client) handleMessages() {
 			c.serverHandlersMu.RUnlock()
 
 			if ok {
-				result, err := handler.Handle(msg.Params)
+				result, err := handler(msg.Params)
 				if err != nil {
 					response.Error = &ResponseError{
 						Code:    -32603,
@@ -158,7 +159,7 @@ func (c *Client) handleMessages() {
 				if debug {
 					log.Printf("Handling notification: %s", msg.Method)
 				}
-				go handler(msg.Method, msg.Params)
+				go handler(msg.Params)
 			} else if debug {
 				log.Printf("No handler for notification: %s", msg.Method)
 			}
@@ -262,8 +263,5 @@ func (c *Client) Notify(ctx context.Context, method string, params interface{}) 
 	return nil
 }
 
-type ServerRequestHandler interface {
-	Handle(params json.RawMessage) (interface{}, error)
-}
-
-type NotificationHandler func(method string, params json.RawMessage)
+type NotificationHandler func(params json.RawMessage)
+type ServerRequestHandler func(params json.RawMessage) (interface{}, error)

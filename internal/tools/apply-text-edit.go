@@ -67,7 +67,7 @@ func ApplyTextEdits(filepath string, edits []TextEdit) (string, error) {
 		return "", fmt.Errorf("failed to apply text edits: %v", err)
 	}
 
-	return "Successfully applied text edits", nil
+	return "Successfully applied text edits.\nWARNING: line numbers may have changed. Re-read code before applying additional edits.", nil
 }
 
 // getRange now handles EOF insertions and is more precise about character positions

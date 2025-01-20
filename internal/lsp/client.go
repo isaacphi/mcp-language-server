@@ -3,6 +3,7 @@ package lsp
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -34,6 +35,10 @@ type Client struct {
 	// Notification handlers
 	notificationHandlers map[string]NotificationHandler
 	notificationMu       sync.RWMutex
+
+	// Diagnostic cache
+	diagnostics   map[protocol.DocumentUri][]protocol.Diagnostic
+	diagnosticsMu sync.RWMutex
 }
 
 func NewClient(command string, args ...string) (*Client, error) {
@@ -62,6 +67,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 		handlers:              make(map[int32]chan *Message),
 		notificationHandlers:  make(map[string]NotificationHandler),
 		serverRequestHandlers: make(map[string]ServerRequestHandler),
+		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),
 	}
 
 	// Start the LSP server process
@@ -108,6 +114,7 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 				},
 			},
 		},
+
 		XInitializeParams: protocol.XInitializeParams{
 			ProcessID: int32(os.Getpid()),
 			ClientInfo: &protocol.ClientInfo{
@@ -168,10 +175,12 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 		return nil, fmt.Errorf("initialized notification failed: %w", err)
 	}
 
-	// Register server to client request and notification handlers
-	c.RegisterServerRequestHandler("workspace/configuration", &WorkspaceConfigurationHandler{})
-	c.RegisterServerRequestHandler("client/registerCapability", &RegisterCapabilityHandler{})
-	c.RegisterNotificationHandler("window/showMessage", ServerMessageHandler)
+	// Register handlers
+	c.RegisterServerRequestHandler("workspace/configuration", HandleWorkspaceConfiguration)
+	c.RegisterServerRequestHandler("client/registerCapability", HandleRegisterCapability)
+	c.RegisterNotificationHandler("window/showMessage", HandleServerMessage)
+	c.RegisterNotificationHandler("textDocument/publishDiagnostics",
+		func(params json.RawMessage) { HandleDiagnostics(c, params) })
 
 	return &result, nil
 }

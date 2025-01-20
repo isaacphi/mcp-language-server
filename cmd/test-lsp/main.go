@@ -90,30 +90,35 @@ func main() {
 
 	///////////////////////////////////////////////////////////////////////////
 	// Test Tools
-	text, err := tools.ReadDefinition(ctx, client, cfg.keyword, true)
-	if err != nil {
-		log.Fatalf("ReadDefinition failed: %v", err)
-	}
+	// response, err := tools.ReadDefinition(ctx, client, cfg.keyword, true)
+	// if err != nil {
+	// 	log.Fatalf("ReadDefinition failed: %v", err)
+	// }
+	// fmt.Println(response)
+	//
+	// edits := []tools.TextEdit{
+	// 	tools.TextEdit{
+	// 		Type:      tools.Insert,
+	// 		StartLine: 2,
+	// 		EndLine:   2,
+	// 		NewText:   "two\n",
+	// 	},
+	// 	tools.TextEdit{
+	// 		Type:      tools.Replace,
+	// 		StartLine: 4,
+	// 		EndLine:   4,
+	// 		NewText:   "",
+	// 	},
+	// }
+	// response, err = tools.ApplyTextEdits(cfg.keyword, edits)
+	// if err != nil {
+	// 	log.Fatalf("ApplyTextEdits failed: %v", err)
+	// }
+	// fmt.Println(response)
 
-	fmt.Println(text)
-
-	edits := []tools.TextEdit{
-		tools.TextEdit{
-			Type:      tools.Insert,
-			StartLine: 2,
-			EndLine:   2,
-			NewText:   "two\n",
-		},
-		tools.TextEdit{
-			Type:      tools.Replace,
-			StartLine: 4,
-			EndLine:   4,
-			NewText:   "",
-		},
-	}
-	response, err := tools.ApplyTextEdits(cfg.keyword, edits)
+	response, err := tools.GetDiagnostics(ctx, client, cfg.keyword)
 	if err != nil {
-		log.Fatalf("ApplyTextEdits failed: %v", err)
+		log.Fatalf("GetDiagnostics failed: %v", err)
 	}
 	fmt.Println(response)
 
