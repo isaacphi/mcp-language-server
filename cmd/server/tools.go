@@ -23,7 +23,7 @@ type ApplyTextEditArgs struct {
 }
 
 type GetDiagnosticsArgs struct {
-	FilePath string `json:"filePath" jsonschema:"description=The path to the file to get diagnostics for"`
+	FilePath string `json:"filePath" jsonschema:"default=,description=The path to the file to get diagnostics for"`
 }
 
 func (s *server) registerTools() error {
