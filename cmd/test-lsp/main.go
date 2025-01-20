@@ -90,10 +90,7 @@ func main() {
 
 	///////////////////////////////////////////////////////////////////////////
 	// Test Tools
-	text, err := tools.ReadDefinition(ctx, client, tools.ReadDefinitionArgs{
-		SymbolName:      cfg.keyword,
-		ShowLineNumbers: true,
-	})
+	text, err := tools.ReadDefinition(ctx, client, cfg.keyword, true)
 	if err != nil {
 		log.Fatalf("ReadDefinition failed: %v", err)
 	}
@@ -114,10 +111,7 @@ func main() {
 			NewText:   "",
 		},
 	}
-	response, err := tools.ApplyTextEdits(tools.ApplyTextEditArgs{
-		FilePath: cfg.keyword,
-		Edits:    edits,
-	})
+	response, err := tools.ApplyTextEdits(cfg.keyword, edits)
 	if err != nil {
 		log.Fatalf("ApplyTextEdits failed: %v", err)
 	}
