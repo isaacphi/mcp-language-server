@@ -25,7 +25,7 @@ func (s *server) registerTools() error {
 
 	err = s.mcpServer.RegisterTool(
 		"apply-text-edit",
-		"Apply multiple text edits to a file. WARNING: line numbers may change between calls to this tool.",
+		"Apply multiple text edits to a file.",
 		func(args tools.ApplyTextEditArgs) (*mcp_golang.ToolResponse, error) {
 			response, err := tools.ApplyTextEdits(args)
 			if err != nil {
@@ -39,7 +39,7 @@ func (s *server) registerTools() error {
 
 	err = s.mcpServer.RegisterTool(
 		"find-references",
-		"Find all references to a symbol in the codebase.",
+		"Find references to a symbol in the codebase.",
 		func(args tools.FindReferencesArgs) (*mcp_golang.ToolResponse, error) {
 			text, err := tools.FindReferences(s.ctx, s.lspClient, args)
 			if err != nil {
@@ -53,3 +53,4 @@ func (s *server) registerTools() error {
 
 	return nil
 }
+

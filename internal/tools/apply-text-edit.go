@@ -161,9 +161,7 @@ func ApplyWorkspaceEdit(edit protocol.WorkspaceEdit) error {
 	return nil
 }
 
-// rangesOverlap checks if two LSP ranges overlap
 func rangesOverlap(r1, r2 protocol.Range) bool {
-	// If one range's start is after another's end, they don't overlap
 	if r1.Start.Line > r2.End.Line || r2.Start.Line > r1.End.Line {
 		return false
 	}
