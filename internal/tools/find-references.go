@@ -9,15 +9,10 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
-type FindReferencesArgs struct {
-	SymbolName      string `json:"symbolName"`
-	ShowLineNumbers bool   `json:"showLineNumbers"`
-}
-
-func FindReferences(ctx context.Context, client *lsp.Client, args FindReferencesArgs) (string, error) {
+func FindReferences(ctx context.Context, client *lsp.Client, symbolName string, showLineNumbers bool) (string, error) {
 	// First get the symbol location like ReadDefinition does
 	symbolResult, err := client.Symbol(ctx, protocol.WorkspaceSymbolParams{
-		Query: args.SymbolName,
+		Query: symbolName,
 	})
 	if err != nil {
 		return "", fmt.Errorf("Failed to fetch symbol: %v", err)
@@ -30,7 +25,7 @@ func FindReferences(ctx context.Context, client *lsp.Client, args FindReferences
 
 	var allReferences []string
 	for _, symbol := range results {
-		if symbol.GetName() != args.SymbolName {
+		if symbol.GetName() != symbolName {
 			continue
 		}
 
@@ -61,15 +56,14 @@ func FindReferences(ctx context.Context, client *lsp.Client, args FindReferences
 			refsByFile[ref.URI] = append(refsByFile[ref.URI], ref)
 		}
 
-		banner := strings.Repeat("=", 80) + "\n"
-		header := fmt.Sprintf("References for symbol: %s\n", args.SymbolName)
-		allReferences = append(allReferences, banner+header+banner)
-
 		// Process each file's references
 		for uri, fileRefs := range refsByFile {
-			fileInfo := fmt.Sprintf("\nFile: %s\n%s\n",
+			// Format file header similarly to ReadDefinition style
+			fileInfo := fmt.Sprintf("\n%s\nFile: %s\nReferences in File: %d\n%s\n",
+				strings.Repeat("=", 60),
 				strings.TrimPrefix(string(uri), "file://"),
-				strings.Repeat("-", 80))
+				len(fileRefs),
+				strings.Repeat("=", 60))
 			allReferences = append(allReferences, fileInfo)
 
 			for _, ref := range fileRefs {
@@ -79,15 +73,16 @@ func FindReferences(ctx context.Context, client *lsp.Client, args FindReferences
 					continue
 				}
 
-				if args.ShowLineNumbers {
+				if showLineNumbers {
 					snippet = addLineNumbers(snippet, int(ref.Range.Start.Line)+1)
 				}
 
-				refInfo := fmt.Sprintf("Reference at Line %d, Column %d:\n%s\n",
+				// Format reference location info
+				refInfo := fmt.Sprintf("Reference at Line %d, Column %d:\n%s\n%s\n",
 					ref.Range.Start.Line+1,
 					ref.Range.Start.Character+1,
-					snippet,
-				)
+					strings.Repeat("-", 40),
+					snippet)
 
 				allReferences = append(allReferences, refInfo)
 			}
@@ -97,9 +92,8 @@ func FindReferences(ctx context.Context, client *lsp.Client, args FindReferences
 	if len(allReferences) == 0 {
 		banner := strings.Repeat("=", 80) + "\n"
 		return fmt.Sprintf("%sNo references found for symbol: %s\n%s",
-			banner, args.SymbolName, banner), nil
+			banner, symbolName, banner), nil
 	}
 
 	return strings.Join(allReferences, "\n"), nil
 }
-

@@ -25,22 +25,17 @@ type TextEdit struct {
 	NewText   string       `json:"newText" jsonschema:"description=Replacement text. Leave blank to clear lines."`
 }
 
-type ApplyTextEditArgs struct {
-	FilePath string     `json:"filePath"`
-	Edits    []TextEdit `json:"edits"`
-}
-
-func ApplyTextEdits(args ApplyTextEditArgs) (string, error) {
+func ApplyTextEdits(filepath string, edits []TextEdit) (string, error) {
 	// Sort edits by line number in descending order to process from bottom to top
 	// This way line numbers don't shift under us as we make edits
-	sort.Slice(args.Edits, func(i, j int) bool {
-		return args.Edits[i].StartLine > args.Edits[j].StartLine
+	sort.Slice(edits, func(i, j int) bool {
+		return edits[i].StartLine > edits[j].StartLine
 	})
 
 	// Convert from input format to protocol.TextEdit
 	var textEdits []protocol.TextEdit
-	for _, edit := range args.Edits {
-		rng, err := getRange(edit.StartLine, edit.EndLine, args.FilePath)
+	for _, edit := range edits {
+		rng, err := getRange(edit.StartLine, edit.EndLine, filepath)
 		if err != nil {
 			return "", fmt.Errorf("invalid position: %v", err)
 		}
@@ -64,7 +59,7 @@ func ApplyTextEdits(args ApplyTextEditArgs) (string, error) {
 
 	edit := protocol.WorkspaceEdit{
 		Changes: map[protocol.DocumentUri][]protocol.TextEdit{
-			protocol.DocumentUri(args.FilePath): textEdits,
+			protocol.DocumentUri(filepath): textEdits,
 		},
 	}
 

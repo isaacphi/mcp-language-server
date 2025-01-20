@@ -10,15 +10,7 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
-type ReadDefinitionArgs struct {
-	SymbolName      string `json:"symbolName" jsonschema:"required,description=The exact name of the symbol to fetch. Method names must be fully specified e.g. MyClass.MyMethod"`
-	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"required,default=true,description=If true, adds line numbers to the output"`
-}
-
-func ReadDefinition(ctx context.Context, client *lsp.Client, args ReadDefinitionArgs) (string, error) {
-	symbolName := args.SymbolName
-	showLineNumbers := args.ShowLineNumbers
-
+func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string, showLineNumbers bool) (string, error) {
 	symbolResult, err := client.Symbol(ctx, protocol.WorkspaceSymbolParams{
 		Query: symbolName,
 	})
