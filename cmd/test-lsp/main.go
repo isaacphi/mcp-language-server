@@ -123,7 +123,7 @@ func main() {
 	}
 	fmt.Println(response)
 
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 1)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Cleanup

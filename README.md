@@ -1,0 +1,112 @@
+# MCP Language Server
+
+A Model Context Protocol (MCP) server that runs a language server and provides tools for communicating with it.
+
+## Motivation
+Claude desktop with the [filesystem](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem) server feels like magic when working on small projects. This starts to fall apart after you add a few files and imports. With this project, I want to create that experience when working with large projects.
+
+Language servers excel at tasks that LLMs often struggle with, such as precisely understanding types, understanding relationships, and providing accurate symbol references. This project aims to create tools that help LLMs work effectively with large codebases by leveraging the strengths of language servers.
+
+## Status
+⚠️ Pre-beta Quality ⚠️
+
+I have tested this server with the following language servers
+
+- pyright (Python)
+- tsserver (TypeScript)
+- gopls (Go)
+- rust-analyzer (Rust)
+
+But it should be compatible with many more.
+
+## About
+This codebase makes use of edited code from [gopls](https://go.googlesource.com/tools/+/refs/heads/master/gopls/internal/protocol) to handle LSP communication. See ATTRIBUTION for details.
+
+[mcp-golang](https://github.com/metoro-io/mcp-golang) is used for MCP communication.
+
+## Prerequisites
+Install Go:
+
+macOS: `brew install go`
+Linux: Follow instructions at https://golang.org/doc/install
+Windows: Download from https://golang.org/dl/
+
+Install the required language server for your codebase:
+
+- Python (pyright): `npm install -g pyright`
+- TypeScript (tsserver): `npm install -g typescript typescript-language-server`
+- Go (gopls): `go install golang.org/x/tools/gopls@latest`
+- Rust (rust-analyzer): `rustup component add rust-analyzer`
+- Or use any language server
+
+## Setup
+Add the following configuration to your Claude Desktop settings (or similar MCP-enabled client):
+```json
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "go",
+      "args": [
+        "run",
+        "github.com/isaacphi/mcp-language-server/cmd/server",
+        "--workspace",
+        "/full/path/to/code/workspace",
+        "--lsp",
+        "/full/path/to/languageserver/executable",
+        "--",
+        "lsp-args"
+      ],
+      "env": {
+        "OPTIONAL_ENV": "1"
+      }
+    }
+  }
+}
+```
+Replace:
+
+- /full/path/to/code/workspace with the absolute path to your project
+- /full/path/to/languageserver/executable with the path to your language server (found using `which` command e.g. `which pyright`)
+- Any aruments after `--` are sent as arguments to your language server.
+- Any env variables are passed on to the language server. Some may be necessary for you language server. For example, `gopls` required `GOPATH` and `GOCACHE` in order for me to get it working properly.
+
+For example, for python it might look like
+
+```json
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "go",
+      "args": [
+        "run",
+        "github.com/isaacphi/mcp-language-server/cmd/server",
+        "--workspace",
+        "/Users/isaacphi/dev/yourcodebase",
+        "--lsp",
+        "/opt/homebrew/bin/pyright",
+        "--",
+        "--stdio"
+      ],
+    }
+  }
+}
+```
+
+## Feedback
+
+Include
+```json
+env: {
+  "DEBUG": 1
+}
+```
+To get detailed LSP and application logs. Please include as much information as possible when opening issues.
+
+This is an early release and some of the following features are on my radar:
+- [ ] Code lens
+- [ ] Hover actions
+- [ ] Better handling of context and cancellation
+- [ ] Code formatting
+- [ ] Running tests
+- [ ] Add LSP server configuration options
+- [ ] Make a more consistent and scalable API for tools
