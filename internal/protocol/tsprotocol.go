@@ -128,6 +128,7 @@ type CallHierarchyItem struct {
 	Name string `json:"name"`
 	// The kind of this item.
 	Kind SymbolKind `json:"kind"`
+
 	// Tags for this item.
 	Tags []SymbolTag `json:"tags,omitempty"`
 	// More detail for this item, e.g. the signature of a function.

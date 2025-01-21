@@ -28,6 +28,10 @@ type GetDiagnosticsArgs struct {
 	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"required,default=true,description=If true, adds line numbers to the output"`
 }
 
+type GetCodeLensArgs struct {
+	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file to get code lens information for"`
+}
+
 func (s *server) registerTools() error {
 
 	err := s.mcpServer.RegisterTool(
@@ -79,6 +83,21 @@ func (s *server) registerTools() error {
 			text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, args.FilePath, args.IncludeContext, args.ShowLineNumbers)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get diagnostics: %v", err)
+			}
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register tool: %v", err)
+	}
+
+	err = s.mcpServer.RegisterTool(
+		"get_codelens",
+		"Get code lens hints for a given file from the language server.",
+		func(args GetCodeLensArgs) (*mcp_golang.ToolResponse, error) {
+			text, err := tools.GetCodeLens(s.ctx, s.lspClient, args.FilePath)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get code lens: %v", err)
 			}
 			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
 		},

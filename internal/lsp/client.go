@@ -47,6 +47,8 @@ type Client struct {
 
 func NewClient(command string, args ...string) (*Client, error) {
 	cmd := exec.Command(command, args...)
+	// Copy env
+	cmd.Env = os.Environ()
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -145,6 +147,9 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 					Completion: protocol.CompletionClientCapabilities{
 						CompletionItem: protocol.ClientCompletionItemOptions{},
 					},
+					CodeLens: &protocol.CodeLensClientCapabilities{
+						DynamicRegistration: true,
+					},
 					DocumentSymbol: protocol.DocumentSymbolClientCapabilities{},
 					CodeAction: protocol.CodeActionClientCapabilities{
 						CodeActionLiteralSupport: protocol.ClientCodeActionLiteralOptions{
@@ -167,6 +172,17 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 					},
 				},
 				Window: protocol.WindowClientCapabilities{},
+			},
+			InitializationOptions: map[string]interface{}{
+				"codelenses": map[string]bool{
+					"generate":           true,
+					"regenerate_cgo":     true,
+					"test":               true,
+					"tidy":               true,
+					"upgrade_dependency": true,
+					"vendor":             true,
+					"vulncheck":          false,
+				},
 			},
 		},
 	}
