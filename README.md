@@ -50,7 +50,7 @@ Add something like the following configuration to your Claude Desktop settings (
       "command": "go",
       "args": [
         "run",
-        "github.com/isaacphi/mcp-language-server/cmd/server",
+        "github.com/isaacphi/mcp-language-server",
         "--workspace",
         "/Users/you/dev/yourpythoncodebase",
         "--lsp",
@@ -91,7 +91,7 @@ go mod download
 Build:
 
 ```bash
-go build -o server cmd/server/*
+go build -o server
 ```
 
 Configure your Claude Desktop (or similar) to use the local version:
@@ -100,7 +100,7 @@ Configure your Claude Desktop (or similar) to use the local version:
 {
   "mcpServers": {
     "language-server": {
-      "command": "/full/path/to/your/clone/cmd/server",
+      "command": "/full/path/to/your/clone",
       "args": [
         "--workspace",
         "/path/to/workspace",
