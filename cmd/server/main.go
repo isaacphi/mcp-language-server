@@ -7,7 +7,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
@@ -22,11 +25,12 @@ type config struct {
 }
 
 type server struct {
-	config     config
-	lspClient  *lsp.Client
-	mcpServer  *mcp_golang.Server
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	config           config
+	lspClient        *lsp.Client
+	mcpServer        *mcp_golang.Server
+	ctx              context.Context
+	cancelFunc       context.CancelFunc
+	workspaceWatcher *WorkspaceWatcher
 }
 
 func parseConfig() (*config, error) {
@@ -84,6 +88,7 @@ func (s *server) initializeLSP() error {
 		return fmt.Errorf("failed to create LSP client: %v", err)
 	}
 	s.lspClient = client
+	s.workspaceWatcher = NewWorkspaceWatcher(client)
 
 	initResult, err := client.InitializeLSPClient(s.ctx, s.config.workspaceDir)
 	if err != nil {
@@ -97,6 +102,7 @@ func (s *server) initializeLSP() error {
 		return fmt.Errorf("initialized notification failed: %v", err)
 	}
 
+	go s.workspaceWatcher.watchWorkspace(s.ctx, s.config.workspaceDir)
 	return client.WaitForServerReady(s.ctx)
 }
 
@@ -114,25 +120,10 @@ func (s *server) start() error {
 	return s.mcpServer.Serve()
 }
 
-func (s *server) stop() {
-	if s.lspClient != nil {
-		err := s.lspClient.Shutdown(s.ctx)
-		if err != nil {
-			log.Printf("shutdown failed: %v", err)
-		}
-
-		err = s.lspClient.Exit(s.ctx)
-		if err != nil {
-			log.Printf("exit failed: %v", err)
-		}
-
-		s.lspClient.Close()
-	}
-	s.cancelFunc()
-}
-
 func main() {
 	done := make(chan struct{})
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	config, err := parseConfig()
 	if err != nil {
@@ -143,15 +134,86 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer server.stop()
 
-	log.Printf("Using workspace: %s\n", config.workspaceDir)
-	log.Printf("Starting %s %v...\n", config.lspCommand, config.lspArgs)
+	// Parent process monitoring channel
+	parentDeath := make(chan struct{})
+
+	// Monitor parent process termination
+	go func() {
+		ppid := os.Getppid()
+		log.Printf("Monitoring parent process: %d", ppid)
+
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				currentPpid := os.Getppid()
+				if currentPpid != ppid && (currentPpid == 1 || ppid == 1) {
+					log.Printf("Parent process %d terminated (current ppid: %d), initiating shutdown", ppid, currentPpid)
+					close(parentDeath)
+					return
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	// Handle shutdown triggers
+	go func() {
+		select {
+		case sig := <-sigChan:
+			log.Printf("Received signal %v in PID: %d", sig, os.Getpid())
+			cleanup(server, done)
+		case <-parentDeath:
+			log.Printf("Parent death detected, initiating shutdown")
+			cleanup(server, done)
+		}
+	}()
 
 	if err := server.start(); err != nil {
-		log.Fatal(err)
+		log.Printf("Server error: %v", err)
+		cleanup(server, done)
+		os.Exit(1)
 	}
 
-	// Wait forever
 	<-done
+	log.Printf("Server shutdown complete for PID: %d", os.Getpid())
+	os.Exit(0)
+}
+
+func cleanup(s *server, done chan struct{}) {
+	log.Printf("Cleanup initiated for PID: %d", os.Getpid())
+
+	// Create a context with timeout for shutdown operations
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if s.lspClient != nil {
+		log.Printf("Sending shutdown request")
+		if err := s.lspClient.Shutdown(ctx); err != nil {
+			log.Printf("Shutdown request failed: %v", err)
+		}
+
+		log.Printf("Sending exit notification")
+		if err := s.lspClient.Exit(ctx); err != nil {
+			log.Printf("Exit notification failed: %v", err)
+		}
+
+		log.Printf("Closing LSP client")
+		if err := s.lspClient.Close(); err != nil {
+			log.Printf("Failed to close LSP client: %v", err)
+		}
+	}
+
+	// Send signal to the done channel
+	select {
+	case <-done: // Channel already closed
+	default:
+		close(done)
+	}
+
+	log.Printf("Cleanup completed for PID: %d", os.Getpid())
 }

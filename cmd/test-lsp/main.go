@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
@@ -116,11 +117,13 @@ func main() {
 	// }
 	// fmt.Println(response)
 
-	response, err := tools.GetDiagnostics(ctx, client, cfg.keyword)
+	response, err := tools.GetDiagnosticsForFile(ctx, client, cfg.keyword)
 	if err != nil {
 		log.Fatalf("GetDiagnostics failed: %v", err)
 	}
 	fmt.Println(response)
+
+	time.Sleep(time.Second * 60)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Cleanup

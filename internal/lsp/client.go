@@ -16,7 +16,7 @@ import (
 )
 
 type Client struct {
-	cmd    *exec.Cmd
+	Cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	stdout *bufio.Reader
 	stderr io.ReadCloser
@@ -39,6 +39,10 @@ type Client struct {
 	// Diagnostic cache
 	diagnostics   map[protocol.DocumentUri][]protocol.Diagnostic
 	diagnosticsMu sync.RWMutex
+
+	// Files are currently opened by the LSP
+	openFiles   map[string]*OpenFileInfo
+	openFilesMu sync.RWMutex
 }
 
 func NewClient(command string, args ...string) (*Client, error) {
@@ -60,7 +64,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 	}
 
 	client := &Client{
-		cmd:                   cmd,
+		Cmd:                   cmd,
 		stdin:                 stdin,
 		stdout:                bufio.NewReader(stdout),
 		stderr:                stderr,
@@ -68,6 +72,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 		notificationHandlers:  make(map[string]NotificationHandler),
 		serverRequestHandlers: make(map[string]ServerRequestHandler),
 		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),
+		openFiles:             make(map[string]*OpenFileInfo),
 	}
 
 	// Start the LSP server process
@@ -186,15 +191,28 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 }
 
 func (c *Client) Close() error {
+	// Close stdin first to signal the server
 	if err := c.stdin.Close(); err != nil {
 		return fmt.Errorf("failed to close stdin: %w", err)
 	}
 
-	if err := c.cmd.Wait(); err != nil {
-		return fmt.Errorf("server process error: %w", err)
-	}
+	// Use a channel to handle the Wait with timeout
+	done := make(chan error, 1)
+	go func() {
+		done <- c.Cmd.Wait()
+	}()
 
-	return nil
+	// Wait for process to exit with timeout
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(2 * time.Second):
+		// If we timeout, try to kill the process
+		if err := c.Cmd.Process.Kill(); err != nil {
+			return fmt.Errorf("failed to kill process: %w", err)
+		}
+		return fmt.Errorf("process killed after timeout")
+	}
 }
 
 type ServerState int
@@ -209,4 +227,135 @@ func (c *Client) WaitForServerReady(ctx context.Context) error {
 	// TODO: wait for specific messages or poll workspace/symbol
 	time.Sleep(time.Second * 1)
 	return nil
+}
+
+type OpenFileInfo struct {
+	Version int32
+	URI     protocol.DocumentUri
+}
+
+func (c *Client) OpenFile(ctx context.Context, filepath string) error {
+	uri := fmt.Sprintf("file://%s", filepath)
+
+	c.openFilesMu.Lock()
+	if _, exists := c.openFiles[uri]; exists {
+		c.openFilesMu.Unlock()
+		return nil // Already open
+	}
+	c.openFilesMu.Unlock()
+
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		return fmt.Errorf("error reading file: %w", err)
+	}
+
+	params := protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{
+			URI:        protocol.DocumentUri(uri),
+			LanguageID: DetectLanguageID(uri),
+			Version:    1,
+			Text:       string(content),
+		},
+	}
+
+	if err := c.Notify(ctx, "textDocument/didOpen", params); err != nil {
+		return err
+	}
+
+	c.openFilesMu.Lock()
+	c.openFiles[uri] = &OpenFileInfo{
+		Version: 1,
+		URI:     protocol.DocumentUri(uri),
+	}
+	c.openFilesMu.Unlock()
+
+	return nil
+}
+
+func (c *Client) NotifyChange(ctx context.Context, filepath string) error {
+	uri := fmt.Sprintf("file://%s", filepath)
+
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		return fmt.Errorf("error reading file: %w", err)
+	}
+
+	c.openFilesMu.Lock()
+	fileInfo, isOpen := c.openFiles[uri]
+	if !isOpen {
+		c.openFilesMu.Unlock()
+		return fmt.Errorf("cannot notify change for unopened file: %s", filepath)
+	}
+
+	// Increment version
+	fileInfo.Version++
+	version := fileInfo.Version
+	c.openFilesMu.Unlock()
+
+	params := protocol.DidChangeTextDocumentParams{
+		TextDocument: protocol.VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: protocol.TextDocumentIdentifier{
+				URI: protocol.DocumentUri(uri),
+			},
+			Version: version,
+		},
+		ContentChanges: []protocol.TextDocumentContentChangeEvent{
+			{
+				Value: protocol.TextDocumentContentChangeWholeDocument{
+					Text: string(content),
+				},
+			},
+		},
+	}
+
+	return c.Notify(ctx, "textDocument/didChange", params)
+}
+
+func (c *Client) CloseFile(ctx context.Context, filepath string) error {
+	uri := fmt.Sprintf("file://%s", filepath)
+
+	c.openFilesMu.Lock()
+	if _, exists := c.openFiles[uri]; !exists {
+		c.openFilesMu.Unlock()
+		return nil // Already closed
+	}
+	c.openFilesMu.Unlock()
+
+	params := protocol.DidCloseTextDocumentParams{
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: protocol.DocumentUri(uri),
+		},
+	}
+
+	if err := c.Notify(ctx, "textDocument/didClose", params); err != nil {
+		return err
+	}
+
+	c.openFilesMu.Lock()
+	delete(c.openFiles, uri)
+	c.openFilesMu.Unlock()
+
+	return nil
+}
+
+func (c *Client) GetFileVersion(filepath string) (int32, error) {
+	uri := fmt.Sprintf("file://%s", filepath)
+
+	c.openFilesMu.RLock()
+	defer c.openFilesMu.RUnlock()
+
+	fileInfo, exists := c.openFiles[uri]
+	if !exists {
+		return 0, fmt.Errorf("file not open: %s", filepath)
+	}
+
+	return fileInfo.Version, nil
+}
+
+func (c *Client) IsFileOpen(filepath string) bool {
+	uri := fmt.Sprintf("file://%s", filepath)
+	c.openFilesMu.RLock()
+	defer c.openFilesMu.RUnlock()
+	_, exists := c.openFiles[uri]
+	return exists
 }

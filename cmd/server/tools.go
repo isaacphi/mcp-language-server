@@ -23,7 +23,7 @@ type ApplyTextEditArgs struct {
 }
 
 type GetDiagnosticsArgs struct {
-	FilePath string `json:"filePath" jsonschema:"default=,description=The path to the file to get diagnostics for"`
+	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file to get diagnostics for"`
 }
 
 func (s *server) registerTools() error {
@@ -74,7 +74,7 @@ func (s *server) registerTools() error {
 		"get-diagnostics",
 		"Get diagnostic information for a specific file from the language server.",
 		func(args GetDiagnosticsArgs) (*mcp_golang.ToolResponse, error) {
-			text, err := tools.GetDiagnostics(s.ctx, s.lspClient, args.FilePath)
+			text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, args.FilePath)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get diagnostics: %v", err)
 			}

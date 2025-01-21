@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var debug = os.Getenv("LSP_DEBUG") != ""
+var debug = os.Getenv("DEBUG") != ""
 
 // Write writes an LSP message to the given writer
 func WriteMessage(w io.Writer, msg *Message) error {
