@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -12,11 +13,17 @@ import (
 )
 
 // GetDiagnostics retrieves diagnostics for a specific file from the language server
-func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath string) (string, error) {
+func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath string, includeContext bool, showLineNumbers bool) (string, error) {
 	err := client.OpenFile(ctx, filePath)
 	if err != nil {
-		log.Fatalf("Could not open file: %v", err)
+		return "", fmt.Errorf("could not open file: %v", err)
 	}
+	defer func() {
+		if err := client.CloseFile(ctx, filePath); err != nil {
+			log.Printf("Could not close file: %v", err)
+		}
+	}()
+
 	// Wait for diagnostics
 	// TODO: wait for notification
 	time.Sleep(time.Second * 3)
@@ -48,10 +55,36 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 			diag.Range.Start.Line+1,
 			diag.Range.Start.Character+1)
 
+		// Get the file content for context if needed
+		var codeContext string
+		startLine := diag.Range.Start.Line + 1
+		if includeContext {
+			content, loc, err := GetFullDefinition(ctx, client, protocol.Location{
+				URI:   uri,
+				Range: diag.Range,
+			})
+			startLine = loc.Range.Start.Line + 1
+			if err != nil {
+				log.Printf("failed to get file content: %v", err)
+			} else {
+				codeContext = content
+			}
+		} else {
+			// Read just the line with the error
+			content, err := os.ReadFile(filePath)
+			if err == nil {
+				lines := strings.Split(string(content), "\n")
+				if int(diag.Range.Start.Line) < len(lines) {
+					codeContext = lines[diag.Range.Start.Line]
+				}
+			}
+		}
+
 		formattedDiag := fmt.Sprintf(
-			"[%s] %s\n"+
+			"%s\n[%s] %s\n"+
 				"Location: %s\n"+
 				"Message: %s\n",
+			strings.Repeat("=", 60),
 			severity,
 			filePath,
 			location,
@@ -65,9 +98,13 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 			formattedDiag += fmt.Sprintf("Code: %v\n", diag.Code)
 		}
 
-		err := client.CloseFile(ctx, filePath)
-		if err != nil {
-			log.Printf("Could not close file: %v", err)
+		formattedDiag += strings.Repeat("=", 60)
+
+		if codeContext != "" {
+			if showLineNumbers {
+				codeContext = addLineNumbers(codeContext, int(startLine))
+			}
+			formattedDiag += fmt.Sprintf("\n%s\n", codeContext)
 		}
 
 		formattedDiagnostics = append(formattedDiagnostics, formattedDiag)

@@ -117,7 +117,7 @@ func main() {
 	// }
 	// fmt.Println(response)
 
-	response, err := tools.GetDiagnosticsForFile(ctx, client, cfg.keyword)
+	response, err := tools.GetDiagnosticsForFile(ctx, client, cfg.keyword, true)
 	if err != nil {
 		log.Fatalf("GetDiagnostics failed: %v", err)
 	}
