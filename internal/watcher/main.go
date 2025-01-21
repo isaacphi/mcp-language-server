@@ -31,7 +31,7 @@ type WorkspaceWatcher struct {
 func NewWorkspaceWatcher(client *lsp.Client) *WorkspaceWatcher {
 	return &WorkspaceWatcher{
 		client:       client,
-		debounceTime: 300 * time.Millisecond, // Configurable debounce duration
+		debounceTime: 1000 * time.Millisecond, // Configurable debounce duration
 		debounceMap:  make(map[string]*time.Timer),
 	}
 }
