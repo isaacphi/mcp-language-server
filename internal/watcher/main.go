@@ -15,23 +15,23 @@ import (
 	gitignore "github.com/sabhiram/go-gitignore"
 )
 
+var debug = os.Getenv("DEBUG") != ""
+
 // WorkspaceWatcher manages file watching and version tracking
 type WorkspaceWatcher struct {
 	client        *lsp.Client
 	ignore        *gitignore.GitIgnore
 	workspacePath string
 
-	// Debouncing related fields
 	debounceTime time.Duration
 	debounceMap  map[string]*time.Timer
 	debounceMu   sync.Mutex
 }
 
-// NewWorkspaceWatcher creates a new instance of WorkspaceWatcher
 func NewWorkspaceWatcher(client *lsp.Client) *WorkspaceWatcher {
 	return &WorkspaceWatcher{
 		client:       client,
-		debounceTime: 1000 * time.Millisecond, // Configurable debounce duration
+		debounceTime: 1000 * time.Millisecond,
 		debounceMap:  make(map[string]*time.Timer),
 	}
 }
@@ -42,7 +42,9 @@ func (w *WorkspaceWatcher) loadGitIgnore(workspacePath string) error {
 	// Read and log the content of .gitignore
 	content, err := os.ReadFile(gitignorePath)
 	if err != nil {
-		log.Printf("DEBUG: Error reading .gitignore: %v", err)
+		if debug {
+			log.Printf("DEBUG: Error reading .gitignore: %v", err)
+		}
 		return fmt.Errorf("error reading gitignore: %w", err)
 	}
 	log.Printf("DEBUG: .gitignore content:\n%s", string(content))
@@ -53,14 +55,15 @@ func (w *WorkspaceWatcher) loadGitIgnore(workspacePath string) error {
 	}
 	w.ignore = ignore
 
-	log.Printf("DEBUG: Successfully loaded .gitignore")
+	if debug {
+		log.Printf("DEBUG: Successfully loaded .gitignore")
+	}
 	return nil
 }
 
 func (w *WorkspaceWatcher) shouldIgnorePath(path string, workspacePath string) bool {
 	// Always ignore .git directory
 	if filepath.Base(path) == ".git" {
-		log.Printf("DEBUG: Ignoring .git directory: %s", path)
 		return true
 	}
 
@@ -81,13 +84,15 @@ func (w *WorkspaceWatcher) shouldIgnorePath(path string, workspacePath string) b
 
 		matches, pattern := w.ignore.MatchesPathHow(relPath)
 
-		log.Printf("DEBUG: Path check details:")
-		log.Printf("  Original path: %s", path)
-		log.Printf("  Workspace: %s", workspacePath)
-		log.Printf("  Relative path: %s", relPath)
-		log.Printf("  Matches? %v", matches)
-		if pattern != nil {
-			log.Printf("  Matched pattern: %s (line %d)", pattern.Line, pattern.LineNo)
+		if debug {
+			log.Printf("DEBUG: Path check details:")
+			log.Printf("  Original path: %s", path)
+			log.Printf("  Workspace: %s", workspacePath)
+			log.Printf("  Relative path: %s", relPath)
+			log.Printf("  Matches gitignore? %v", matches)
+			if pattern != nil {
+				log.Printf("  Matched pattern: %s (line %d)", pattern.Line, pattern.LineNo)
+			}
 		}
 
 		return matches
@@ -117,7 +122,6 @@ func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath str
 		}
 
 		if info.IsDir() {
-			// Check if directory should be ignored
 			if w.shouldIgnorePath(path, workspacePath) {
 				return filepath.SkipDir
 			}
@@ -151,13 +155,17 @@ func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath str
 
 			// Skip temporary files and backup files
 			if strings.HasSuffix(event.Name, "~") || strings.HasSuffix(event.Name, ".swp") {
-				log.Println("Skipping ~")
+				if debug {
+					log.Println("Skipping temporary file")
+				}
 				continue
 			}
 
 			// Skip ignored paths
 			if w.shouldIgnorePath(event.Name, workspacePath) {
-				log.Println("Skipping", event.Name)
+				if debug {
+					log.Println("Skipping", event.Name)
+				}
 				continue
 			}
 

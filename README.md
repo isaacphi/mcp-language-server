@@ -69,7 +69,45 @@ Replace:
 - Any env variables are passed on to the language server. Some may be necessary for you language server. For example, `gopls` required `GOPATH` and `GOCACHE` in order for me to get it working properly.
 - `DEBUG=1` is optional. See below.
 
-For example, for python it might look like
+## Development
+Clone the repository:
+
+```bash
+git clone https://github.com/isaacphi/mcp-language-server.git
+cd mcp-language-server
+```
+
+Install development dependencies:
+
+```bash
+go mod download
+```
+
+Build and run directly:
+
+```bash
+go run cmd/server/main.go --workspace /path/to/test/workspace --lsp /path/to/language/server
+```
+
+Configure your Claude Desktop (or similar) to use the local version:
+
+```json
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "go",
+      "args": [
+        "run",
+        "/full/path/to/your/clone/cmd/server",
+        "--workspace",
+        "/path/to/workspace",
+        "--lsp",
+        "/path/to/language/server"
+      ]
+    }
+  }
+}
+```
 
 ## Feedback
 
