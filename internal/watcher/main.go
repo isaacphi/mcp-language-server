@@ -1,4 +1,4 @@
-package main
+package watcher
 
 import (
 	"context"
@@ -96,7 +96,7 @@ func (w *WorkspaceWatcher) shouldIgnorePath(path string, workspacePath string) b
 	return false
 }
 
-func (w *WorkspaceWatcher) watchWorkspace(ctx context.Context, workspacePath string) {
+func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath string) {
 	w.workspacePath = workspacePath
 
 	// Load gitignore patterns

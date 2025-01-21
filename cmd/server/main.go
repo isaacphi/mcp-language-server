@@ -14,6 +14,7 @@ import (
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
+	"github.com/isaacphi/mcp-language-server/internal/watcher"
 	"github.com/metoro-io/mcp-golang"
 	"github.com/metoro-io/mcp-golang/transport/stdio"
 )
@@ -30,7 +31,7 @@ type server struct {
 	mcpServer        *mcp_golang.Server
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
-	workspaceWatcher *WorkspaceWatcher
+	workspaceWatcher *watcher.WorkspaceWatcher
 }
 
 func parseConfig() (*config, error) {
@@ -88,7 +89,7 @@ func (s *server) initializeLSP() error {
 		return fmt.Errorf("failed to create LSP client: %v", err)
 	}
 	s.lspClient = client
-	s.workspaceWatcher = NewWorkspaceWatcher(client)
+	s.workspaceWatcher = watcher.NewWorkspaceWatcher(client)
 
 	initResult, err := client.InitializeLSPClient(s.ctx, s.config.workspaceDir)
 	if err != nil {
@@ -102,7 +103,7 @@ func (s *server) initializeLSP() error {
 		return fmt.Errorf("initialized notification failed: %v", err)
 	}
 
-	go s.workspaceWatcher.watchWorkspace(s.ctx, s.config.workspaceDir)
+	go s.workspaceWatcher.WatchWorkspace(s.ctx, s.config.workspaceDir)
 	return client.WaitForServerReady(s.ctx)
 }
 

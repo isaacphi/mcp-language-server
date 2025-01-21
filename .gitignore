@@ -1,2 +1,5 @@
+# Binary
 /server
-/ignored
+
+# Temporary files
+*~

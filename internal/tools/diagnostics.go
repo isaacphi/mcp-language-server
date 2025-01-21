@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
@@ -16,6 +17,9 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 	if err != nil {
 		log.Fatalf("Could not open file: %v", err)
 	}
+	// Wait for diagnostics
+	// TODO: wait for notification
+	time.Sleep(time.Second * 3)
 
 	// Convert the file path to URI format
 	uri := protocol.DocumentUri("file://" + filePath)

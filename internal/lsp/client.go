@@ -338,24 +338,17 @@ func (c *Client) CloseFile(ctx context.Context, filepath string) error {
 	return nil
 }
 
-func (c *Client) GetFileVersion(filepath string) (int32, error) {
-	uri := fmt.Sprintf("file://%s", filepath)
-
-	c.openFilesMu.RLock()
-	defer c.openFilesMu.RUnlock()
-
-	fileInfo, exists := c.openFiles[uri]
-	if !exists {
-		return 0, fmt.Errorf("file not open: %s", filepath)
-	}
-
-	return fileInfo.Version, nil
-}
-
 func (c *Client) IsFileOpen(filepath string) bool {
 	uri := fmt.Sprintf("file://%s", filepath)
 	c.openFilesMu.RLock()
 	defer c.openFilesMu.RUnlock()
 	_, exists := c.openFiles[uri]
 	return exists
+}
+
+func (c *Client) GetFileDiagnostics(uri protocol.DocumentUri) []protocol.Diagnostic {
+	c.diagnosticsMu.RLock()
+	defer c.diagnosticsMu.RUnlock()
+
+	return c.diagnostics[uri]
 }
