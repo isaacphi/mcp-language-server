@@ -50,7 +50,7 @@ Add something like the following configuration to your Claude Desktop settings (
       "command": "go",
       "args": [
         "run",
-        "github.com/isaacphi/mcp-language-server@v0.0.1",
+        "github.com/isaacphi/mcp-language-server@latest",
         "--workspace",
         "/Users/you/dev/yourpythoncodebase",
         "--lsp",
