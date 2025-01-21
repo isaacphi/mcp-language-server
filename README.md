@@ -63,8 +63,8 @@ Add something like the following configuration to your Claude Desktop settings (
 
 Replace:
 
-- /Users/you/dev/yourpythoncodebase with the absolute path to your project
-- /opt/homebrew/bin/pyright with the path to your language server (found using `which` command e.g. `which pyright`)
+- `/Users/you/dev/yourpythoncodebase` with the absolute path to your project
+- `/opt/homebrew/bin/pyright` with the path to your language server (found using `which` command e.g. `which pyright`)
 - Any aruments after `--` are sent as arguments to your language server.
 - Any env variables are passed on to the language server. Some may be necessary for you language server. For example, `gopls` required `GOPATH` and `GOCACHE` in order for me to get it working properly.
 - `DEBUG=1` is optional. See below.
@@ -83,10 +83,10 @@ Install development dependencies:
 go mod download
 ```
 
-Build and run directly:
+Build:
 
 ```bash
-go run cmd/server/main.go --workspace /path/to/test/workspace --lsp /path/to/language/server
+go build -o server cmd/server/*
 ```
 
 Configure your Claude Desktop (or similar) to use the local version:
@@ -95,19 +95,21 @@ Configure your Claude Desktop (or similar) to use the local version:
 {
   "mcpServers": {
     "language-server": {
-      "command": "go",
+      "command": "/full/path/to/your/clone/cmd/server",
       "args": [
-        "run",
-        "/full/path/to/your/clone/cmd/server",
         "--workspace",
         "/path/to/workspace",
         "--lsp",
         "/path/to/language/server"
-      ]
+      ],
+      "env": {
+        "DEBUG": "1"
+      }
     }
   }
 }
 ```
+Rebuild after making changes.
 
 ## Feedback
 
