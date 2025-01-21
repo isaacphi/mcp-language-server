@@ -25,13 +25,9 @@ This codebase makes use of edited code from [gopls](https://go.googlesource.com/
 [mcp-golang](https://github.com/metoro-io/mcp-golang) is used for MCP communication.
 
 ## Prerequisites
-Install Go:
+Install Go: Follow instructions at https://golang.org/doc/install
 
-macOS: `brew install go`
-Linux: Follow instructions at https://golang.org/doc/install
-Windows: Download from https://golang.org/dl/
-
-Install the required language server for your codebase:
+Install a language server for your codebase:
 
 - Python (pyright): `npm install -g pyright`
 - TypeScript (tsserver): `npm install -g typescript typescript-language-server`
@@ -40,37 +36,7 @@ Install the required language server for your codebase:
 - Or use any language server
 
 ## Setup
-Add the following configuration to your Claude Desktop settings (or similar MCP-enabled client):
-```json
-{
-  "mcpServers": {
-    "language-server": {
-      "command": "go",
-      "args": [
-        "run",
-        "github.com/isaacphi/mcp-language-server/cmd/server",
-        "--workspace",
-        "/full/path/to/code/workspace",
-        "--lsp",
-        "/full/path/to/languageserver/executable",
-        "--",
-        "lsp-args"
-      ],
-      "env": {
-        "OPTIONAL_ENV": "1"
-      }
-    }
-  }
-}
-```
-Replace:
-
-- /full/path/to/code/workspace with the absolute path to your project
-- /full/path/to/languageserver/executable with the path to your language server (found using `which` command e.g. `which pyright`)
-- Any aruments after `--` are sent as arguments to your language server.
-- Any env variables are passed on to the language server. Some may be necessary for you language server. For example, `gopls` required `GOPATH` and `GOCACHE` in order for me to get it working properly.
-
-For example, for python it might look like
+Add something like the following configuration to your Claude Desktop settings (or similar MCP-enabled client):
 
 ```json
 {
@@ -81,21 +47,34 @@ For example, for python it might look like
         "run",
         "github.com/isaacphi/mcp-language-server/cmd/server",
         "--workspace",
-        "/Users/isaacphi/dev/yourcodebase",
+        "/Users/you/dev/yourpythoncodebase",
         "--lsp",
         "/opt/homebrew/bin/pyright",
         "--",
         "--stdio"
       ],
+      "env": {
+        "DEBUG": "1"
+      }
     }
   }
 }
 ```
 
+Replace:
+
+- /Users/you/dev/yourpythoncodebase with the absolute path to your project
+- /opt/homebrew/bin/pyright with the path to your language server (found using `which` command e.g. `which pyright`)
+- Any aruments after `--` are sent as arguments to your language server.
+- Any env variables are passed on to the language server. Some may be necessary for you language server. For example, `gopls` required `GOPATH` and `GOCACHE` in order for me to get it working properly.
+- `DEBUG=1` is optional. See below.
+
+For example, for python it might look like
+
 ## Feedback
 
 Include
-```json
+```
 env: {
   "DEBUG": 1
 }
@@ -103,6 +82,10 @@ env: {
 To get detailed LSP and application logs. Please include as much information as possible when opening issues.
 
 This is an early release and some of the following features are on my radar:
+- [x] Read definition
+- [x] Get references
+- [x] Apply edit
+- [x] Get diagnostics
 - [ ] Code lens
 - [ ] Hover actions
 - [ ] Better handling of context and cancellation
