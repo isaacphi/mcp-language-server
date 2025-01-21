@@ -27,6 +27,11 @@ This codebase makes use of edited code from [gopls](https://go.googlesource.com/
 ## Prerequisites
 Install Go: Follow instructions at https://golang.org/doc/install
 
+Fetch or update this server:
+```bash
+go get -u github.com/isaacphi/mcp-language-server@latest
+```
+
 Install a language server for your codebase:
 
 - Python (pyright): `npm install -g pyright`
