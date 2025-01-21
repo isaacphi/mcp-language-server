@@ -29,7 +29,7 @@ Install Go: Follow instructions at https://golang.org/doc/install
 
 Fetch or update this server:
 ```bash
-go get -u github.com/isaacphi/mcp-language-server@latest
+go install github.com/isaacphi/mcp-language-server@latest
 ```
 
 Install a language server for your codebase:
