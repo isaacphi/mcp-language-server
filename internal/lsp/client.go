@@ -173,17 +173,17 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 				},
 				Window: protocol.WindowClientCapabilities{},
 			},
-			InitializationOptions: map[string]interface{}{
-				"codelenses": map[string]bool{
-					"generate":           true,
-					"regenerate_cgo":     true,
-					"test":               true,
-					"tidy":               true,
-					"upgrade_dependency": true,
-					"vendor":             true,
-					"vulncheck":          false,
-				},
-			},
+			// InitializationOptions: map[string]interface{}{
+			// 	"codelenses": map[string]bool{
+			// 		"generate":           true,
+			// 		"regenerate_cgo":     true,
+			// 		"test":               true,
+			// 		"tidy":               true,
+			// 		"upgrade_dependency": true,
+			// 		"vendor":             true,
+			// 		"vulncheck":          false,
+			// 	},
+			// },
 		},
 	}
 

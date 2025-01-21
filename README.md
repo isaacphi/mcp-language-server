@@ -19,6 +19,17 @@ I have tested this server with the following language servers
 
 But it should be compatible with many more.
 
+## Tools
+The language server provides several tools for code analysis and manipulation:
+
+- `read_definition`: Retrieves the complete source code definition of any symbol (function, type, constant, etc.) from your codebase.
+- `find_references`: Locates all usages and references of a symbol throughout the codebase.
+- `get_diagnostics`: Provides diagnostic information for a specific file, including warnings and errors.
+- `get_codelens`: Retrieves code lens hints for additional context and actions on your code.
+- `apply_text_edit`: Allows making multiple text edits to a file programmatically.
+
+Each tool supports various options for customizing output, such as including line numbers or additional context. See the tool documentation for detailed usage. Line numbers are necessary for `apply_text_edit` to be able to make accurate edits.
+
 ## About
 This codebase makes use of edited code from [gopls](https://go.googlesource.com/tools/+/refs/heads/master/gopls/internal/protocol) to handle LSP communication. See ATTRIBUTION for details.
 
@@ -131,10 +142,9 @@ This is an early release and some of the following features are on my radar:
 - [x] Get references
 - [x] Apply edit
 - [x] Get diagnostics
-- [ ] Code lens
+- [ ] Code lens (in progress)
 - [ ] Hover actions
+- [ ] Code actions
 - [ ] Better handling of context and cancellation
-- [ ] Code formatting
-- [ ] Running tests
 - [ ] Add LSP server configuration options
-- [ ] Make a more consistent and scalable API for tools
+- [ ] Make a more consistent and scalable API for tools (pagination, etc.)
