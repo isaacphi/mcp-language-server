@@ -50,7 +50,7 @@ Add something like the following configuration to your Claude Desktop settings (
       "command": "go",
       "args": [
         "run",
-        "github.com/isaacphi/mcp-language-server",
+        "github.com/isaacphi/mcp-language-server@v0.0.1",
         "--workspace",
         "/Users/you/dev/yourpythoncodebase",
         "--lsp",
@@ -94,7 +94,7 @@ Build:
 go build -o server
 ```
 
-Configure your Claude Desktop (or similar) to use the local version:
+Configure your Claude Desktop (or similar) to use the local binary:
 
 ```json
 {
