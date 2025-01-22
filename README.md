@@ -26,6 +26,7 @@ The language server provides several tools for code analysis and manipulation:
 - `find_references`: Locates all usages and references of a symbol throughout the codebase.
 - `get_diagnostics`: Provides diagnostic information for a specific file, including warnings and errors.
 - `get_codelens`: Retrieves code lens hints for additional context and actions on your code.
+- `execute_codelens`: Runs a code lens action.
 - `apply_text_edit`: Allows making multiple text edits to a file programmatically.
 
 Each tool supports various options for customizing output, such as including line numbers or additional context. See the tool documentation for detailed usage. Line numbers are necessary for `apply_text_edit` to be able to make accurate edits.
@@ -142,8 +143,8 @@ This is an early release and some of the following features are on my radar:
 - [x] Get references
 - [x] Apply edit
 - [x] Get diagnostics
-- [ ] Code lens (in progress)
-- [ ] Hover actions
+- [x] Code lens
+- [ ] Hover info
 - [ ] Code actions
 - [ ] Better handling of context and cancellation
 - [ ] Add LSP server configuration options

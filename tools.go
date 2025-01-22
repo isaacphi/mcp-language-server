@@ -32,6 +32,11 @@ type GetCodeLensArgs struct {
 	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file to get code lens information for"`
 }
 
+type ExecuteCodeLensArgs struct {
+	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file containing the code lens to execute"`
+	Index    int    `json:"index" jsonschema:"required,description=The index of the code lens to execute (from get_codelens output), 1 indexed"`
+}
+
 func (s *server) registerTools() error {
 
 	err := s.mcpServer.RegisterTool(
@@ -98,6 +103,21 @@ func (s *server) registerTools() error {
 			text, err := tools.GetCodeLens(s.ctx, s.lspClient, args.FilePath)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get code lens: %v", err)
+			}
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register tool: %v", err)
+	}
+
+	err = s.mcpServer.RegisterTool(
+		"execute_codelens",
+		"Execute a code lens command for a given file and lens index.",
+		func(args ExecuteCodeLensArgs) (*mcp_golang.ToolResponse, error) {
+			text, err := tools.ExecuteCodeLens(s.ctx, s.lspClient, args.FilePath, args.Index)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to execute code lens: %v", err)
 			}
 			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
 		},

@@ -11,8 +11,8 @@ github.com/invopop/jsonschema v0.13.0 h1:KvpoAJWEjR3uD9Kbm2HWJmqsEaHt8lBUpd0qHcI
 github.com/invopop/jsonschema v0.13.0/go.mod h1:ffZ5Km5SWWRAIN6wbDXItl95euhFz2uON45H2qjYt+0=
 github.com/mailru/easyjson v0.9.0 h1:PrnmzHw7262yW8sTBwxi1PdJA3Iw/EKBa8psRf7d9a4=
 github.com/mailru/easyjson v0.9.0/go.mod h1:1+xMtQp2MRNVL/V1bOzuP3aP8VNwRW55fQUto+XFtTU=
-github.com/metoro-io/mcp-golang v0.5.0 h1:ttrJ/CnDAq13SWfYNhy+GtoR5Tf7vvSls9V7HBK7pBw=
-github.com/metoro-io/mcp-golang v0.5.0/go.mod h1:Q94e6gHYwncuvJ+zICAT40q4UQ/yP/cUxyG8Cdc/92s=
+github.com/metoro-io/mcp-golang v0.6.0 h1:SUG2GMj2HfVjOC4dWaiLqWN7XsMNcu6lRVjC8uzQevs=
+github.com/metoro-io/mcp-golang v0.6.0/go.mod h1:ifLP9ZzKpN1UqFWNTpAHOqSvNkMK6b7d1FSZ5Lu0lN0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

@@ -173,17 +173,17 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 				},
 				Window: protocol.WindowClientCapabilities{},
 			},
-			// InitializationOptions: map[string]interface{}{
-			// 	"codelenses": map[string]bool{
-			// 		"generate":           true,
-			// 		"regenerate_cgo":     true,
-			// 		"test":               true,
-			// 		"tidy":               true,
-			// 		"upgrade_dependency": true,
-			// 		"vendor":             true,
-			// 		"vulncheck":          false,
-			// 	},
-			// },
+			InitializationOptions: map[string]interface{}{
+				"codelenses": map[string]bool{
+					"generate":           true,
+					"regenerate_cgo":     true,
+					"test":               true,
+					"tidy":               true,
+					"upgrade_dependency": true,
+					"vendor":             true,
+					"vulncheck":          false,
+				},
+			},
 		},
 	}
 
@@ -197,6 +197,7 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 	}
 
 	// Register handlers
+	c.RegisterServerRequestHandler("workspace/applyEdit", HandleApplyEdit)
 	c.RegisterServerRequestHandler("workspace/configuration", HandleWorkspaceConfiguration)
 	c.RegisterServerRequestHandler("client/registerCapability", HandleRegisterCapability)
 	c.RegisterNotificationHandler("window/showMessage", HandleServerMessage)

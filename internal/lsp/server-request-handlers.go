@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
+	"github.com/isaacphi/mcp-language-server/internal/utilities"
 )
 
 // Requests
@@ -15,6 +16,21 @@ func HandleWorkspaceConfiguration(params json.RawMessage) (interface{}, error) {
 
 func HandleRegisterCapability(params json.RawMessage) (interface{}, error) {
 	return nil, nil
+}
+
+func HandleApplyEdit(params json.RawMessage) (interface{}, error) {
+	var edit protocol.ApplyWorkspaceEditParams
+	if err := json.Unmarshal(params, &edit); err != nil {
+		return nil, err
+	}
+
+	err := utilities.ApplyWorkspaceEdit(edit.Edit)
+	if err != nil {
+		log.Printf("Error applying workspace edit: %v", err)
+		return protocol.ApplyWorkspaceEditResult{Applied: false, FailureReason: err.Error()}, nil
+	}
+
+	return protocol.ApplyWorkspaceEditResult{Applied: true}, nil
 }
 
 // Notifications
@@ -43,4 +59,3 @@ func HandleDiagnostics(client *Client, params json.RawMessage) {
 
 	log.Printf("Received diagnostics for %s: %d items", diagParams.URI, len(diagParams.Diagnostics))
 }
-
