@@ -112,7 +112,7 @@ Configure your Claude Desktop (or similar) to use the local binary:
 {
   "mcpServers": {
     "language-server": {
-      "command": "/full/path/to/your/clone",
+      "command": "/full/path/to/your/clone/server",
       "args": [
         "--workspace",
         "/path/to/workspace",
