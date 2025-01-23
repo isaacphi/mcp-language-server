@@ -5,7 +5,7 @@ A Model Context Protocol (MCP) server that runs a language server and provides t
 ## Motivation
 Claude desktop with the [filesystem](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem) server feels like magic when working on small projects. This starts to fall apart after you add a few files and imports. With this project, I want to create that experience when working with large projects.
 
-Language servers excel at tasks that LLMs often struggle with, such as precisely understanding types, understanding relationships, and providing accurate symbol references. This project aims to create tools that help LLMs work effectively with large codebases by leveraging the strengths of language servers.
+Language servers excel at tasks that LLMs often struggle with, such as precisely understanding types, understanding relationships, and providing accurate symbol references. This project aims to makes bring those tools to LLMs. LSP also seems like a clear inspiration for MCP so why not jam them together?
 
 ## Status
 ⚠️ Pre-beta Quality ⚠️
@@ -20,14 +20,14 @@ I have tested this server with the following language servers
 But it should be compatible with many more.
 
 ## Tools
-The language server provides several tools for code analysis and manipulation:
-
 - `read_definition`: Retrieves the complete source code definition of any symbol (function, type, constant, etc.) from your codebase.
 - `find_references`: Locates all usages and references of a symbol throughout the codebase.
 - `get_diagnostics`: Provides diagnostic information for a specific file, including warnings and errors.
 - `get_codelens`: Retrieves code lens hints for additional context and actions on your code.
 - `execute_codelens`: Runs a code lens action.
 - `apply_text_edit`: Allows making multiple text edits to a file programmatically.
+
+Behind the scenes, this MCP server can act on `workspace/applyEdit` requests from the language server, so it can apply things like refactor requests, adding imports, formatting code, etc.
 
 Each tool supports various options for customizing output, such as including line numbers or additional context. See the tool documentation for detailed usage. Line numbers are necessary for `apply_text_edit` to be able to make accurate edits.
 
@@ -94,7 +94,7 @@ git clone https://github.com/isaacphi/mcp-language-server.git
 cd mcp-language-server
 ```
 
-Install development dependencies:
+Install dev dependencies:
 
 ```bash
 go mod download
@@ -112,7 +112,7 @@ Configure your Claude Desktop (or similar) to use the local binary:
 {
   "mcpServers": {
     "language-server": {
-      "command": "/full/path/to/your/clone/server",
+      "command": "/full/path/to/your/clone/mcp-language-server/server",
       "args": [
         "--workspace",
         "/path/to/workspace",
@@ -138,7 +138,7 @@ env: {
 ```
 To get detailed LSP and application logs. Please include as much information as possible when opening issues.
 
-This is an early release and some of the following features are on my radar:
+The following features are on my radar:
 - [x] Read definition
 - [x] Get references
 - [x] Apply edit
