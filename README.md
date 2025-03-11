@@ -66,7 +66,7 @@ Add something like the following configuration to your Claude Desktop settings (
         "--workspace",
         "/Users/you/dev/yourpythoncodebase",
         "--lsp",
-        "/opt/homebrew/bin/pyright",
+        "/opt/homebrew/bin/pyright-langserver",
         "--",
         "--stdio"
       ],
@@ -81,7 +81,7 @@ Add something like the following configuration to your Claude Desktop settings (
 Replace:
 
 - `/Users/you/dev/yourpythoncodebase` with the absolute path to your project
-- `/opt/homebrew/bin/pyright` with the path to your language server (found using `which` command e.g. `which pyright`)
+- `/opt/homebrew/bin/pyright-langserver` with the path to your language server (found using `which` command e.g. `which pyright-langserver`)
 - Any aruments after `--` are sent as arguments to your language server.
 - Any env variables are passed on to the language server. Some may be necessary for you language server. For example, `gopls` required `GOPATH` and `GOCACHE` in order for me to get it working properly.
 - `DEBUG=1` is optional. See below.
