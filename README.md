@@ -147,5 +147,6 @@ The following features are on my radar:
 - [ ] Hover info
 - [ ] Code actions
 - [ ] Better handling of context and cancellation
-- [ ] Add LSP server configuration options
+- [ ] Add LSP server configuration options and presets for common languages
 - [ ] Make a more consistent and scalable API for tools (pagination, etc.)
+- [ ] Create tools at a higher level of abstraction, combining diagnostics, code lens, hover, and code actions when reading definitions or references.

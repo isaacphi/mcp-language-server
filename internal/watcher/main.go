@@ -47,7 +47,9 @@ func (w *WorkspaceWatcher) loadGitIgnore(workspacePath string) error {
 		}
 		return fmt.Errorf("error reading gitignore: %w", err)
 	}
-	log.Printf("DEBUG: .gitignore content:\n%s", string(content))
+	if debug {
+		log.Printf("DEBUG: .gitignore content:\n%s", string(content))
+	}
 
 	ignore, err := gitignore.CompileIgnoreFile(gitignorePath)
 	if err != nil {

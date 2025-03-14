@@ -19,6 +19,8 @@ import (
 	"github.com/metoro-io/mcp-golang/transport/stdio"
 )
 
+var debug = os.Getenv("DEBUG") != ""
+
 type config struct {
 	workspaceDir string
 	lspCommand   string
@@ -96,7 +98,9 @@ func (s *server) initializeLSP() error {
 		return fmt.Errorf("initialize failed: %v", err)
 	}
 
-	log.Printf("Server capabilities: %+v\n\n", initResult.Capabilities)
+	if debug {
+		log.Printf("Server capabilities: %+v\n\n", initResult.Capabilities)
+	}
 
 	err = client.Initialized(s.ctx, protocol.InitializedParams{})
 	if err != nil {
@@ -142,7 +146,9 @@ func main() {
 	// Monitor parent process termination
 	go func() {
 		ppid := os.Getppid()
-		log.Printf("Monitoring parent process: %d", ppid)
+		if debug {
+			log.Printf("Monitoring parent process: %d", ppid)
+		}
 
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
