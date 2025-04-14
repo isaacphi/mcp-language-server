@@ -154,7 +154,9 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 					CodeLens: &protocol.CodeLensClientCapabilities{
 						DynamicRegistration: true,
 					},
-					DocumentSymbol: protocol.DocumentSymbolClientCapabilities{},
+					DocumentSymbol: protocol.DocumentSymbolClientCapabilities{
+						HierarchicalDocumentSymbolSupport: true,
+					},
 					CodeAction: protocol.CodeActionClientCapabilities{
 						CodeActionLiteralSupport: protocol.ClientCodeActionLiteralOptions{
 							CodeActionKind: protocol.ClientCodeActionKindOptions{

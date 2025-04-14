@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "language-server": {
+      "type": "stdio",
+      "command": "/Users/orsen/Develop/mcp-language-server/mcp-language-server",
+      "args": [
+        "--workspace",
+        "/Users/orsen/Develop/mcp-language-server",
+        "--lsp",
+        "gopls"
+      ],
+      "env": {}
+    }
+  }
+}

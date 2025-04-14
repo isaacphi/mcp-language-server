@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/isaacphi/mcp-language-server/internal/tools"
-	"github.com/metoro-io/mcp-golang"
+	mcp_golang "github.com/metoro-io/mcp-golang"
 )
 
 type ReadDefinitionArgs struct {
@@ -37,8 +37,25 @@ type ExecuteCodeLensArgs struct {
 	Index    int    `json:"index" jsonschema:"required,description=The index of the code lens to execute (from get_codelens output), 1 indexed"`
 }
 
-func (s *server) registerTools() error {
+type RenameSymbolArgs struct {
+	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file containing the symbol to rename"`
+	Line     int    `json:"line" jsonschema:"required,description=The line number (1-indexed) where the symbol appears"`
+	Column   int    `json:"column" jsonschema:"required,description=The column number (1-indexed) where the symbol appears"`
+	NewName  string `json:"newName" jsonschema:"required,description=The new name for the symbol"`
+}
 
+type HoverArgs struct {
+	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file containing the symbol to get hover information for"`
+	Line     int    `json:"line" jsonschema:"required,description=The line number (1-indexed) where the symbol appears"`
+	Column   int    `json:"column" jsonschema:"required,description=The column number (1-indexed) where the symbol appears"`
+}
+
+type DocumentSymbolsArgs struct {
+	FilePath        string `json:"filePath" jsonschema:"required,description=The path to the file to list symbols for"`
+	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"required,default=true,description=Include line numbers in the output"`
+}
+
+func (s *server) registerTools() error {
 	err := s.mcpServer.RegisterTool(
 		"apply_text_edit",
 		"Apply multiple text edits to a file.",
@@ -118,6 +135,51 @@ func (s *server) registerTools() error {
 			text, err := tools.ExecuteCodeLens(s.ctx, s.lspClient, args.FilePath, args.Index)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to execute code lens: %v", err)
+			}
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register tool: %v", err)
+	}
+
+	err = s.mcpServer.RegisterTool(
+		"rename_symbol",
+		"Rename a symbol (variable, function, class, etc.) and all its references across files.",
+		func(args RenameSymbolArgs) (*mcp_golang.ToolResponse, error) {
+			text, err := tools.RenameSymbol(s.ctx, s.lspClient, args.FilePath, args.Line, args.Column, args.NewName)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to rename symbol: %v", err)
+			}
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register tool: %v", err)
+	}
+
+	err = s.mcpServer.RegisterTool(
+		"hover",
+		"Get hover information (type, documentation) for a symbol at the specified position.",
+		func(args HoverArgs) (*mcp_golang.ToolResponse, error) {
+			text, err := tools.GetHoverInfo(s.ctx, s.lspClient, args.FilePath, args.Line, args.Column)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get hover information: %v", err)
+			}
+			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register tool: %v", err)
+	}
+
+	err = s.mcpServer.RegisterTool(
+		"document_symbols",
+		"List all symbols (functions, methods, classes, etc.) in a document in a hierarchical structure.",
+		func(args DocumentSymbolsArgs) (*mcp_golang.ToolResponse, error) {
+			text, err := tools.GetDocumentSymbols(s.ctx, s.lspClient, args.FilePath, args.ShowLineNumbers)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get document symbols: %v", err)
 			}
 			return mcp_golang.NewToolResponse(mcp_golang.NewTextContent(text)), nil
 		},

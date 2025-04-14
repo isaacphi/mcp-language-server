@@ -3,3 +3,9 @@ mcp-language-server
 
 # Temporary files
 *~
+
+# MCP Server config
+.mcp.json
+
+# Markdown files with notes
+notes
