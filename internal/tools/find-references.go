@@ -26,10 +26,21 @@ func FindReferences(ctx context.Context, client *lsp.Client, symbolName string, 
 
 	var allReferences []string
 	for _, symbol := range results {
-		if symbol.GetName() != symbolName {
+		// Handle different matching strategies based on the search term
+		if strings.Contains(symbolName, ".") {
+			// For qualified names like "Type.Method", check for various matches
+			parts := strings.Split(symbolName, ".")
+			methodName := parts[len(parts)-1]
+			
+			// Try matching the unqualified method name for languages that don't use qualified names in symbols
+			if symbol.GetName() != symbolName && symbol.GetName() != methodName {
+				continue
+			}
+		} else if symbol.GetName() != symbolName {
+			// For unqualified names, exact match only
 			continue
 		}
-
+		
 		// Get the location of the symbol
 		loc := symbol.GetLocation()
 

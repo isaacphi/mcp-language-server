@@ -1,0 +1,99 @@
+===
+/TEST_OUTPUT/workspace/another_consumer.py
+References in File: 3
+===
+
+Reference at Line 16, Column 23:
+11|class AnotherImplementation:
+12|    """A class that uses shared components but doesn't implement interfaces."""
+13|    
+14|    def __init__(self):
+15|        """Initialize the implementation."""
+16|        self.shared = SharedClass[str]("another", SHARED_CONSTANT)
+17|    
+18|    def do_something(self) -> str:
+19|        """Do something with the shared components.
+20|        
+21|        Returns:
+22|            The processed result
+23|        """
+24|        # Get the value from shared class
+25|        value = self.shared.get_value()
+26|        
+27|        # Process it using the helper function
+28|        return helper_function(value)
+
+
+Reference at Line 37, Column 14:
+31|def another_consumer_function() -> None:
+32|    """Another function that uses various shared components."""
+33|    # Use shared constants
+34|    print(f"Using constant: {SHARED_CONSTANT}")
+35|    
+36|    # Use shared class with a different type parameter
+37|    shared = SharedClass[float]("another example", 3.14)
+38|    
+39|    # Use methods from shared class
+40|    name = shared.get_name()
+41|    value = shared.get_value()
+42|    print(f"Name: {name}, Value: {value}")
+43|    
+44|    # Use our own implementation
+45|    impl = AnotherImplementation()
+46|    result = impl.do_something()
+47|    print(f"Implementation result: {result}")
+48|    
+49|    # Use helper function
+50|    output = helper_function("another direct call")
+51|    print(f"Helper output: {output}")
+52|    
+53|    # Use enum-like class with a different color
+54|    color = Color.GREEN
+55|    print(f"Selected color: {color}")
+
+
+===
+/TEST_OUTPUT/workspace/consumer.py
+References in File: 2
+===
+
+Reference at Line 55, Column 14:
+49|def consumer_function() -> None:
+50|    """Function that uses various shared components."""
+51|    # Use shared constants
+52|    print(f"Shared constant: {SHARED_CONSTANT}")
+53|    
+54|    # Use shared class
+55|    shared = SharedClass[int]("example", 42)
+56|    name = shared.get_name()
+57|    value = shared.get_value()
+58|    print(f"Shared class name: {name}, value: {value}")
+59|    
+60|    # Set new value
+61|    shared.set_value(100)
+62|    
+63|    # Use shared interface
+64|    consumer = Consumer()
+65|    processed = consumer.process("test data")
+66|    print(f"Processed: {processed}")
+67|    
+68|    # Use helper function directly
+69|    result = helper_function("direct call")
+70|    print(f"Helper result: {result}")
+71|    
+72|    # Use another helper function with PI constant
+73|    area = calculate_area(2.0)
+74|    print(f"Circle area: {area}")
+75|    
+76|    # Use type alias
+77|    data: DataDict = {
+78|        "name": "test",
+79|        "value": 42,
+80|        "enabled": True
+81|    }
+82|    print(f"Data: {data}")
+83|    
+84|    # Use enum-like class
+85|    color = Color.BLUE
+86|    print(f"Color: {color}")
+

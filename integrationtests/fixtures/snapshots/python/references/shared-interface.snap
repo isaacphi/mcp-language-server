@@ -1,0 +1,37 @@
+===
+/TEST_OUTPUT/workspace/consumer.py
+References in File: 2
+===
+
+Reference at Line 17, Column 16:
+17|class Consumer(SharedInterface):
+18|    """A class that implements the SharedInterface."""
+19|    
+20|    def __init__(self):
+21|        """Initialize the Consumer."""
+22|        self.data: List[str] = []
+23|    
+24|    def process(self, data: str) -> str:
+25|        """Process the input data by converting to uppercase.
+26|        
+27|        Args:
+28|            data: The input data to process
+29|            
+30|        Returns:
+31|            The processed data
+32|        """
+33|        result = helper_function(data)  # Using the helper function
+34|        self.data.append(result)
+35|        return result
+36|    
+37|    def validate(self, value: Any) -> bool:
+38|        """Validate that the value is a non-empty string.
+39|        
+40|        Args:
+41|            value: The value to validate
+42|            
+43|        Returns:
+44|            True if valid, False otherwise
+45|        """
+46|        return isinstance(value, str) and len(value) > 0
+
