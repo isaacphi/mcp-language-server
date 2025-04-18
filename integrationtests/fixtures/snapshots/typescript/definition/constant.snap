@@ -1,0 +1,9 @@
+===
+Symbol: TestConstant
+/TEST_OUTPUT/workspace/main.ts
+Kind: Constant
+Start Position: Line 33, Column 1
+End Position: Line 33, Column 31
+===
+33|export const TestConstant = 42;
+

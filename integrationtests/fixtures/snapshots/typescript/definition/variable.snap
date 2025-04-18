@@ -1,0 +1,9 @@
+===
+Symbol: TestVariable
+/TEST_OUTPUT/workspace/main.ts
+Kind: Constant
+Start Position: Line 30, Column 1
+End Position: Line 30, Column 43
+===
+30|export const TestVariable: string = "Test";
+

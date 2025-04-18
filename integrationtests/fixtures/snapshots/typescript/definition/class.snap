@@ -1,0 +1,19 @@
+===
+Symbol: TestClass
+/TEST_OUTPUT/workspace/main.ts
+Kind: Class
+Start Position: Line 14, Column 1
+End Position: Line 24, Column 2
+===
+14|export class TestClass implements TestInterface {
+15|  property: string;
+16|  
+17|  constructor() {
+18|    this.property = "test";
+19|  }
+20|  
+21|  method(): void {
+22|    console.log("Method called");
+23|  }
+24|}
+

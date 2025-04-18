@@ -1,0 +1,12 @@
+===
+Symbol: TestInterface
+/TEST_OUTPUT/workspace/main.ts
+Kind: Interface
+Start Position: Line 8, Column 1
+End Position: Line 11, Column 2
+===
+ 8|export interface TestInterface {
+ 9|  method(): void;
+10|  property: string;
+11|}
+

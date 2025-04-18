@@ -1,0 +1,12 @@
+===
+Symbol: TestFunction
+/TEST_OUTPUT/workspace/main.ts
+Kind: Function
+Start Position: Line 2, Column 1
+End Position: Line 5, Column 2
+===
+2|export function TestFunction(): string {
+3|  return "Hello, World!";
+4|  console.log("Unreachable code"); // This is unreachable code
+5|}
+

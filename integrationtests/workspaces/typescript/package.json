@@ -1,0 +1,12 @@
+{
+  "name": "typescript-test-workspace",
+  "version": "1.0.0",
+  "description": "TypeScript test workspace for MCP language server",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
