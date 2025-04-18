@@ -7,7 +7,7 @@ require (
 	github.com/metoro-io/mcp-golang v0.6.0
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/text v0.22.0
+	golang.org/x/text v0.24.0
 )
 
 replace github.com/metoro-io/mcp-golang => github.com/isaacphi/mcp-golang v0.0.0-20250314121746-948e874f9887
@@ -32,7 +32,7 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/telemetry v0.0.0-20240522233618-39ace7a40ae7 // indirect
 	golang.org/x/tools v0.31.0 // indirect
