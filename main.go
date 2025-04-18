@@ -14,8 +14,7 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/logging"
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/watcher"
-	"github.com/metoro-io/mcp-golang"
-	"github.com/metoro-io/mcp-golang/transport/stdio"
+	"github.com/mark3labs/mcp-go/server"
 )
 
 // Create a logger for the core component
@@ -27,10 +26,10 @@ type config struct {
 	lspArgs      []string
 }
 
-type server struct {
+type mcpServer struct {
 	config           config
 	lspClient        *lsp.Client
-	mcpServer        *mcp_golang.Server
+	mcpServer        *server.MCPServer
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	workspaceWatcher *watcher.WorkspaceWatcher
@@ -72,16 +71,16 @@ func parseConfig() (*config, error) {
 	return cfg, nil
 }
 
-func newServer(config *config) (*server, error) {
+func newServer(config *config) (*mcpServer, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &server{
+	return &mcpServer{
 		config:     *config,
 		ctx:        ctx,
 		cancelFunc: cancel,
 	}, nil
 }
 
-func (s *server) initializeLSP() error {
+func (s *mcpServer) initializeLSP() error {
 	if err := os.Chdir(s.config.workspaceDir); err != nil {
 		return fmt.Errorf("failed to change to workspace directory: %v", err)
 	}
@@ -104,18 +103,24 @@ func (s *server) initializeLSP() error {
 	return client.WaitForServerReady(s.ctx)
 }
 
-func (s *server) start() error {
+func (s *mcpServer) start() error {
 	if err := s.initializeLSP(); err != nil {
 		return err
 	}
 
-	s.mcpServer = mcp_golang.NewServer(stdio.NewStdioServerTransport())
+	s.mcpServer = server.NewMCPServer(
+		"MCP Language Server",
+		"v0.0.2",
+		server.WithLogging(),
+		server.WithRecovery(),
+	)
+
 	err := s.registerTools()
 	if err != nil {
 		return fmt.Errorf("tool registration failed: %v", err)
 	}
 
-	return s.mcpServer.Serve()
+	return server.ServeStdio(s.mcpServer)
 }
 
 func main() {
@@ -185,7 +190,7 @@ func main() {
 	os.Exit(0)
 }
 
-func cleanup(s *server, done chan struct{}) {
+func cleanup(s *mcpServer, done chan struct{}) {
 	coreLogger.Info("Cleanup initiated for PID: %d", os.Getpid())
 
 	// Create a context with timeout for shutdown operations

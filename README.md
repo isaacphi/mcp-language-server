@@ -43,7 +43,7 @@ Each tool supports various options for customizing output, such as including lin
 
 This codebase makes use of edited code from [gopls](https://go.googlesource.com/tools/+/refs/heads/master/gopls/internal/protocol) to handle LSP communication. See ATTRIBUTION for details.
 
-[mcp-golang](https://github.com/metoro-io/mcp-golang) is used for MCP communication.
+[mcp-go](https://github.com/mark3labs/mcp-go) is used for MCP communication.
 
 ## Prerequisites
 
@@ -161,7 +161,6 @@ Include
 ```
 env: {
   "LOG_LEVEL": "DEBUG",
-  "LOG_COMPONENT_LEVELS": "wire:DEBUG"
 }
 ```
 
@@ -180,4 +179,3 @@ The following features are on my radar:
 - [ ] Add LSP server configuration options and presets for common languages
 - [ ] Make a more consistent and scalable API for tools (pagination, etc.)
 - [ ] Create tools at a higher level of abstraction, combining diagnostics, code lens, hover, and code actions when reading definitions or references.
-
