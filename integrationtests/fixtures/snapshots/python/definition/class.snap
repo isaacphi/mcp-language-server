@@ -1,0 +1,50 @@
+===
+Symbol: TestClass
+/TEST_OUTPUT/workspace/main.py
+Kind: Class
+Start Position: Line 18, Column 1
+End Position: Line 59, Column 22
+===
+18|class TestClass:
+19|    """A test class with methods and attributes."""
+20|
+21|    class_variable: str = "class variable"
+22|
+23|    def __init__(self, value: int = 0):
+24|        """Initialize the TestClass.
+25|
+26|        Args:
+27|            value: The initial value
+28|        """
+29|        self.value: int = value
+30|
+31|    def test_method(self, increment: int) -> int:
+32|        """Increment the value by the given amount.
+33|
+34|        Args:
+35|            increment: The amount to increment by
+36|
+37|        Returns:
+38|            The new value
+39|        """
+40|        self.value += increment
+41|        return self.value
+42|
+43|    @staticmethod
+44|    def static_method(items: List[str]) -> Dict[str, int]:
+45|        """Convert a list of items to a dictionary with item counts.
+46|
+47|        Args:
+48|            items: A list of strings
+49|
+50|        Returns:
+51|            A dictionary mapping items to their counts
+52|        """
+53|        result: Dict[str, int] = {}
+54|        for item in items:
+55|            if item in result:
+56|                result[item] += 1
+57|            else:
+58|                result[item] = 1
+59|        return result
+

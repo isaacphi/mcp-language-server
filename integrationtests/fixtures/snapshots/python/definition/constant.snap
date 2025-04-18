@@ -1,0 +1,9 @@
+===
+Symbol: TEST_CONSTANT
+/TEST_OUTPUT/workspace/main.py
+Kind: Constant
+Start Position: Line 79, Column 1
+End Position: Line 79, Column 14
+===
+79|TEST_CONSTANT: str = "test constant"
+

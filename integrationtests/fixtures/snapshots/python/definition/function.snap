@@ -1,0 +1,18 @@
+===
+Symbol: test_function
+/TEST_OUTPUT/workspace/main.py
+Kind: Function
+Start Position: Line 6, Column 1
+End Position: Line 15, Column 29
+===
+ 6|def test_function(name: str) -> str:
+ 7|    """A simple test function that returns a greeting message.
+ 8|
+ 9|    Args:
+10|        name: The name to greet
+11|
+12|    Returns:
+13|        A greeting message
+14|    """
+15|    return f"Hello, {name}!"
+

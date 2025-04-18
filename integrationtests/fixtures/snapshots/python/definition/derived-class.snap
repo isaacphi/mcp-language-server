@@ -1,0 +1,14 @@
+===
+Symbol: DerivedClass
+/TEST_OUTPUT/workspace/main.py
+Kind: Class
+Start Position: Line 70, Column 1
+End Position: Line 75, Column 13
+===
+70|class DerivedClass(BaseClass):
+71|    """A class that inherits from BaseClass."""
+72|
+73|    def derived_method(self) -> None:
+74|        """A method defined in the derived class."""
+75|        pass
+

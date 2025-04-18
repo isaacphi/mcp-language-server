@@ -46,8 +46,8 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string, 
 			} else {
 				// For unqualified names like "Method"
 				if v.Kind == protocol.Method {
-					// For methods, only match if the method name matches exactly Type.symbolName
-					if !strings.HasSuffix(symbol.GetName(), "."+symbolName) {
+					// For methods, only match if the method name matches exactly Type.symbolName or symbolName
+					if !strings.HasSuffix(symbol.GetName(), "."+symbolName) && symbol.GetName() != symbolName {
 						continue
 					}
 				} else if symbol.GetName() != symbolName {
