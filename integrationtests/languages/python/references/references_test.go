@@ -108,7 +108,7 @@ func countFilesInResult(result string) int {
 	fileMap := make(map[string]bool)
 
 	// Any line containing "workspace" and ".py" is a file path
-	for _, line := range strings.Split(result, "\n") {
+	for line := range strings.SplitSeq(result, "\n") {
 		if strings.Contains(line, "workspace") && strings.Contains(line, ".py") {
 			if !strings.Contains(line, "References in File") {
 				fileMap[line] = true
