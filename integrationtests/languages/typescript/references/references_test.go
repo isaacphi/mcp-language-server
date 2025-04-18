@@ -2,6 +2,7 @@ package references_test
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -69,7 +70,7 @@ func TestFindReferences(t *testing.T) {
 		},
 		{
 			name:          "Method with references across files",
-			symbolName:    "SharedClass.helperMethod",
+			symbolName:    "helperMethod", // Method name only
 			expectedText:  "helperMethod",
 			expectedFiles: 1, // consumer.ts
 			snapshotName:  "class-method",
@@ -83,7 +84,7 @@ func TestFindReferences(t *testing.T) {
 		},
 		{
 			name:          "Interface method with references",
-			symbolName:    "SharedInterface.getName",
+			symbolName:    "getName", // Method name only
 			expectedText:  "getName",
 			expectedFiles: 2, // Helper file defines it, consumer uses it
 			snapshotName:  "interface-method",
