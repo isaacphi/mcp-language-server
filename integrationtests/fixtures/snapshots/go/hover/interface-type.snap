@@ -1,0 +1,15 @@
+```go
+type SharedInterface interface { // size=16 (0x10)
+	Process() error
+	GetName() string
+}
+```
+
+---
+
+SharedInterface defines behavior implemented across files
+
+
+---
+
+[`main.SharedInterface` on pkg.go.dev](https://pkg.go.dev/github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace#SharedInterface)

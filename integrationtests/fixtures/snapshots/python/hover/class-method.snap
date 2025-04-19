@@ -1,0 +1,12 @@
+(method) def test_method(
+    self: Self@TestClass,
+    increment: int
+) -> int
+
+Increment the value by the given amount.
+
+Args:
+    increment: The amount to increment by
+
+Returns:
+    The new value
