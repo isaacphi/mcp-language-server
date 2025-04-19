@@ -38,6 +38,12 @@ type ExecuteCodeLensArgs struct {
 	Index    int    `json:"index" jsonschema:"required,description=The index of the code lens to execute (from get_codelens output), 1 indexed"`
 }
 
+type GetHoverArgs struct {
+	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file to get hover information for"`
+	Line     int    `json:"line" jsonschema:"required,description=The line number where the hover is requested (1-indexed)"`
+	Column   int    `json:"column" jsonschema:"required,description=The column number where the hover is requested (1-indexed)"`
+}
+
 func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
 
@@ -67,14 +73,14 @@ func (s *mcpServer) registerTools() error {
 		}
 
 		// Type assert and convert the edits
-		editsArray, ok := editsArg.([]interface{})
+		editsArray, ok := editsArg.([]any)
 		if !ok {
 			return mcp.NewToolResultError("edits must be an array"), nil
 		}
 
 		var edits []tools.TextEdit
 		for _, editItem := range editsArray {
-			editMap, ok := editItem.(map[string]interface{})
+			editMap, ok := editItem.(map[string]any)
 			if !ok {
 				return mcp.NewToolResultError("each edit must be an object"), nil
 			}
@@ -274,6 +280,58 @@ func (s *mcpServer) registerTools() error {
 		if err != nil {
 			coreLogger.Error("Failed to execute code lens: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to execute code lens: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
+	hoverTool := mcp.NewTool("hover",
+		mcp.WithDescription("Get hover information (type, documentation) for a symbol at the specified position."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("The path to the file to get hover information for"),
+		),
+		mcp.WithNumber("line",
+			mcp.Required(),
+			mcp.Description("The line number where the hover is requested (1-indexed)"),
+		),
+		mcp.WithNumber("column",
+			mcp.Required(),
+			mcp.Description("The column number where the hover is requested (1-indexed)"),
+		),
+	)
+
+	s.mcpServer.AddTool(hoverTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Extract arguments
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+
+		// Handle both float64 and int for line and column due to JSON parsing
+		var line, column int
+		switch v := request.Params.Arguments["line"].(type) {
+		case float64:
+			line = int(v)
+		case int:
+			line = v
+		default:
+			return mcp.NewToolResultError("line must be a number"), nil
+		}
+
+		switch v := request.Params.Arguments["column"].(type) {
+		case float64:
+			column = int(v)
+		case int:
+			column = v
+		default:
+			return mcp.NewToolResultError("column must be a number"), nil
+		}
+
+		coreLogger.Debug("Executing hover for file: %s line: %d column: %d", filePath, line, column)
+		text, err := tools.GetHoverInfo(s.ctx, s.lspClient, filePath, line, column)
+		if err != nil {
+			coreLogger.Error("Failed to get hover information: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get hover information: %v", err)), nil
 		}
 		return mcp.NewToolResultText(text), nil
 	})

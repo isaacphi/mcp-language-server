@@ -1,0 +1,9 @@
+(function) def test_function(name: str) -> str
+
+A simple test function that returns a greeting message.
+
+Args:
+    name: The name to greet
+
+Returns:
+    A greeting message

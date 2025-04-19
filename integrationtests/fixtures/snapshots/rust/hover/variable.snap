@@ -1,0 +1,3 @@
+test_workspace::types
+
+pub static TEST_VARIABLE: &str = "test variable value"

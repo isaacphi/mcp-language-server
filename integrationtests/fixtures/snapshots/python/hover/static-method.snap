@@ -1,0 +1,9 @@
+(method) def static_method(items: List[str]) -> Dict[str, int]
+
+Convert a list of items to a dictionary with item counts.
+
+Args:
+    items: A list of strings
+
+Returns:
+    A dictionary mapping items to their counts
