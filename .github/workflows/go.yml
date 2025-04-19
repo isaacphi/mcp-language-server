@@ -92,6 +92,13 @@ jobs:
           check-latest: true
           cache: true
 
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rust-src
+          override: true
+
       - name: Install rust-analyzer
         run: |
           mkdir -p ~/.local/bin
