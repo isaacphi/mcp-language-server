@@ -144,8 +144,7 @@ func countFilesInResult(result string) int {
 
 	// Any line containing "workspace" and ".ts" is a file path
 	// but filter out lines that are just headers
-	lines := strings.Split(result, "\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(result, "\n") {
 		if strings.Contains(line, "workspace") && strings.Contains(line, ".ts") {
 			// Avoid counting section headers and focus on actual file paths
 			if !strings.Contains(line, "References in File") && !strings.Contains(line, "Symbol:") {

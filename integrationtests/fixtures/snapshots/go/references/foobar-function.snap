@@ -2,7 +2,6 @@
 /TEST_OUTPUT/workspace/main.go
 References in File: 1
 ===
-
 Reference at Line 12, Column 14:
 11|func main() {
 12|	fmt.Println(FooBar())

@@ -2,7 +2,6 @@
 /TEST_OUTPUT/workspace/another_consumer.ts
 References in File: 1
 ===
-
 Reference at Line 21, Column 5:
 12|export function AnotherConsumerFunction(): void {
 13|  const result = SharedFunction();
@@ -29,12 +28,10 @@ Reference at Line 21, Column 5:
 34|  console.log(instance, iface, mixedArray, prefixed, enumValues);
 35|}
 
-
 ===
 /TEST_OUTPUT/workspace/consumer.ts
 References in File: 2
 ===
-
 Reference at Line 22, Column 21:
 12|export function ConsumerFunction(): void {
 13|  console.log("Consumer calling:", SharedFunction());
@@ -88,12 +85,10 @@ Reference at Line 17, Column 24:
 34|  console.log(SharedEnum.ONE);
 35|}
 
-
 ===
 /TEST_OUTPUT/workspace/helper.ts
 References in File: 1
 ===
-
 Reference at Line 22, Column 3:
 15|export class SharedClass implements SharedInterface {
 16|  private name: string;
@@ -115,12 +110,10 @@ Reference at Line 22, Column 3:
 32|  }
 33|}
 
-
 ===
 /TEST_OUTPUT/workspace/another_consumer.ts
 References in File: 1
 ===
-
 Reference at Line 21, Column 5:
 12|export function AnotherConsumerFunction(): void {
 13|  const result = SharedFunction();
@@ -147,12 +140,10 @@ Reference at Line 21, Column 5:
 34|  console.log(instance, iface, mixedArray, prefixed, enumValues);
 35|}
 
-
 ===
 /TEST_OUTPUT/workspace/consumer.ts
 References in File: 2
 ===
-
 Reference at Line 22, Column 21:
 12|export function ConsumerFunction(): void {
 13|  console.log("Consumer calling:", SharedFunction());
@@ -206,12 +197,10 @@ Reference at Line 17, Column 24:
 34|  console.log(SharedEnum.ONE);
 35|}
 
-
 ===
 /TEST_OUTPUT/workspace/helper.ts
 References in File: 1
 ===
-
 Reference at Line 10, Column 3:
  9|export interface SharedInterface {
 10|  getName(): string;

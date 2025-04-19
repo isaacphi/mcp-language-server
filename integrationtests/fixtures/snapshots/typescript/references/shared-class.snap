@@ -2,7 +2,6 @@
 /TEST_OUTPUT/workspace/another_consumer.ts
 References in File: 2
 ===
-
 Reference at Line 17, Column 24:
 12|export function AnotherConsumerFunction(): void {
 13|  const result = SharedFunction();
@@ -29,12 +28,10 @@ Reference at Line 17, Column 24:
 34|  console.log(instance, iface, mixedArray, prefixed, enumValues);
 35|}
 
-
 ===
 /TEST_OUTPUT/workspace/consumer.ts
 References in File: 2
 ===
-
 Reference at Line 16, Column 24:
 12|export function ConsumerFunction(): void {
 13|  console.log("Consumer calling:", SharedFunction());

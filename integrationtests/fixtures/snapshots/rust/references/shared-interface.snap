@@ -1,0 +1,61 @@
+===
+/TEST_OUTPUT/workspace/src/another_consumer.rs
+References in File: 2
+===
+Reference at Line 17, Column 22:
+ 7|pub fn another_consumer_function() {
+ 8|    // Use the helper function
+ 9|    let result = helper_function();
+10|    println!("Helper result from another consumer: {}", result);
+11|
+12|    // Use shared struct
+13|    let s = SharedStruct::new("another test");
+14|    println!("Struct in another consumer: {}", s.name);
+15|
+16|    // Use shared interface
+17|    let _iface: &dyn SharedInterface = &s;
+18|    
+19|    // Use shared constant
+20|    println!("Constant in another consumer: {}", SHARED_CONSTANT);
+21|
+22|    // Use shared type
+23|    let _t: SharedType = String::from("another test");
+24|}
+
+===
+/TEST_OUTPUT/workspace/src/consumer.rs
+References in File: 2
+===
+Reference at Line 17, Column 21:
+ 7|pub fn consumer_function() {
+ 8|    // Use the helper function
+ 9|    let result = helper_function();
+10|    println!("Helper result: {}", result);
+11|
+12|    // Use shared struct
+13|    let s = SharedStruct::new("test");
+14|    println!("Struct method: {}", s.method());
+15|
+16|    // Use shared interface
+17|    let iface: &dyn SharedInterface = &s;
+18|    println!("Interface method: {}", iface.get_name());
+19|
+20|    // Use shared constant
+21|    println!("Constant: {}", SHARED_CONSTANT);
+22|
+23|    // Use shared type
+24|    let t: SharedType = String::from("test");
+25|    println!("Type: {}", t);
+26|}
+
+===
+/TEST_OUTPUT/workspace/src/types.rs
+References in File: 1
+===
+Reference at Line 70, Column 6:
+70|impl SharedInterface for SharedStruct {
+71|    fn get_name(&self) -> String {
+72|        self.name.clone()
+73|    }
+74|}
+

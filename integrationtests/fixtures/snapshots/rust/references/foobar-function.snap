@@ -1,0 +1,9 @@
+===
+/TEST_OUTPUT/workspace/src/main.rs
+References in File: 1
+===
+Reference at Line 15, Column 20:
+14|fn main() {
+15|    println!("{}", foo_bar());
+16|}
+

@@ -452,14 +452,14 @@ func (w *WorkspaceWatcher) matchesPattern(path string, pattern protocol.GlobPatt
 	basePath := patternInfo.GetBasePath()
 	patternText := patternInfo.GetPattern()
 
-	watcherLogger.Debug("Matching path %s against pattern %s (base: %s)", path, patternText, basePath)
+	// watcherLogger.Debug("Matching path %s against pattern %s (base: %s)", path, patternText, basePath)
 
 	path = filepath.ToSlash(path)
 
 	// Special handling for wildcard patterns like "**/*"
 	if patternText == "**/*" {
 		// This should match any file
-		watcherLogger.Debug("Using special matching for **/* pattern")
+		// watcherLogger.Debug("Using special matching for **/* pattern")
 		return true
 	}
 
@@ -468,11 +468,11 @@ func (w *WorkspaceWatcher) matchesPattern(path string, pattern protocol.GlobPatt
 		if strings.HasPrefix(strings.TrimPrefix(patternText, "**/"), "*.") {
 			// Extension pattern like **/*.go
 			ext := strings.TrimPrefix(strings.TrimPrefix(patternText, "**/"), "*")
-			watcherLogger.Debug("Using extension matching for **/*.ext pattern: checking if %s ends with %s", path, ext)
+			// watcherLogger.Debug("Using extension matching for **/*.ext pattern: checking if %s ends with %s", path, ext)
 			return strings.HasSuffix(path, ext)
 		} else {
 			// Any other pattern starting with **/ should match any path
-			watcherLogger.Debug("Using path substring matching for **/ pattern")
+			// watcherLogger.Debug("Using path substring matching for **/ pattern")
 			return true
 		}
 	}

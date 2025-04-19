@@ -104,7 +104,7 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 		formattedDiagnostics = append(formattedDiagnostics, formattedDiag)
 	}
 
-	return strings.Join(formattedDiagnostics, "\n"), nil
+	return strings.Join(formattedDiagnostics, ""), nil
 }
 
 func getSeverityString(severity protocol.DiagnosticSeverity) string {

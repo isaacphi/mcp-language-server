@@ -67,8 +67,6 @@ func ReadMessage(r *bufio.Reader) (*Message, error) {
 		}
 	}
 
-	wireLogger.Debug("<- Reading content with length: %d", contentLength)
-
 	// Read content
 	content := make([]byte, contentLength)
 	_, err := io.ReadFull(r, content)

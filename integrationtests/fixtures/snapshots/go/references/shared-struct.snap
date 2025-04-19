@@ -2,7 +2,6 @@
 /TEST_OUTPUT/workspace/another_consumer.go
 References in File: 2
 ===
-
 Reference at Line 11, Column 8:
  6|func AnotherConsumer() {
  7|	// Use helper function
@@ -80,12 +79,10 @@ Reference at Line 25, Column 3:
 40|	}
 41|}
 
-
 ===
 /TEST_OUTPUT/workspace/consumer.go
 References in File: 1
 ===
-
 Reference at Line 11, Column 8:
  6|func ConsumerFunction() {
  7|	message := HelperFunction()
@@ -112,12 +109,10 @@ Reference at Line 11, Column 8:
 28|	fmt.Println(t)
 29|}
 
-
 ===
 /TEST_OUTPUT/workspace/types.go
 References in File: 3
 ===
-
 Reference at Line 14, Column 10:
 14|func (s *SharedStruct) Method() string {
 15|	return s.Name

@@ -3,7 +3,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -17,3 +17,4 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+

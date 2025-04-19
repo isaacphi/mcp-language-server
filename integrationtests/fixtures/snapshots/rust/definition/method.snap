@@ -1,0 +1,42 @@
+===
+Symbol: method
+/TEST_OUTPUT/workspace/src/types.rs
+Kind: Function
+Container Name: TestStruct
+Start Position: Line 18, Column 1
+End Position: Line 30, Column 2
+===
+18|// Implementation for TestStruct
+19|impl TestStruct {
+20|    pub fn new(name: &str, value: i32) -> Self {
+21|        TestStruct {
+22|            name: String::from(name),
+23|            value,
+24|        }
+25|    }
+26|
+27|    pub fn method(&self) -> String {
+28|        format!("{}: {}", self.name, self.value)
+29|    }
+30|}
+
+===
+Symbol: method
+/TEST_OUTPUT/workspace/src/types.rs
+Kind: Function
+Container Name: SharedStruct
+Start Position: Line 54, Column 1
+End Position: Line 64, Column 2
+===
+54|impl SharedStruct {
+55|    pub fn new(name: &str) -> Self {
+56|        SharedStruct {
+57|            name: String::from(name),
+58|        }
+59|    }
+60|
+61|    pub fn method(&self) -> String {
+62|        format!("SharedStruct: {}", self.name)
+63|    }
+64|}
+

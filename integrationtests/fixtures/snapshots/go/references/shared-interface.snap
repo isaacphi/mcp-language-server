@@ -2,7 +2,6 @@
 /TEST_OUTPUT/workspace/another_consumer.go
 References in File: 1
 ===
-
 Reference at Line 33, Column 12:
  6|func AnotherConsumer() {
  7|	// Use helper function
@@ -41,12 +40,10 @@ Reference at Line 33, Column 12:
 40|	}
 41|}
 
-
 ===
 /TEST_OUTPUT/workspace/consumer.go
 References in File: 1
 ===
-
 Reference at Line 23, Column 12:
  6|func ConsumerFunction() {
  7|	message := HelperFunction()

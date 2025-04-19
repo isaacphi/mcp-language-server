@@ -10,7 +10,6 @@ Code: default
  8|	fmt.Println("Unreachable code") // This is unreachable code
  9|}
 
-
 ===
 /TEST_OUTPUT/workspace/main.go
 Location: Line 9, Column 1

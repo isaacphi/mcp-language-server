@@ -273,4 +273,3 @@ export enum SharedEnum {
 		common.SnapshotTest(t, "typescript", "diagnostics", "dependency", result)
 	})
 }
-

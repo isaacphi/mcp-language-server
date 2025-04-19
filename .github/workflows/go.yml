@@ -79,3 +79,49 @@ jobs:
       - name: Run Python integration tests
         run: go test ./integrationtests/languages/python/...
 
+  rust-integration-tests:
+    name: Rust Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          check-latest: true
+          cache: true
+
+      - name: Install rust-analyzer
+        run: |
+          mkdir -p ~/.local/bin
+          curl -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz | gunzip -c - > ~/.local/bin/rust-analyzer
+          chmod +x ~/.local/bin/rust-analyzer
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Run Rust integration tests
+        run: go test ./integrationtests/languages/rust/...
+
+  typescript-integration-tests:
+    name: TypeScript Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          check-latest: true
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install typescript-language-server
+        run: npm install -g typescript typescript-language-server
+
+      - name: Run TypeScript integration tests
+        run: go test ./integrationtests/languages/typescript/...

@@ -1,0 +1,13 @@
+===
+Symbol: TestInterface
+/TEST_OUTPUT/workspace/src/types.rs
+Kind: Interface
+Start Position: Line 32, Column 1
+End Position: Line 36, Column 2
+===
+32|// An interface (trait) for testing
+33|pub trait TestInterface {
+34|    fn get_name(&self) -> String;
+35|    fn get_value(&self) -> i32;
+36|}
+
