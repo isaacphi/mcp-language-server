@@ -106,6 +106,9 @@ jobs:
           chmod +x ~/.local/bin/rust-analyzer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - run: rustc --version
+      - run: rust-analyzer --version
+
       - name: Run Rust integration tests
         run: go test ./integrationtests/languages/rust/...
 
