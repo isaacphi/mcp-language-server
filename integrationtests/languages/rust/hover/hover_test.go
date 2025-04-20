@@ -119,7 +119,7 @@ func TestHover(t *testing.T) {
 			// Get a test suite
 			suite := internal.GetTestSuite(t)
 
-			ctx, cancel := context.WithTimeout(suite.Context, 5*time.Second)
+			ctx, cancel := context.WithTimeout(suite.Context, 10*time.Second)
 			defer cancel()
 
 			// Open all files and wait for rust-analyzer to index them
@@ -130,6 +130,8 @@ func TestHover(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to open %s: %v", tt.file, err)
 			}
+
+			time.Sleep(3 * time.Second)
 
 			// Get hover info
 			result, err := tools.GetHoverInfo(ctx, suite.Client, filePath, tt.line, tt.column)
