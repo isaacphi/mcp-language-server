@@ -69,7 +69,7 @@ func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line
 	}
 
 	if fileCount == 0 || changeCount == 0 {
-		return fmt.Sprint("Failed to rename symbol. 0 occurrences found."), nil
+		return "Failed to rename symbol. 0 occurrences found.", nil
 	}
 
 	// Generate a summary of changes made
