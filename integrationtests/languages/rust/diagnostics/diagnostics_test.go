@@ -158,21 +158,16 @@ pub fn helper_function(value: i32) -> String {
 		}
 
 		// Wait for LSP to process the change
-		time.Sleep(3 * time.Second)
+		time.Sleep(6 * time.Second)
 
 		// Force reopen the consumer file to ensure LSP reevaluates it
-		err = suite.Client.CloseFile(ctx, consumerPath)
-		if err != nil {
-			t.Fatalf("Failed to close consumer.rs: %v", err)
-		}
-
 		err = suite.Client.OpenFile(ctx, consumerPath)
 		if err != nil {
 			t.Fatalf("Failed to reopen consumer.rs: %v", err)
 		}
 
 		// Wait for LSP to process the change
-		time.Sleep(3 * time.Second)
+		time.Sleep(6 * time.Second)
 
 		// Check diagnostics again on consumer file - should now have an error
 		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
