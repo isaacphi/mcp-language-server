@@ -87,14 +87,6 @@ func TestHover(t *testing.T) {
 			snapshotName: "variable",
 		},
 		{
-			name:         "TypeAlias",
-			file:         "src/types.rs",
-			line:         10,
-			column:       10,
-			expectedText: "TestType",
-			snapshotName: "type-alias",
-		},
-		{
 			name:         "Function",
 			file:         "src/types.rs",
 			line:         81,

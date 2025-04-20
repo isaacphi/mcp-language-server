@@ -80,7 +80,7 @@ TEST_CONSTANT: str = "test constant"
 PI: float = 3.14159
 
 # Variables
-test_variable: List[int] = [1, 2, 3, 4, 5]
+test_variable: list[int] = [1, 2, 3, 4, 5]
 optional_var: Optional[str] = None
 union_var: Union[int, str] = "test"
 
@@ -103,4 +103,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
