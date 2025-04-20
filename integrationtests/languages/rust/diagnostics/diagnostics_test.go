@@ -171,11 +171,8 @@ pub fn helper_function(value: i32) -> String {
 			t.Fatalf("Failed to reopen consumer.rs: %v", err)
 		}
 
-		// Notify the LSP server about the file change
-		err = suite.Client.NotifyChange(ctx, consumerPath)
-		if err != nil {
-			t.Fatalf("Failed to notify change to helper.rs: %v", err)
-		}
+		// Wait for LSP to process the change
+		time.Sleep(3 * time.Second)
 
 		// Check diagnostics again on consumer file - should now have an error
 		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
