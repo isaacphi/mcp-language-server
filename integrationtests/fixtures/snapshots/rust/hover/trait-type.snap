@@ -1,4 +1,6 @@
 test_workspace::types
 
-// Dyn Compatible: Yes
 pub trait TestInterface
+
+
+Is dyn-compatible

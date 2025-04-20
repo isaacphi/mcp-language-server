@@ -1,7 +1,9 @@
 test_workspace::types
 
-// size = 32 (0x20), align = 0x8
 pub struct TestStruct {
     pub name: String,
     pub value: i32,
 }
+
+
+size = 32 (0x20), align = 0x8
