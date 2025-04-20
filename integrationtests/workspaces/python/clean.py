@@ -1,14 +1,14 @@
 """A clean Python module without any errors or warnings."""
 
-from typing import List, Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 
 def clean_function(param: str) -> str:
     """A clean function without errors.
-    
+
     Args:
         param: The input parameter
-        
+
     Returns:
         The processed result
     """
@@ -17,30 +17,30 @@ def clean_function(param: str) -> str:
 
 class CleanClass:
     """A clean class without errors."""
-    
+
     def __init__(self, name: str):
         """Initialize a CleanClass instance.
-        
+
         Args:
             name: The name of this instance
         """
         self.name = name
-        
+
     def get_name(self) -> str:
         """Get the name of this instance.
-        
+
         Returns:
             The name of this instance
         """
         return self.name
-        
+
     @staticmethod
-    def utility_method(items: List[int]) -> int:
+    def utility_method(items: list[int]) -> int:
         """Calculate the sum of a list of integers.
-        
+
         Args:
             items: A list of integers
-            
+
         Returns:
             The sum of the integers
         """
@@ -49,4 +49,4 @@ class CleanClass:
 
 # Clean constants and variables
 CLEAN_CONSTANT: str = "This is a clean constant"
-clean_variable: List[int] = [10, 20, 30, 40, 50]
+clean_variable: list[int] = [10, 20, 30, 40, 50]

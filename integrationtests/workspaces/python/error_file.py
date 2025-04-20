@@ -1,14 +1,14 @@
 """A Python module with deliberate errors for testing diagnostics."""
 
-from typing import List, Dict, Any
+from typing import Any
 
 
 def function_with_unreachable_code(value: int) -> str:
     """A function with unreachable code.
-    
+
     Args:
         value: An integer value
-        
+
     Returns:
         A string result
     """
@@ -24,7 +24,7 @@ def function_with_unreachable_code(value: int) -> str:
 
 def function_with_type_error() -> str:
     """A function with a type error.
-    
+
     Returns:
         Should return a string but actually returns an int
     """
@@ -33,15 +33,15 @@ def function_with_type_error() -> str:
 
 class ErrorClass:
     """A class with errors."""
-    
-    def __init__(self, value: Dict[str, Any]):
+
+    def __init__(self, value: dict[str, Any]):
         """Initialize with errors.
-        
+
         Args:
             value: A dictionary
         """
         self.value = value
-        
+
     def method_with_undefined_variable(self) -> None:
         """A method that uses an undefined variable."""
         print(undefined_variable)  # Error: undefined_variable is not defined

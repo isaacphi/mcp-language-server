@@ -1,6 +1,6 @@
 """Module containing test definitions for Python LSP integration tests."""
 
-from typing import List, Dict, Optional, Union
+from typing import dict, Optional, Union
 
 
 def test_function(name: str) -> str:
@@ -41,7 +41,7 @@ class TestClass:
         return self.value
 
     @staticmethod
-    def static_method(items: List[str]) -> Dict[str, int]:
+    def static_method(items: list[str]) -> dict[str, int]:
         """Convert a list of items to a dictionary with item counts.
 
         Args:
@@ -50,7 +50,7 @@ class TestClass:
         Returns:
             A dictionary mapping items to their counts
         """
-        result: Dict[str, int] = {}
+        result: dict[str, int] = {}
         for item in items:
             if item in result:
                 result[item] += 1
