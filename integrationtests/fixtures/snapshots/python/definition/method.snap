@@ -32,7 +32,7 @@ End Position: Line 59, Column 22
 41|        return self.value
 42|
 43|    @staticmethod
-44|    def static_method(items: List[str]) -> Dict[str, int]:
+44|    def static_method(items: list[str]) -> dict[str, int]:
 45|        """Convert a list of items to a dictionary with item counts.
 46|
 47|        Args:
@@ -41,7 +41,7 @@ End Position: Line 59, Column 22
 50|        Returns:
 51|            A dictionary mapping items to their counts
 52|        """
-53|        result: Dict[str, int] = {}
+53|        result: dict[str, int] = {}
 54|        for item in items:
 55|            if item in result:
 56|                result[item] += 1

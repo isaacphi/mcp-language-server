@@ -2,24 +2,24 @@
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 2
 ===
-Reference at Line 14, Column 24:
-14|class MyImplementation(SharedInterface):
-15|    """An implementation of the SharedInterface."""
-16|    
-17|    def process(self, data: List[str]) -> Dict[str, int]:
-18|        """Process the given data by counting occurrences.
-19|        
-20|        Args:
-21|            data: List of strings to process
-22|            
-23|        Returns:
-24|            Dictionary with counts of each item
-25|        """
-26|        result = {}
-27|        for item in data:
-28|            if item in result:
-29|                result[item] += 1
-30|            else:
-31|                result[item] = 1
-32|        return result
+Reference at Line 13, Column 24:
+13|class MyImplementation(SharedInterface):
+14|    """An implementation of the SharedInterface."""
+15|
+16|    def process(self, data: list[str]) -> dict[str, int]:
+17|        """Process the given data by counting occurrences.
+18|
+19|        Args:
+20|            data: list of strings to process
+21|
+22|        Returns:
+23|            dictionary with counts of each item
+24|        """
+25|        result = {}
+26|        for item in data:
+27|            if item in result:
+28|                result[item] += 1
+29|            else:
+30|                result[item] = 1
+31|        return result
 

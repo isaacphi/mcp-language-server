@@ -54,44 +54,44 @@ Reference at Line 50, Column 14:
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 2
 ===
-Reference at Line 38, Column 15:
-35|def consumer_function() -> None:
-36|    """Function that consumes the helper functions."""
-37|    # Use the helper function
-38|    message = helper_function("World")
-39|    print(message)
-40|    
-41|    # Get and process items from the helper
-42|    items = get_items()
-43|    for item in items:
-44|        print(f"Processing {item}")
-45|    
-46|    # Use the shared class
-47|    shared = SharedClass[str]("consumer", SHARED_CONSTANT)
-48|    print(f"Using shared class: {shared.get_name()} - {shared.get_value()}")
-49|    
-50|    # Use our implementation of the shared interface
-51|    impl = MyImplementation()
-52|    result = impl.process(items)
-53|    print(f"Processed items: {result}")
-54|    
-55|    # Use the enum
-56|    color = Color.RED
-57|    print(f"Selected color: {color}")
+Reference at Line 37, Column 15:
+34|def consumer_function() -> None:
+35|    """Function that consumes the helper functions."""
+36|    # Use the helper function
+37|    message = helper_function("World")
+38|    print(message)
+39|
+40|    # Get and process items from the helper
+41|    items = get_items()
+42|    for item in items:
+43|        print(f"Processing {item}")
+44|
+45|    # Use the shared class
+46|    shared = SharedClass[str]("consumer", SHARED_CONSTANT)
+47|    print(f"Using shared class: {shared.get_name()} - {shared.get_value()}")
+48|
+49|    # Use our implementation of the shared interface
+50|    impl = MyImplementation()
+51|    result = impl.process(items)
+52|    print(f"Processed items: {result}")
+53|
+54|    # Use the enum
+55|    color = Color.RED
+56|    print(f"Selected color: {color}")
 
 ===
 /TEST_OUTPUT/workspace/consumer_clean.py
 References in File: 2
 ===
-Reference at Line 10, Column 15:
- 7|def consumer_function() -> None:
- 8|    """Function that consumes the helper functions."""
- 9|    # Use the helper function
-10|    message = helper_function("World")
-11|    print(message)
-12|    
-13|    # Get and process items from the helper
-14|    items = get_items()
-15|    for item in items:
-16|        print(f"Processing {item}")
+Reference at Line 9, Column 15:
+ 6|def consumer_function() -> None:
+ 7|    """Function that consumes the helper functions."""
+ 8|    # Use the helper function
+ 9|    message = helper_function("World")
+10|    print(message)
+11|
+12|    # Get and process items from the helper
+13|    items = get_items()
+14|    for item in items:
+15|        print(f"Processing {item}")
 

@@ -33,28 +33,28 @@ Reference at Line 54, Column 13:
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 2
 ===
-Reference at Line 56, Column 13:
-35|def consumer_function() -> None:
-36|    """Function that consumes the helper functions."""
-37|    # Use the helper function
-38|    message = helper_function("World")
-39|    print(message)
-40|    
-41|    # Get and process items from the helper
-42|    items = get_items()
-43|    for item in items:
-44|        print(f"Processing {item}")
-45|    
-46|    # Use the shared class
-47|    shared = SharedClass[str]("consumer", SHARED_CONSTANT)
-48|    print(f"Using shared class: {shared.get_name()} - {shared.get_value()}")
-49|    
-50|    # Use our implementation of the shared interface
-51|    impl = MyImplementation()
-52|    result = impl.process(items)
-53|    print(f"Processed items: {result}")
-54|    
-55|    # Use the enum
-56|    color = Color.RED
-57|    print(f"Selected color: {color}")
+Reference at Line 55, Column 13:
+34|def consumer_function() -> None:
+35|    """Function that consumes the helper functions."""
+36|    # Use the helper function
+37|    message = helper_function("World")
+38|    print(message)
+39|
+40|    # Get and process items from the helper
+41|    items = get_items()
+42|    for item in items:
+43|        print(f"Processing {item}")
+44|
+45|    # Use the shared class
+46|    shared = SharedClass[str]("consumer", SHARED_CONSTANT)
+47|    print(f"Using shared class: {shared.get_name()} - {shared.get_value()}")
+48|
+49|    # Use our implementation of the shared interface
+50|    impl = MyImplementation()
+51|    result = impl.process(items)
+52|    print(f"Processed items: {result}")
+53|
+54|    # Use the enum
+55|    color = Color.RED
+56|    print(f"Selected color: {color}")
 

@@ -8,7 +8,7 @@ Code: reportReturnType
 ===
 25|def function_with_type_error() -> str:
 26|    """A function with a type error.
-27|    
+27|
 28|    Returns:
 29|        Should return a string but actually returns an int
 30|    """
@@ -23,15 +23,15 @@ Code: reportUndefinedVariable
 ===
 34|class ErrorClass:
 35|    """A class with errors."""
-36|    
-37|    def __init__(self, value: Dict[str, Any]):
+36|
+37|    def __init__(self, value: dict[str, Any]):
 38|        """Initialize with errors.
-39|        
+39|
 40|        Args:
 41|            value: A dictionary
 42|        """
 43|        self.value = value
-44|        
+44|
 45|    def method_with_undefined_variable(self) -> None:
 46|        """A method that uses an undefined variable."""
 47|        print(undefined_variable)  # Error: undefined_variable is not defined
