@@ -177,9 +177,6 @@ pub fn helper_function(value: i32) -> String {
 			t.Fatalf("Failed to notify change to helper.rs: %v", err)
 		}
 
-		// Wait for diagnostics to be generated
-		time.Sleep(5 * time.Second)
-
 		// Check diagnostics again on consumer file - should now have an error
 		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
 		if err != nil {
