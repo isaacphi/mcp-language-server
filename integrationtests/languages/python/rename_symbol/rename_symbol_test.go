@@ -122,7 +122,7 @@ def dummy_function():
 
 		// Request to rename a symbol at a position where no symbol exists (in whitespace)
 		result, err := tools.RenameSymbol(ctx, suite.Client, testFilePath, 4, 1, "NewName")
-		
+
 		// The language server might actually succeed with no rename operations
 		// In this case, we check if it reports no occurrences
 		if err == nil {
@@ -134,7 +134,7 @@ def dummy_function():
 		} else {
 			// If there was an error, check it and snapshot that instead
 			errorMessage := err.Error()
-			if !strings.Contains(errorMessage, "failed to rename") && 
+			if !strings.Contains(errorMessage, "failed to rename") &&
 				!strings.Contains(errorMessage, "not found") &&
 				!strings.Contains(errorMessage, "cannot rename") {
 				t.Errorf("Expected error message about failed rename but got: %s", errorMessage)

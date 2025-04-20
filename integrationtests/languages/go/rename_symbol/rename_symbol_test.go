@@ -93,7 +93,7 @@ func TestRenameSymbol(t *testing.T) {
 		// Request to rename a symbol at a position where no symbol exists
 		// The clean.go file doesn't have content at this position
 		_, err = tools.RenameSymbol(ctx, suite.Client, filePath, 10, 10, "NewName")
-		
+
 		// Expect an error because there's no symbol at that position
 		if err == nil {
 			t.Errorf("Expected an error when renaming non-existent symbol, but got success")
@@ -101,7 +101,7 @@ func TestRenameSymbol(t *testing.T) {
 
 		// Save the error message for the snapshot
 		errorMessage := err.Error()
-		
+
 		// Verify it mentions failing to rename
 		if !strings.Contains(errorMessage, "failed to rename") {
 			t.Errorf("Expected error message about failed rename but got: %s", errorMessage)
