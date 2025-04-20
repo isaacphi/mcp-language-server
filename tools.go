@@ -44,6 +44,13 @@ type GetHoverArgs struct {
 	Column   int    `json:"column" jsonschema:"required,description=The column number where the hover is requested (1-indexed)"`
 }
 
+type RenameSymbolArgs struct {
+	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file containing the symbol to rename"`
+	Line     int    `json:"line" jsonschema:"required,description=The line number where the symbol is located (1-indexed)"`
+	Column   int    `json:"column" jsonschema:"required,description=The column number where the symbol is located (1-indexed)"`
+	NewName  string `json:"newName" jsonschema:"required,description=The new name for the symbol"`
+}
+
 func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
 
@@ -332,6 +339,67 @@ func (s *mcpServer) registerTools() error {
 		if err != nil {
 			coreLogger.Error("Failed to get hover information: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get hover information: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
+	renameSymbolTool := mcp.NewTool("rename_symbol",
+		mcp.WithDescription("Rename a symbol (variable, function, class, etc.) at the specified position and update all references throughout the codebase."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("The path to the file containing the symbol to rename"),
+		),
+		mcp.WithNumber("line",
+			mcp.Required(),
+			mcp.Description("The line number where the symbol is located (1-indexed)"),
+		),
+		mcp.WithNumber("column",
+			mcp.Required(),
+			mcp.Description("The column number where the symbol is located (1-indexed)"),
+		),
+		mcp.WithString("newName",
+			mcp.Required(),
+			mcp.Description("The new name for the symbol"),
+		),
+	)
+
+	s.mcpServer.AddTool(renameSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Extract arguments
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+
+		newName, ok := request.Params.Arguments["newName"].(string)
+		if !ok {
+			return mcp.NewToolResultError("newName must be a string"), nil
+		}
+
+		// Handle both float64 and int for line and column due to JSON parsing
+		var line, column int
+		switch v := request.Params.Arguments["line"].(type) {
+		case float64:
+			line = int(v)
+		case int:
+			line = v
+		default:
+			return mcp.NewToolResultError("line must be a number"), nil
+		}
+
+		switch v := request.Params.Arguments["column"].(type) {
+		case float64:
+			column = int(v)
+		case int:
+			column = v
+		default:
+			return mcp.NewToolResultError("column must be a number"), nil
+		}
+
+		coreLogger.Debug("Executing rename_symbol for file: %s line: %d column: %d newName: %s", filePath, line, column, newName)
+		text, err := tools.RenameSymbol(s.ctx, s.lspClient, filePath, line, column, newName)
+		if err != nil {
+			coreLogger.Error("Failed to rename symbol: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to rename symbol: %v", err)), nil
 		}
 		return mcp.NewToolResultText(text), nil
 	})
