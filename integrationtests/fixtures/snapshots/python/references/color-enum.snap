@@ -1,26 +1,23 @@
-===
+---
+
 /TEST_OUTPUT/workspace/another_consumer.py
 References in File: 2
-===
-Reference at Line 54, Column 13:
+At: L7:C5, L54:C13
+
+ 2|
+ 3|from helper import (
+ 4|    SHARED_CONSTANT,
+ 5|    SharedClass,
+ 6|    helper_function,
+ 7|    Color,
+ 8|)
+ 9|
+10|
+11|class AnotherImplementation:
+12|    """A class that uses shared components but doesn't implement interfaces."""
+...
 31|def another_consumer_function() -> None:
-32|    """Another function that uses various shared components."""
-33|    # Use shared constants
-34|    print(f"Using constant: {SHARED_CONSTANT}")
-35|    
-36|    # Use shared class with a different type parameter
-37|    shared = SharedClass[float]("another example", 3.14)
-38|    
-39|    # Use methods from shared class
-40|    name = shared.get_name()
-41|    value = shared.get_value()
-42|    print(f"Name: {name}, Value: {value}")
-43|    
-44|    # Use our own implementation
-45|    impl = AnotherImplementation()
-46|    result = impl.do_something()
-47|    print(f"Implementation result: {result}")
-48|    
+...
 49|    # Use helper function
 50|    output = helper_function("another direct call")
 51|    print(f"Helper output: {output}")
@@ -29,27 +26,26 @@ Reference at Line 54, Column 13:
 54|    color = Color.GREEN
 55|    print(f"Selected color: {color}")
 
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 2
-===
-Reference at Line 55, Column 13:
+At: L9:C5, L55:C13
+
+ 4|    helper_function,
+ 5|    get_items,
+ 6|    SharedClass,
+ 7|    SharedInterface,
+ 8|    SHARED_CONSTANT,
+ 9|    Color,
+10|)
+11|
+12|
+13|class MyImplementation(SharedInterface):
+14|    """An implementation of the SharedInterface."""
+...
 34|def consumer_function() -> None:
-35|    """Function that consumes the helper functions."""
-36|    # Use the helper function
-37|    message = helper_function("World")
-38|    print(message)
-39|
-40|    # Get and process items from the helper
-41|    items = get_items()
-42|    for item in items:
-43|        print(f"Processing {item}")
-44|
-45|    # Use the shared class
-46|    shared = SharedClass[str]("consumer", SHARED_CONSTANT)
-47|    print(f"Using shared class: {shared.get_name()} - {shared.get_value()}")
-48|
-49|    # Use our implementation of the shared interface
+...
 50|    impl = MyImplementation()
 51|    result = impl.process(items)
 52|    print(f"Processed items: {result}")
@@ -57,4 +53,3 @@ Reference at Line 55, Column 13:
 54|    # Use the enum
 55|    color = Color.RED
 56|    print(f"Selected color: {color}")
-

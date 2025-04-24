@@ -1,8 +1,9 @@
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.ts
 References in File: 1
-===
-Reference at Line 18, Column 12:
+At: L18:C12
+
 12|export function ConsumerFunction(): void {
 13|  console.log("Consumer calling:", SharedFunction());
 14|  
@@ -15,16 +16,3 @@ Reference at Line 18, Column 12:
 21|  const iface: SharedInterface = instance;
 22|  console.log(iface.getName());
 23|  console.log(iface.getValue());
-24|  
-25|  // Using SharedType
-26|  const value: SharedType = "string value";
-27|  const numValue: SharedType = 42;
-28|  console.log(value, numValue);
-29|  
-30|  // Using SharedConstant
-31|  console.log(SharedConstant);
-32|  
-33|  // Using SharedEnum
-34|  console.log(SharedEnum.ONE);
-35|}
-

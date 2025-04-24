@@ -139,9 +139,7 @@ func FindReferences(ctx context.Context, client *lsp.Client, symbolName string, 
 	}
 
 	if len(allReferences) == 0 {
-		banner := "---\n\n"
-		return fmt.Sprintf("%sNo references found for symbol: %s\n%s",
-			banner, symbolName, banner), nil
+		return fmt.Sprintf("No references found for symbol: %s", symbolName), nil
 	}
 
 	return strings.Join(allReferences, "\n"), nil

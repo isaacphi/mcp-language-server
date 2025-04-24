@@ -1,25 +1,23 @@
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 2
-===
-Reference at Line 13, Column 24:
+At: L7:C5, L13:C24
+
+ 2|
+ 3|from helper import (
+ 4|    helper_function,
+ 5|    get_items,
+ 6|    SharedClass,
+ 7|    SharedInterface,
+ 8|    SHARED_CONSTANT,
+ 9|    Color,
+10|)
+11|
+12|
 13|class MyImplementation(SharedInterface):
 14|    """An implementation of the SharedInterface."""
 15|
 16|    def process(self, data: list[str]) -> dict[str, int]:
 17|        """Process the given data by counting occurrences.
 18|
-19|        Args:
-20|            data: list of strings to process
-21|
-22|        Returns:
-23|            dictionary with counts of each item
-24|        """
-25|        result = {}
-26|        for item in data:
-27|            if item in result:
-28|                result[item] += 1
-29|            else:
-30|                result[item] = 1
-31|        return result
-

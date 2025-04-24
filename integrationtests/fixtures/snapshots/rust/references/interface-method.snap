@@ -1,3 +1,46 @@
-===
-No references found for symbol: SharedInterface::get_name
-===
+---
+
+/TEST_OUTPUT/workspace/src/types.rs
+References in File: 1
+At: L40:C8
+
+38|// Implementation of TestInterface for TestStruct
+39|impl TestInterface for TestStruct {
+40|    fn get_name(&self) -> String {
+41|        self.name.clone()
+42|    }
+43|
+44|    fn get_value(&self) -> i32 {
+45|        self.value
+
+---
+
+/TEST_OUTPUT/workspace/src/consumer.rs
+References in File: 1
+At: L18:C44
+
+7|pub fn consumer_function() {
+...
+13|    let s = SharedStruct::new("test");
+14|    println!("Struct method: {}", s.method());
+15|
+16|    // Use shared interface
+17|    let iface: &dyn SharedInterface = &s;
+18|    println!("Interface method: {}", iface.get_name());
+19|
+20|    // Use shared constant
+21|    println!("Constant: {}", SHARED_CONSTANT);
+22|
+23|    // Use shared type
+
+---
+
+/TEST_OUTPUT/workspace/src/types.rs
+References in File: 1
+At: L71:C8
+
+70|impl SharedInterface for SharedStruct {
+71|    fn get_name(&self) -> String {
+72|        self.name.clone()
+73|    }
+74|}

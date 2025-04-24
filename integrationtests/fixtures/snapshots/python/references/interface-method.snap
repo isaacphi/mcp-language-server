@@ -1,20 +1,11 @@
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 1
-===
-Reference at Line 51, Column 19:
+At: L51:C19
+
 34|def consumer_function() -> None:
-35|    """Function that consumes the helper functions."""
-36|    # Use the helper function
-37|    message = helper_function("World")
-38|    print(message)
-39|
-40|    # Get and process items from the helper
-41|    items = get_items()
-42|    for item in items:
-43|        print(f"Processing {item}")
-44|
-45|    # Use the shared class
+...
 46|    shared = SharedClass[str]("consumer", SHARED_CONSTANT)
 47|    print(f"Using shared class: {shared.get_name()} - {shared.get_value()}")
 48|
@@ -26,4 +17,3 @@ Reference at Line 51, Column 19:
 54|    # Use the enum
 55|    color = Color.RED
 56|    print(f"Selected color: {color}")
-

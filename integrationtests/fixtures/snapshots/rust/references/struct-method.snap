@@ -1,3 +1,19 @@
-===
-No references found for symbol: SharedStruct::method
-===
+---
+
+/TEST_OUTPUT/workspace/src/consumer.rs
+References in File: 1
+At: L14:C37
+
+7|pub fn consumer_function() {
+...
+ 9|    let result = helper_function();
+10|    println!("Helper result: {}", result);
+11|
+12|    // Use shared struct
+13|    let s = SharedStruct::new("test");
+14|    println!("Struct method: {}", s.method());
+15|
+16|    // Use shared interface
+17|    let iface: &dyn SharedInterface = &s;
+18|    println!("Interface method: {}", iface.get_name());
+19|

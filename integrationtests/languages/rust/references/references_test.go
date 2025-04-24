@@ -56,7 +56,7 @@ func TestFindReferences(t *testing.T) {
 			name:          "Function with references across files",
 			symbolName:    "helper_function",
 			expectedText:  "helper_function",
-			expectedFiles: 1, // rust-analyzer might not report references across all files initially
+			expectedFiles: 2,
 			snapshotName:  "helper-function",
 		},
 		{
@@ -75,9 +75,9 @@ func TestFindReferences(t *testing.T) {
 		},
 		{
 			name:          "Method with references across files",
-			symbolName:    "SharedStruct::method",
+			symbolName:    "method",
 			expectedText:  "method",
-			expectedFiles: 0, // rust-analyzer might format differently or not include method references
+			expectedFiles: 1,
 			snapshotName:  "struct-method",
 		},
 		{
@@ -89,23 +89,23 @@ func TestFindReferences(t *testing.T) {
 		},
 		{
 			name:          "Interface method with references",
-			symbolName:    "SharedInterface::get_name",
+			symbolName:    "get_name",
 			expectedText:  "get_name",
-			expectedFiles: 0, // rust-analyzer might format differently or not include trait method references
+			expectedFiles: 2,
 			snapshotName:  "interface-method",
 		},
 		{
 			name:          "Constant with references across files",
 			symbolName:    "SHARED_CONSTANT",
 			expectedText:  "SHARED_CONSTANT",
-			expectedFiles: 1, // rust-analyzer might not report references across all files initially
+			expectedFiles: 2,
 			snapshotName:  "shared-constant",
 		},
 		{
 			name:          "Type with references across files",
 			symbolName:    "SharedType",
 			expectedText:  "SharedType",
-			expectedFiles: 1, // rust-analyzer might not report references across all files initially
+			expectedFiles: 2,
 			snapshotName:  "shared-type",
 		},
 	}
@@ -143,9 +143,7 @@ func countFilesInResult(result string) int {
 	// Any line containing "workspace" and ".rs" is a file path
 	for line := range strings.SplitSeq(result, "\n") {
 		if strings.Contains(line, "workspace") && strings.Contains(line, ".rs") {
-			if !strings.Contains(line, "References in File") {
-				fileMap[line] = true
-			}
+			fileMap[line] = true
 		}
 	}
 

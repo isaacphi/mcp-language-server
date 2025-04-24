@@ -1,12 +1,11 @@
-===
+---
+
 /TEST_OUTPUT/workspace/another_consumer.py
 References in File: 1
-===
-Reference at Line 40, Column 19:
+At: L40:C19
+
 31|def another_consumer_function() -> None:
-32|    """Another function that uses various shared components."""
-33|    # Use shared constants
-34|    print(f"Using constant: {SHARED_CONSTANT}")
+...
 35|    
 36|    # Use shared class with a different type parameter
 37|    shared = SharedClass[float]("another example", 3.14)
@@ -18,30 +17,15 @@ Reference at Line 40, Column 19:
 43|    
 44|    # Use our own implementation
 45|    impl = AnotherImplementation()
-46|    result = impl.do_something()
-47|    print(f"Implementation result: {result}")
-48|    
-49|    # Use helper function
-50|    output = helper_function("another direct call")
-51|    print(f"Helper output: {output}")
-52|    
-53|    # Use enum-like class with a different color
-54|    color = Color.GREEN
-55|    print(f"Selected color: {color}")
 
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 1
-===
-Reference at Line 47, Column 41:
+At: L47:C41
+
 34|def consumer_function() -> None:
-35|    """Function that consumes the helper functions."""
-36|    # Use the helper function
-37|    message = helper_function("World")
-38|    print(message)
-39|
-40|    # Get and process items from the helper
-41|    items = get_items()
+...
 42|    for item in items:
 43|        print(f"Processing {item}")
 44|
@@ -53,8 +37,3 @@ Reference at Line 47, Column 41:
 50|    impl = MyImplementation()
 51|    result = impl.process(items)
 52|    print(f"Processed items: {result}")
-53|
-54|    # Use the enum
-55|    color = Color.RED
-56|    print(f"Selected color: {color}")
-

@@ -1,11 +1,11 @@
-===
+---
+
 /TEST_OUTPUT/workspace/main.ts
 References in File: 1
-===
-Reference at Line 37, Column 15:
+At: L37:C15
+
 36|function main() {
 37|  console.log(TestFunction());
 38|  const instance = new TestClass();
 39|  instance.method();
 40|}
-

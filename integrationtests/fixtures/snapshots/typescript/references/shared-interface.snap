@@ -1,11 +1,21 @@
-===
+---
+
 /TEST_OUTPUT/workspace/another_consumer.ts
 References in File: 2
-===
-Reference at Line 20, Column 16:
+At: L4:C3, L20:C16
+
+ 1|// Another consumer file that uses elements from the helper file
+ 2|import { 
+ 3|  SharedFunction, 
+ 4|  SharedInterface, 
+ 5|  SharedClass, 
+ 6|  SharedType, 
+ 7|  SharedConstant, 
+ 8|  SharedEnum 
+ 9|} from './helper';
+...
 12|export function AnotherConsumerFunction(): void {
-13|  const result = SharedFunction();
-14|  console.log(`Result from shared function: ${result}`);
+...
 15|  
 16|  // Using SharedClass differently
 17|  const instance = new SharedClass("another instance");
@@ -17,26 +27,25 @@ Reference at Line 20, Column 16:
 23|  };
 24|  
 25|  // Using SharedType
-26|  const mixedArray: SharedType[] = ["string", 42, "another"];
-27|  
-28|  // Using SharedConstant
-29|  const prefixed = `PREFIX_${SharedConstant}`;
-30|  
-31|  // Using SharedEnum
-32|  const enumValues = [SharedEnum.ONE, SharedEnum.TWO, SharedEnum.THREE];
-33|  
-34|  console.log(instance, iface, mixedArray, prefixed, enumValues);
-35|}
 
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.ts
 References in File: 2
-===
-Reference at Line 21, Column 16:
+At: L4:C3, L21:C16
+
+ 1|// Consumer file that uses elements from the helper file
+ 2|import { 
+ 3|  SharedFunction, 
+ 4|  SharedInterface, 
+ 5|  SharedClass, 
+ 6|  SharedType, 
+ 7|  SharedConstant, 
+ 8|  SharedEnum 
+ 9|} from './helper';
+...
 12|export function ConsumerFunction(): void {
-13|  console.log("Consumer calling:", SharedFunction());
-14|  
-15|  // Using SharedClass
+...
 16|  const instance = new SharedClass("test instance");
 17|  console.log(instance.getName());
 18|  instance.helperMethod();
@@ -48,38 +57,16 @@ Reference at Line 21, Column 16:
 24|  
 25|  // Using SharedType
 26|  const value: SharedType = "string value";
-27|  const numValue: SharedType = 42;
-28|  console.log(value, numValue);
-29|  
-30|  // Using SharedConstant
-31|  console.log(SharedConstant);
-32|  
-33|  // Using SharedEnum
-34|  console.log(SharedEnum.ONE);
-35|}
 
-===
+---
+
 /TEST_OUTPUT/workspace/helper.ts
 References in File: 1
-===
-Reference at Line 15, Column 37:
+At: L15:C37
+
 15|export class SharedClass implements SharedInterface {
 16|  private name: string;
 17|
 18|  constructor(name: string) {
 19|    this.name = name;
 20|  }
-21|  
-22|  getName(): string {
-23|    return this.name;
-24|  }
-25|  
-26|  getValue(): number {
-27|    return 42;
-28|  }
-29|  
-30|  helperMethod(): void {
-31|    console.log("Helper method called");
-32|  }
-33|}
-

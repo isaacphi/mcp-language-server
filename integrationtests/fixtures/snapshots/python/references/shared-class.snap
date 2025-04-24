@@ -1,8 +1,19 @@
-===
+---
+
 /TEST_OUTPUT/workspace/another_consumer.py
 References in File: 3
-===
-Reference at Line 16, Column 23:
+At: L5:C5, L16:C23, L37:C14
+
+ 1|"""Another module that uses helpers and shared components."""
+ 2|
+ 3|from helper import (
+ 4|    SHARED_CONSTANT,
+ 5|    SharedClass,
+ 6|    helper_function,
+ 7|    Color,
+ 8|)
+ 9|
+10|
 11|class AnotherImplementation:
 12|    """A class that uses shared components but doesn't implement interfaces."""
 13|    
@@ -14,16 +25,7 @@ Reference at Line 16, Column 23:
 19|        """Do something with the shared components.
 20|        
 21|        Returns:
-22|            The processed result
-23|        """
-24|        # Get the value from shared class
-25|        value = self.shared.get_value()
-26|        
-27|        # Process it using the helper function
-28|        return helper_function(value)
-
-
-Reference at Line 37, Column 14:
+...
 31|def another_consumer_function() -> None:
 32|    """Another function that uses various shared components."""
 33|    # Use shared constants
@@ -36,32 +38,27 @@ Reference at Line 37, Column 14:
 40|    name = shared.get_name()
 41|    value = shared.get_value()
 42|    print(f"Name: {name}, Value: {value}")
-43|    
-44|    # Use our own implementation
-45|    impl = AnotherImplementation()
-46|    result = impl.do_something()
-47|    print(f"Implementation result: {result}")
-48|    
-49|    # Use helper function
-50|    output = helper_function("another direct call")
-51|    print(f"Helper output: {output}")
-52|    
-53|    # Use enum-like class with a different color
-54|    color = Color.GREEN
-55|    print(f"Selected color: {color}")
 
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.py
 References in File: 2
-===
-Reference at Line 46, Column 14:
+At: L6:C5, L46:C14
+
+ 1|"""Consumer module that uses the helper module."""
+ 2|
+ 3|from helper import (
+ 4|    helper_function,
+ 5|    get_items,
+ 6|    SharedClass,
+ 7|    SharedInterface,
+ 8|    SHARED_CONSTANT,
+ 9|    Color,
+10|)
+11|
+...
 34|def consumer_function() -> None:
-35|    """Function that consumes the helper functions."""
-36|    # Use the helper function
-37|    message = helper_function("World")
-38|    print(message)
-39|
-40|    # Get and process items from the helper
+...
 41|    items = get_items()
 42|    for item in items:
 43|        print(f"Processing {item}")
@@ -73,9 +70,3 @@ Reference at Line 46, Column 14:
 49|    # Use our implementation of the shared interface
 50|    impl = MyImplementation()
 51|    result = impl.process(items)
-52|    print(f"Processed items: {result}")
-53|
-54|    # Use the enum
-55|    color = Color.RED
-56|    print(f"Selected color: {color}")
-

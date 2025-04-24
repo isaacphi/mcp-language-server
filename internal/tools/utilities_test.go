@@ -339,3 +339,118 @@ func TestAddLineNumbers(t *testing.T) {
 		})
 	}
 }
+
+func TestConvertLinesToRanges(t *testing.T) {
+	testCases := []struct {
+		name        string
+		linesToShow map[int]bool
+		totalLines  int
+		expected    []LineRange
+	}{
+		{
+			name:        "Empty map",
+			linesToShow: map[int]bool{},
+			totalLines:  10,
+			expected:    nil, // The function returns nil for empty input
+		},
+		{
+			name:        "Single line",
+			linesToShow: map[int]bool{5: true},
+			totalLines:  10,
+			expected:    []LineRange{{Start: 5, End: 5}},
+		},
+		{
+			name:        "Consecutive lines",
+			linesToShow: map[int]bool{1: true, 2: true, 3: true},
+			totalLines:  10,
+			expected:    []LineRange{{Start: 1, End: 3}},
+		},
+		{
+			name:        "Non-consecutive lines",
+			linesToShow: map[int]bool{1: true, 3: true, 5: true},
+			totalLines:  10,
+			expected:    []LineRange{{Start: 1, End: 1}, {Start: 3, End: 3}, {Start: 5, End: 5}},
+		},
+		{
+			name:        "Mixed consecutive and non-consecutive lines",
+			linesToShow: map[int]bool{1: true, 2: true, 5: true, 6: true, 7: true, 9: true},
+			totalLines:  10,
+			expected:    []LineRange{{Start: 1, End: 2}, {Start: 5, End: 7}, {Start: 9, End: 9}},
+		},
+		{
+			name:        "Lines outside range are filtered",
+			linesToShow: map[int]bool{-1: true, 0: true, 9: true, 10: true},
+			totalLines:  10,
+			expected:    []LineRange{{Start: 0, End: 0}, {Start: 9, End: 9}},
+		},
+		{
+			name:        "Unsorted input gets sorted",
+			linesToShow: map[int]bool{5: true, 1: true, 3: true, 2: true},
+			totalLines:  10,
+			expected:    []LineRange{{Start: 1, End: 3}, {Start: 5, End: 5}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := ConvertLinesToRanges(tc.linesToShow, tc.totalLines)
+			assert.Equal(t, tc.expected, result, "Expected ranges to match")
+		})
+	}
+}
+
+func TestFormatLinesWithRanges(t *testing.T) {
+	testCases := []struct {
+		name     string
+		lines    []string
+		ranges   []LineRange
+		expected string
+	}{
+		{
+			name:     "Empty ranges",
+			lines:    []string{"line1", "line2", "line3"},
+			ranges:   []LineRange{},
+			expected: "",
+		},
+		{
+			name:     "Single range",
+			lines:    []string{"line1", "line2", "line3", "line4", "line5"},
+			ranges:   []LineRange{{Start: 1, End: 3}},
+			expected: "2|line2\n3|line3\n4|line4\n",
+		},
+		{
+			name:     "Multiple ranges with gap",
+			lines:    []string{"line1", "line2", "line3", "line4", "line5", "line6", "line7"},
+			ranges:   []LineRange{{Start: 0, End: 1}, {Start: 4, End: 6}},
+			expected: "1|line1\n2|line2\n...\n5|line5\n6|line6\n7|line7\n",
+		},
+		{
+			name:     "Adjacent ranges get combined - no gap in output",
+			lines:    []string{"line1", "line2", "line3", "line4", "line5"},
+			ranges:   []LineRange{{Start: 0, End: 2}, {Start: 3, End: 4}},
+			expected: "1|line1\n2|line2\n3|line3\n4|line4\n5|line5\n",
+		},
+		{
+			name: "Real-world example",
+			lines: []string{
+				"package main",
+				"",
+				"import \"fmt\"",
+				"",
+				"func main() {",
+				"    s := \"Hello, World!\"",
+				"    fmt.Println(s)",
+				"}",
+			},
+			ranges:   []LineRange{{Start: 4, End: 6}},
+			expected: "5|func main() {\n6|    s := \"Hello, World!\"\n7|    fmt.Println(s)\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := FormatLinesWithRanges(tc.lines, tc.ranges)
+			assert.Equal(t, tc.expected, result, "Expected formatted output to match")
+		})
+	}
+}
