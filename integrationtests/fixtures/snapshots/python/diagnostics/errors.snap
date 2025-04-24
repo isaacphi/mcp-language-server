@@ -1,46 +1,26 @@
-===
+---
+
 /TEST_OUTPUT/workspace/error_file.py
-Location: Line 31, Column 12
-Message: Type "Literal[42]" is not assignable to return type "str"
-  "Literal[42]" is not assignable to "str"
-Source: Pyright
-Code: reportReturnType
-===
+Diagnostics in File: 3
+ERROR at L31:C12: Type "Literal[42]" is not assignable to return type "str"
+  "Literal[42]" is not assignable to "str" (Source: Pyright, Code: reportReturnType)
+ERROR at L47:C15: "undefined_variable" is not defined (Source: Pyright, Code: reportUndefinedVariable)
+ERROR at L51:C19: Type "Literal[123]" is not assignable to declared type "str"
+  "Literal[123]" is not assignable to "str" (Source: Pyright, Code: reportAssignmentType)
+
 25|def function_with_type_error() -> str:
-26|    """A function with a type error.
-27|
-28|    Returns:
+...
 29|        Should return a string but actually returns an int
 30|    """
 31|    return 42  # Type error: Incompatible return value type (got "int", expected "str")
-
-===
-/TEST_OUTPUT/workspace/error_file.py
-Location: Line 47, Column 15
-Message: "undefined_variable" is not defined
-Source: Pyright
-Code: reportUndefinedVariable
-===
+...
 34|class ErrorClass:
-35|    """A class with errors."""
-36|
-37|    def __init__(self, value: dict[str, Any]):
-38|        """Initialize with errors.
-39|
-40|        Args:
-41|            value: A dictionary
-42|        """
-43|        self.value = value
-44|
+...
 45|    def method_with_undefined_variable(self) -> None:
 46|        """A method that uses an undefined variable."""
 47|        print(undefined_variable)  # Error: undefined_variable is not defined
-
-===
-/TEST_OUTPUT/workspace/error_file.py
-Location: Line 51, Column 19
-Message: Type "Literal[123]" is not assignable to declared type "str"
-  "Literal[123]" is not assignable to "str"
-Source: Pyright
-Code: reportAssignmentType
-===
+...
+49|
+50|# Variable with incompatible type annotation
+51|wrong_type: str = 123  # Type error: Incompatible types in assignment
+52|

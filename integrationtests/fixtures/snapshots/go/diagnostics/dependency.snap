@@ -1,34 +1,12 @@
-===
+---
+
 /TEST_OUTPUT/workspace/consumer.go
-Location: Line 7, Column 28
-Message: not enough arguments in call to HelperFunction
+Diagnostics in File: 1
+ERROR at L7:C28: not enough arguments in call to HelperFunction
 	have ()
-	want (int)
-Source: compiler
-Code: WrongArgCount
-===
+	want (int) (Source: compiler, Code: WrongArgCount)
+
  6|func ConsumerFunction() {
  7|	message := HelperFunction()
  8|	fmt.Println(message)
  9|
-10|	// Use shared struct
-11|	s := &SharedStruct{
-12|		ID:        1,
-13|		Name:      "test",
-14|		Value:     42.0,
-15|		Constants: []string{SharedConstant},
-16|	}
-17|
-18|	// Call methods on the struct
-19|	fmt.Println(s.Method())
-20|	s.Process()
-21|
-22|	// Use shared interface
-23|	var iface SharedInterface = s
-24|	fmt.Println(iface.GetName())
-25|
-26|	// Use shared type
-27|	var t SharedType = 100
-28|	fmt.Println(t)
-29|}
-

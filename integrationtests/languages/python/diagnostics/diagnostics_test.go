@@ -26,7 +26,7 @@ func TestDiagnostics(t *testing.T) {
 
 		// Check diagnostics for clean.py, which shouldn't have any errors
 		filePath := filepath.Join(suite.WorkspaceDir, "clean.py")
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -52,7 +52,7 @@ func TestDiagnostics(t *testing.T) {
 
 		// Check diagnostics for error_file.py, which contains deliberate errors
 		filePath := filepath.Join(suite.WorkspaceDir, "error_file.py")
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -102,7 +102,7 @@ func TestDiagnostics(t *testing.T) {
 		time.Sleep(2 * time.Second)
 
 		// Get initial diagnostics for consumer_clean.py
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -188,7 +188,7 @@ def get_items() -> List[str]:
 		time.Sleep(3 * time.Second)
 
 		// Check diagnostics again on consumer file - should now have an error
-		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed after dependency change: %v", err)
 		}

@@ -1,28 +1,11 @@
-===
+---
+
 /TEST_OUTPUT/workspace/src/consumer.rs
-Location: Line 9, Column 33
-Message: expected 1 argument, found 0
-Source: rust-analyzer
-Code: E0107
-===
+Diagnostics in File: 1
+ERROR at L9:C33: expected 1 argument, found 0 (Source: rust-analyzer, Code: E0107)
+
  7|pub fn consumer_function() {
  8|    // Use the helper function
  9|    let result = helper_function();
 10|    println!("Helper result: {}", result);
 11|
-12|    // Use shared struct
-13|    let s = SharedStruct::new("test");
-14|    println!("Struct method: {}", s.method());
-15|
-16|    // Use shared interface
-17|    let iface: &dyn SharedInterface = &s;
-18|    println!("Interface method: {}", iface.get_name());
-19|
-20|    // Use shared constant
-21|    println!("Constant: {}", SHARED_CONSTANT);
-22|
-23|    // Use shared type
-24|    let t: SharedType = String::from("test");
-25|    println!("Type: {}", t);
-26|}
-

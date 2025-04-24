@@ -25,7 +25,7 @@ func TestDiagnostics(t *testing.T) {
 		defer cancel()
 
 		filePath := filepath.Join(suite.WorkspaceDir, "clean.go")
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -50,7 +50,7 @@ func TestDiagnostics(t *testing.T) {
 		defer cancel()
 
 		filePath := filepath.Join(suite.WorkspaceDir, "main.go")
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -98,7 +98,7 @@ func TestDiagnostics(t *testing.T) {
 		time.Sleep(2 * time.Second)
 
 		// Get initial diagnostics for consumer.go
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -165,7 +165,7 @@ func HelperFunction(value int) string {
 		time.Sleep(3 * time.Second)
 
 		// Check diagnostics again on consumer file - should now have an error
-		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed after dependency change: %v", err)
 		}
@@ -183,3 +183,4 @@ func HelperFunction(value int) string {
 		common.SnapshotTest(t, "go", "diagnostics", "dependency", result)
 	})
 }
+

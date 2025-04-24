@@ -1,24 +1,11 @@
-===
+---
+
 /TEST_OUTPUT/workspace/main.go
-Location: Line 8, Column 2
-Message: unreachable code
-Source: unreachable
-Code: default
-===
+Diagnostics in File: 2
+WARNING at L8:C2: unreachable code (Source: unreachable, Code: default)
+ERROR at L9:C1: missing return (Source: compiler, Code: MissingReturn)
+
  6|func FooBar() string {
  7|	return "Hello, World!"
  8|	fmt.Println("Unreachable code") // This is unreachable code
  9|}
-
-===
-/TEST_OUTPUT/workspace/main.go
-Location: Line 9, Column 1
-Message: missing return
-Source: compiler
-Code: MissingReturn
-===
- 6|func FooBar() string {
- 7|	return "Hello, World!"
- 8|	fmt.Println("Unreachable code") // This is unreachable code
- 9|}
-

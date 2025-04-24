@@ -8,49 +8,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-type ReadDefinitionArgs struct {
-	SymbolName      string `json:"symbolName" jsonschema:"required,description=The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"`
-	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"required,default=true,description=Include line numbers in the returned source code"`
-}
-
-type FindReferencesArgs struct {
-	SymbolName      string `json:"symbolName" jsonschema:"required,description=The name of the symbol to search for (e.g. 'mypackage.MyFunction', 'MyType')"`
-	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"required,default=true,description=Include line numbers when showing where the symbol is used"`
-}
-
-type ApplyTextEditArgs struct {
-	FilePath string           `json:"filePath"`
-	Edits    []tools.TextEdit `json:"edits"`
-}
-
-type GetDiagnosticsArgs struct {
-	FilePath        string `json:"filePath" jsonschema:"required,description=The path to the file to get diagnostics for"`
-	IncludeContext  bool   `json:"includeContext" jsonschema:"default=false,description=Include additional context for each diagnostic. Prefer false."`
-	ShowLineNumbers bool   `json:"showLineNumbers" jsonschema:"required,default=true,description=If true, adds line numbers to the output"`
-}
-
-type GetCodeLensArgs struct {
-	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file to get code lens information for"`
-}
-
-type ExecuteCodeLensArgs struct {
-	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file containing the code lens to execute"`
-	Index    int    `json:"index" jsonschema:"required,description=The index of the code lens to execute (from get_codelens output), 1 indexed"`
-}
-
-type GetHoverArgs struct {
-	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file to get hover information for"`
-	Line     int    `json:"line" jsonschema:"required,description=The line number where the hover is requested (1-indexed)"`
-	Column   int    `json:"column" jsonschema:"required,description=The column number where the hover is requested (1-indexed)"`
-}
-
-type RenameSymbolArgs struct {
-	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file containing the symbol to rename"`
-	Line     int    `json:"line" jsonschema:"required,description=The line number where the symbol is located (1-indexed)"`
-	Column   int    `json:"column" jsonschema:"required,description=The column number where the symbol is located (1-indexed)"`
-	NewName  string `json:"newName" jsonschema:"required,description=The new name for the symbol"`
-}
-
 func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
 
@@ -192,8 +149,8 @@ func (s *mcpServer) registerTools() error {
 			mcp.Required(),
 			mcp.Description("The path to the file to get diagnostics for"),
 		),
-		mcp.WithBoolean("includeContext",
-			mcp.Description("Include additional context for each diagnostic. Prefer false."),
+		mcp.WithBoolean("contextLines",
+			mcp.Description("Lines to include around each diagnostic."),
 			mcp.DefaultBool(false),
 		),
 		mcp.WithBoolean("showLineNumbers",
@@ -209,9 +166,9 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
-		includeContext := false // default value
-		if includeContextArg, ok := request.Params.Arguments["includeContext"].(bool); ok {
-			includeContext = includeContextArg
+		contextLines := 5 // default value
+		if contextLinesArg, ok := request.Params.Arguments["contextLines"].(int); ok {
+			contextLines = contextLinesArg
 		}
 
 		showLineNumbers := true // default value
@@ -220,7 +177,7 @@ func (s *mcpServer) registerTools() error {
 		}
 
 		coreLogger.Debug("Executing get_diagnostics for file: %s", filePath)
-		text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, filePath, includeContext, showLineNumbers)
+		text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, filePath, contextLines, showLineNumbers)
 		if err != nil {
 			coreLogger.Error("Failed to get diagnostics: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get diagnostics: %v", err)), nil

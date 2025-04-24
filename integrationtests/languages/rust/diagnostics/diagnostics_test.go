@@ -49,7 +49,7 @@ func TestDiagnostics(t *testing.T) {
 		openAllFilesAndWait(suite, ctx)
 
 		filePath := filepath.Join(suite.WorkspaceDir, "src/clean.rs")
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -74,7 +74,7 @@ func TestDiagnostics(t *testing.T) {
 		openAllFilesAndWait(suite, ctx)
 
 		filePath := filepath.Join(suite.WorkspaceDir, "src/main.rs")
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -108,7 +108,7 @@ func TestDiagnostics(t *testing.T) {
 		consumerPath := filepath.Join(suite.WorkspaceDir, "src/consumer.rs")
 
 		// Get initial diagnostics for consumer.rs
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -170,7 +170,7 @@ pub fn helper_function(value: i32) -> String {
 		time.Sleep(6 * time.Second)
 
 		// Check diagnostics again on consumer file - should now have an error
-		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed after dependency change: %v", err)
 		}

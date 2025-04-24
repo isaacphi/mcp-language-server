@@ -1,11 +1,9 @@
-===
+---
+
 /TEST_OUTPUT/workspace/error.ts
-Location: Line 4, Column 3
-Message: Type 'number' is not assignable to type 'string'.
-Source: typescript
-Code: 2322
-===
+Diagnostics in File: 1
+ERROR at L4:C3: Type 'number' is not assignable to type 'string'. (Source: typescript, Code: 2322)
+
 3|function errorFunction(x: number): string {
 4|  return x; // Error: Type 'number' is not assignable to type 'string'
 5|}
-

@@ -53,7 +53,7 @@ func TestDiagnostics(t *testing.T) {
 		// Target the clean file
 		filePath := filepath.Join(suite.WorkspaceDir, "clean.ts")
 
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, filePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -102,7 +102,7 @@ console.log(result);
 		// Wait for diagnostics to be generated
 		time.Sleep(3 * time.Second)
 
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, testFilePath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, testFilePath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -136,7 +136,7 @@ console.log(result);
 		consumerPath := filepath.Join(suite.WorkspaceDir, "consumer.ts")
 
 		// Get initial diagnostics for consumer.ts
-		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err := tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed: %v", err)
 		}
@@ -243,7 +243,7 @@ export enum SharedEnum {
 		time.Sleep(3 * time.Second)
 
 		// Check diagnostics again on consumer file - should now have an error
-		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, true, true)
+		result, err = tools.GetDiagnosticsForFile(ctx, suite.Client, consumerPath, 2, true)
 		if err != nil {
 			t.Fatalf("GetDiagnosticsForFile failed after dependency change: %v", err)
 		}
