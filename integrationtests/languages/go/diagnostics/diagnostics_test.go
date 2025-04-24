@@ -183,4 +183,3 @@ func HelperFunction(value int) string {
 		common.SnapshotTest(t, "go", "diagnostics", "dependency", result)
 	})
 }
-

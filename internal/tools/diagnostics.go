@@ -65,9 +65,9 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 			diag.Range.Start.Line+1,
 			diag.Range.Start.Character+1)
 
-		summary := fmt.Sprintf("%s at %s: %s", 
+		summary := fmt.Sprintf("%s at %s: %s",
 			severity,
-			location, 
+			location,
 			diag.Message)
 
 		// Add source and code if available
