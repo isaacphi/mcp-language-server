@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/isaacphi/mcp-language-server/integrationtests/languages/common"
 	"github.com/isaacphi/mcp-language-server/integrationtests/languages/go/internal"
 	"github.com/isaacphi/mcp-language-server/internal/tools"
 )
@@ -191,6 +192,10 @@ func AnotherFunction() {
 			for _, verify := range tc.verifications {
 				verify(t, content)
 			}
+			
+			// Use snapshot testing to verify the exact result
+			snapshotName := strings.ToLower(strings.ReplaceAll(tc.name, " ", "_"))
+			common.SnapshotTest(t, "go", "text_edit", snapshotName, result)
 		})
 	}
 }
@@ -335,6 +340,10 @@ func NewFunction() {
 			for _, verify := range tc.verifications {
 				verify(t, content)
 			}
+			
+			// Use snapshot testing to verify the exact result
+			snapshotName := strings.ToLower(strings.ReplaceAll(tc.name, " ", "_"))
+			common.SnapshotTest(t, "go", "text_edit", snapshotName, result)
 		})
 	}
 }
