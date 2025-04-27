@@ -1,2 +1,5 @@
 Successfully renamed symbol to 'UpdatedConstant'.
-Updated 5 occurrences across 3 files.
+Updated 5 occurrences across 3 files:
+/TEST_OUTPUT/workspace/helper.ts: L39:C14
+/TEST_OUTPUT/workspace/another_consumer.ts: L7:C3, L29:C30
+/TEST_OUTPUT/workspace/consumer.ts: L7:C3, L31:C15

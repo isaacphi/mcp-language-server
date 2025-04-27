@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TestType
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: TypeParameter
-Start Position: Line 9, Column 1
-End Position: Line 10, Column 28
-===
+Range: L9:C1 - L10:C28
+
  9|// A simple type alias
 10|pub type TestType = String;
 

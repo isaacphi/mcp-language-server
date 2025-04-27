@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TestStruct
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: Struct
-Start Position: Line 12, Column 1
-End Position: Line 16, Column 2
-===
+Range: L12:C1 - L16:C2
+
 12|// A struct for testing
 13|pub struct TestStruct {
 14|    pub name: String,

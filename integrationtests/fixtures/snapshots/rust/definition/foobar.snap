@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: foo_bar
 /TEST_OUTPUT/workspace/src/main.rs
 Kind: Function
-Start Position: Line 8, Column 1
-End Position: Line 12, Column 2
-===
+Range: L8:C1 - L12:C2
+
  8|// FooBar is a simple function for testing
  9|fn foo_bar() -> String {
 10|    String::from("Hello, World!")

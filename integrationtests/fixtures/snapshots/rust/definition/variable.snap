@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TEST_VARIABLE
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: Constant
-Start Position: Line 6, Column 1
-End Position: Line 7, Column 56
-===
+Range: L6:C1 - L7:C56
+
 6|// A simple variable
 7|pub static TEST_VARIABLE: &str = "test variable value";
 

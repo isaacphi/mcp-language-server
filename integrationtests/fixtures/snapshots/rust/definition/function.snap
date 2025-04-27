@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: test_function
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: Function
-Start Position: Line 80, Column 1
-End Position: Line 83, Column 2
-===
+Range: L80:C1 - L83:C2
+
 80|// A simple function for testing
 81|pub fn test_function() -> String {
 82|    String::from("test function")

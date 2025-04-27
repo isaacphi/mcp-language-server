@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TestInterface
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: Interface
-Start Position: Line 32, Column 1
-End Position: Line 36, Column 2
-===
+Range: L32:C1 - L36:C2
+
 32|// An interface (trait) for testing
 33|pub trait TestInterface {
 34|    fn get_name(&self) -> String;

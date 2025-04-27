@@ -1,11 +1,11 @@
-===
+---
+
 Symbol: TestStruct.Method
 /TEST_OUTPUT/workspace/clean.go
 Kind: Method
 Container Name: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace
-Start Position: Line 12, Column 1
-End Position: Line 14, Column 2
-===
+Range: L12:C1 - L14:C2
+
 12|func (t *TestStruct) Method() string {
 13|	return t.Name
 14|}

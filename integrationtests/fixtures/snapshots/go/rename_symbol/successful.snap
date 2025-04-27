@@ -1,2 +1,5 @@
 Successfully renamed symbol to 'UpdatedConstant'.
-Updated 4 occurrences across 3 files.
+Updated 4 occurrences across 3 files:
+/TEST_OUTPUT/workspace/consumer.go: L15:C23
+/TEST_OUTPUT/workspace/another_consumer.go: L15:C23
+/TEST_OUTPUT/workspace/types.go: L24:C4, L25:C7

@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TestVariable
 /TEST_OUTPUT/workspace/clean.go
 Kind: Variable
 Container Name: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace
-Start Position: Line 28, Column 1
-End Position: Line 28, Column 22
-===
+Range: L28:C1 - L28:C22
+
 28|var TestVariable = 42
 

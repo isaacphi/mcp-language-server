@@ -1,9 +1,9 @@
-===
+---
+
 Symbol: TestType
 /TEST_OUTPUT/workspace/main.ts
 Kind: Variable
-Start Position: Line 27, Column 1
-End Position: Line 27, Column 40
-===
+Range: L27:C1 - L27:C40
+
 27|export type TestType = string | number;
 

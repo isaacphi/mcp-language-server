@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TestType
 /TEST_OUTPUT/workspace/clean.go
 Kind: Class
 Container Name: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace
-Start Position: Line 22, Column 1
-End Position: Line 22, Column 21
-===
+Range: L22:C1 - L22:C21
+
 22|type TestType string
 

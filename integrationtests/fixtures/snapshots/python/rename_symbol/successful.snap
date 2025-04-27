@@ -1,2 +1,5 @@
 Successfully renamed symbol to 'UPDATED_CONSTANT'.
-Updated 6 occurrences across 3 files.
+Updated 6 occurrences across 3 files:
+/TEST_OUTPUT/workspace/another_consumer.py: L4:C5, L16:C51, L34:C30
+/TEST_OUTPUT/workspace/consumer.py: L8:C5, L46:C43
+/TEST_OUTPUT/workspace/helper.py: L8:C1

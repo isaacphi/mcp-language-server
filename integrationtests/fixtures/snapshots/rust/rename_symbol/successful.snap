@@ -1,2 +1,5 @@
 Successfully renamed symbol to 'UPDATED_CONSTANT'.
-Updated 5 occurrences across 3 files.
+Updated 5 occurrences across 3 files:
+/TEST_OUTPUT/workspace/src/consumer.rs: L4:C48, L21:C30
+/TEST_OUTPUT/workspace/src/another_consumer.rs: L4:C48, L20:C50
+/TEST_OUTPUT/workspace/src/types.rs: L78:C11

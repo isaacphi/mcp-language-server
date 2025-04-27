@@ -3,6 +3,10 @@
 from typing import Optional, Tuple
 
 
+def SameName():
+    pass
+
+
 def clean_function(param: str) -> str:
     """A clean function without errors.
 

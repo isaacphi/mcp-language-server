@@ -1,0 +1,20 @@
+---
+
+Symbol: SameName
+/TEST_OUTPUT/workspace/clean.py
+Kind: Function
+Range: L6:C1 - L7:C9
+
+6|def SameName():
+7|    pass
+
+---
+
+Symbol: SameName
+/TEST_OUTPUT/workspace/helper.py
+Kind: Class
+Range: L24:C1 - L25:C9
+
+24|class SameName:
+25|    pass
+

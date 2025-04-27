@@ -1,11 +1,10 @@
----
-
 /TEST_OUTPUT/workspace/main.go
 Diagnostics in File: 2
 WARNING at L8:C2: unreachable code (Source: unreachable, Code: default)
-ERROR at L9:C1: missing return (Source: compiler, Code: MissingReturn)
+ERROR at L9:C9: cannot use 3 (untyped int constant) as string value in return statement (Source: compiler, Code: IncompatibleAssign)
 
  6|func FooBar() string {
  7|	return "Hello, World!"
  8|	fmt.Println("Unreachable code") // This is unreachable code
- 9|}
+ 9|	return 3
+10|}

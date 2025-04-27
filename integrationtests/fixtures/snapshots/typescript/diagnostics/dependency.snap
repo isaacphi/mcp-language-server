@@ -1,5 +1,3 @@
----
-
 /TEST_OUTPUT/workspace/consumer.ts
 Diagnostics in File: 1
 ERROR at L13:C36: Expected 1 arguments, but got 0. (Source: typescript, Code: 2554)

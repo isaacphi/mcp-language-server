@@ -1,11 +1,11 @@
-===
+---
+
 Symbol: TestInterface
 /TEST_OUTPUT/workspace/clean.go
 Kind: Interface
 Container Name: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace
-Start Position: Line 17, Column 1
-End Position: Line 19, Column 2
-===
+Range: L17:C1 - L19:C2
+
 17|type TestInterface interface {
 18|	DoSomething() error
 19|}

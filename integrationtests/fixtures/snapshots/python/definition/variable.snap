@@ -1,9 +1,9 @@
-===
+---
+
 Symbol: test_variable
 /TEST_OUTPUT/workspace/main.py
 Kind: Variable
-Start Position: Line 83, Column 1
-End Position: Line 83, Column 14
-===
+Range: L83:C1 - L83:C14
+
 83|test_variable: list[int] = [1, 2, 3, 4, 5]
 

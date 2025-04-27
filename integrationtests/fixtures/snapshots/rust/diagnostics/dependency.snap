@@ -1,5 +1,3 @@
----
-
 /TEST_OUTPUT/workspace/src/consumer.rs
 Diagnostics in File: 1
 ERROR at L9:C33: expected 1 argument, found 0 (Source: rust-analyzer, Code: E0107)

@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TestClass
 /TEST_OUTPUT/workspace/main.py
 Kind: Class
-Start Position: Line 18, Column 1
-End Position: Line 59, Column 22
-===
+Range: L18:C1 - L59:C22
+
 18|class TestClass:
 19|    """A test class with methods and attributes."""
 20|

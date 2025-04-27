@@ -1,11 +1,11 @@
-===
+---
+
 Symbol: method
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: Function
 Container Name: TestStruct
-Start Position: Line 18, Column 1
-End Position: Line 30, Column 2
-===
+Range: L18:C1 - L30:C2
+
 18|// Implementation for TestStruct
 19|impl TestStruct {
 20|    pub fn new(name: &str, value: i32) -> Self {
@@ -20,14 +20,14 @@ End Position: Line 30, Column 2
 29|    }
 30|}
 
-===
+---
+
 Symbol: method
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: Function
 Container Name: SharedStruct
-Start Position: Line 54, Column 1
-End Position: Line 64, Column 2
-===
+Range: L54:C1 - L64:C2
+
 54|impl SharedStruct {
 55|    pub fn new(name: &str) -> Self {
 56|        SharedStruct {

@@ -1,5 +1,3 @@
----
-
 /TEST_OUTPUT/workspace/consumer_clean.py
 Diagnostics in File: 1
 ERROR at L9:C15: Argument missing for parameter "age" (Source: Pyright, Code: reportCallIssue)

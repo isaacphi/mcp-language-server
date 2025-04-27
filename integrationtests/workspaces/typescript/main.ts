@@ -13,11 +13,11 @@ export interface TestInterface {
 // TestClass with method
 export class TestClass implements TestInterface {
   property: string;
-  
+
   constructor() {
     this.property = "test";
   }
-  
+
   method(): void {
     console.log("Method called");
   }
@@ -40,3 +40,4 @@ function main() {
 }
 
 main();
+

@@ -82,6 +82,13 @@ func TestFindReferences(t *testing.T) {
 			expectedFiles: 2, // consumer.go and another_consumer.go
 			snapshotName:  "shared-type",
 		},
+		{
+			name:          "References not found",
+			symbolName:    "NotFound",
+			expectedText:  "No references found for symbol:",
+			expectedFiles: 0,
+			snapshotName:  "not-found",
+		},
 	}
 
 	for _, tc := range tests {

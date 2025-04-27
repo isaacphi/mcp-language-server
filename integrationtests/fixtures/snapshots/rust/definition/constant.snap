@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TEST_CONSTANT
 /TEST_OUTPUT/workspace/src/types.rs
 Kind: Constant
-Start Position: Line 3, Column 1
-End Position: Line 4, Column 55
-===
+Range: L3:C1 - L4:C55
+
 3|// A simple constant
 4|pub const TEST_CONSTANT: &str = "test constant value";
 

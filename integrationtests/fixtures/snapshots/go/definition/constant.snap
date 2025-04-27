@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: TestConstant
 /TEST_OUTPUT/workspace/clean.go
 Kind: Constant
 Container Name: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace
-Start Position: Line 25, Column 1
-End Position: Line 25, Column 38
-===
+Range: L25:C1 - L25:C38
+
 25|const TestConstant = "constant value"
 

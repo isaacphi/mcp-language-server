@@ -69,6 +69,12 @@ func TestReadDefinition(t *testing.T) {
 			expectedText: "class DerivedClass",
 			snapshotName: "derived-class",
 		},
+		{
+			name:         "MultipleFiles",
+			symbolName:   "SameName",
+			expectedText: "class SameName",
+			snapshotName: "same-name",
+		},
 	}
 
 	for _, tc := range tests {

@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: test_function
 /TEST_OUTPUT/workspace/main.py
 Kind: Function
-Start Position: Line 6, Column 1
-End Position: Line 15, Column 29
-===
+Range: L6:C1 - L15:C29
+
  6|def test_function(name: str) -> str:
  7|    """A simple test function that returns a greeting message.
  8|

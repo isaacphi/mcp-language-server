@@ -1,5 +1,3 @@
----
-
 /TEST_OUTPUT/workspace/error_file.py
 Diagnostics in File: 3
 ERROR at L31:C12: Type "Literal[42]" is not assignable to return type "str"

@@ -1,5 +1,3 @@
----
-
 /TEST_OUTPUT/workspace/consumer.go
 Diagnostics in File: 1
 ERROR at L7:C28: not enough arguments in call to HelperFunction

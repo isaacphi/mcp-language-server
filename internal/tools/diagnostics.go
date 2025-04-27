@@ -50,7 +50,7 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 	}
 
 	// Format file header
-	fileInfo := fmt.Sprintf("---\n\n%s\nDiagnostics in File: %d\n",
+	fileInfo := fmt.Sprintf("%s\nDiagnostics in File: %d\n",
 		filePath,
 		len(diagnostics),
 	)

@@ -1,10 +1,10 @@
-===
+---
+
 Symbol: DerivedClass
 /TEST_OUTPUT/workspace/main.py
 Kind: Class
-Start Position: Line 70, Column 1
-End Position: Line 75, Column 13
-===
+Range: L70:C1 - L75:C13
+
 70|class DerivedClass(BaseClass):
 71|    """A class that inherits from BaseClass."""
 72|

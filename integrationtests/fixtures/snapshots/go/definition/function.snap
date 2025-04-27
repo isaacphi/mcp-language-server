@@ -1,11 +1,11 @@
-===
+---
+
 Symbol: TestFunction
 /TEST_OUTPUT/workspace/clean.go
 Kind: Function
 Container Name: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace
-Start Position: Line 31, Column 1
-End Position: Line 33, Column 2
-===
+Range: L31:C1 - L33:C2
+
 31|func TestFunction() {
 32|	fmt.Println("This is a test function")
 33|}

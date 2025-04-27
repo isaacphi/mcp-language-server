@@ -21,6 +21,10 @@ class Color(Enum):
 T = TypeVar("T")
 
 
+class SameName:
+    pass
+
+
 # Shared class that will be referenced across files
 class SharedClass(Generic[T]):
     """A shared class that is used across multiple files."""

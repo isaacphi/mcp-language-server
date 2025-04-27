@@ -2,8 +2,8 @@
 
 /TEST_OUTPUT/workspace/main.go
 References in File: 1
-At: L12:C14
+At: L13:C14
 
-11|func main() {
-12|	fmt.Println(FooBar())
-13|}
+12|func main() {
+13|	fmt.Println(FooBar())
+14|}

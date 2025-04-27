@@ -40,7 +40,7 @@ func ApplyTextEdits(ctx context.Context, client *lsp.Client, filePath string, ed
 			return "", fmt.Errorf("invalid position: %v", err)
 		}
 
-		// Always do a replacement - this simplifies the model and makes behavior predictable
+		// Always do a replacement
 		textEdits = append(textEdits, protocol.TextEdit{
 			Range:   rng,
 			NewText: edit.NewText,
@@ -57,7 +57,7 @@ func ApplyTextEdits(ctx context.Context, client *lsp.Client, filePath string, ed
 		return "", fmt.Errorf("failed to apply text edits: %v", err)
 	}
 
-	return "Successfully applied text edits.\nWARNING: line numbers may have changed. Re-read code before applying additional edits.", nil
+	return "Successfully applied text edits.", nil
 }
 
 // getRange creates a protocol.Range that covers the specified start and end lines

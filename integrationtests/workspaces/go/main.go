@@ -6,6 +6,7 @@ import "fmt"
 func FooBar() string {
 	return "Hello, World!"
 	fmt.Println("Unreachable code") // This is unreachable code
+	return 3
 }
 
 func main() {

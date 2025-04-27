@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
@@ -241,6 +242,7 @@ func ApplyWorkspaceEdit(edit protocol.WorkspaceEdit) error {
 
 	// Handle DocumentChanges field
 	for _, change := range edit.DocumentChanges {
+		coreLogger.Warn("Document change: %v", spew.Sdump(change))
 		if err := ApplyDocumentChange(change); err != nil {
 			return fmt.Errorf("failed to apply document change: %w", err)
 		}

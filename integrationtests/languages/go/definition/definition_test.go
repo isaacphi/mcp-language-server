@@ -72,6 +72,12 @@ func TestReadDefinition(t *testing.T) {
 			expectedText: "func TestFunction()",
 			snapshotName: "function",
 		},
+		{
+			name:         "NotFound",
+			symbolName:   "NotFound",
+			expectedText: "not found",
+			snapshotName: "not-found",
+		},
 	}
 
 	for _, tc := range tests {

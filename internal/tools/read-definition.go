@@ -64,23 +64,21 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string, 
 		toolsLogger.Debug("Found symbol: %s", symbol.GetName())
 		loc := symbol.GetLocation()
 
-		banner := strings.Repeat("=", 3) + "\n"
+		banner := "---\n\n"
 		definition, loc, err := GetFullDefinition(ctx, client, loc)
 		locationInfo := fmt.Sprintf(
 			"Symbol: %s\n"+
 				"File: %s\n"+
 				kind+
 				container+
-				"Start Position: Line %d, Column %d\n"+
-				"End Position: Line %d, Column %d\n"+
-				"%s\n",
+				"Range: L%d:C%d - L%d:C%d\n\n",
 			symbol.GetName(),
 			strings.TrimPrefix(string(loc.URI), "file://"),
 			loc.Range.Start.Line+1,
 			loc.Range.Start.Character+1,
 			loc.Range.End.Line+1,
 			loc.Range.End.Character+1,
-			strings.Repeat("=", 3))
+		)
 
 		if err != nil {
 			toolsLogger.Error("Error getting definition: %v", err)
