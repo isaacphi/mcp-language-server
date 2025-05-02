@@ -96,6 +96,7 @@ func TestHover(t *testing.T) {
 			line:           1000, // Line number beyond file length
 			column:         1,
 			unexpectedText: "def",
+			expectedText:   "failed to get hover information: request failed:",
 			snapshotName:   "outside-file",
 		},
 	}
@@ -119,8 +120,16 @@ func TestHover(t *testing.T) {
 			if err != nil {
 				// For the "OutsideFile" test, we expect an error
 				if tt.name == "OutsideFile" {
-					// Create a snapshot even for error case
-					common.SnapshotTest(t, "python", "hover", tt.snapshotName, err.Error())
+					if tt.expectedText != "" && !strings.Contains(result, tt.expectedText) {
+						t.Errorf("Expected hover info to contain %q but got: %s", tt.expectedText, result)
+					}
+
+					// Verify unexpected content is absent
+					if tt.unexpectedText != "" && strings.Contains(result, tt.unexpectedText) {
+						t.Errorf("Expected hover info NOT to contain %q but it was found: %s", tt.unexpectedText, result)
+					}
+					// Skip the snapshot test because on CI it includes unique file paths
+					// common.SnapshotTest(t, "python", "hover", tt.snapshotName, err.Error())
 					return
 				}
 				t.Fatalf("GetHoverInfo failed: %v", err)

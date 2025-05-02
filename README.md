@@ -147,8 +147,6 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 
 ## About
 
-I hope that this server makes working with AI tools more convenient for medium and large sized codebases.
-
 This codebase makes use of edited code from [gopls](https://go.googlesource.com/tools/+/refs/heads/master/gopls/internal/protocol) to handle LSP communication. See ATTRIBUTION for details. Everything here is covered by a permissive BSD style license.
 
 [mcp-go](https://github.com/mark3labs/mcp-go) is used for MCP communication. Thank you for your service.
