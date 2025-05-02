@@ -101,10 +101,6 @@ func (s *mcpServer) registerTools() error {
 			mcp.Required(),
 			mcp.Description("The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"),
 		),
-		mcp.WithBoolean("showLineNumbers",
-			mcp.Description("Include line numbers in the returned source code"),
-			mcp.DefaultBool(true),
-		),
 	)
 
 	s.mcpServer.AddTool(readDefinitionTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -114,13 +110,8 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
-		showLineNumbers := true // default value
-		if showLineNumbersArg, ok := request.Params.Arguments["showLineNumbers"].(bool); ok {
-			showLineNumbers = showLineNumbersArg
-		}
-
 		coreLogger.Debug("Executing definition for symbol: %s", symbolName)
-		text, err := tools.ReadDefinition(s.ctx, s.lspClient, symbolName, showLineNumbers)
+		text, err := tools.ReadDefinition(s.ctx, s.lspClient, symbolName)
 		if err != nil {
 			coreLogger.Error("Failed to get definition: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get definition: %v", err)), nil
@@ -134,10 +125,6 @@ func (s *mcpServer) registerTools() error {
 			mcp.Required(),
 			mcp.Description("The name of the symbol to search for (e.g. 'mypackage.MyFunction', 'MyType')"),
 		),
-		mcp.WithBoolean("showLineNumbers",
-			mcp.Description("Include line numbers when showing where the symbol is used"),
-			mcp.DefaultBool(true),
-		),
 	)
 
 	s.mcpServer.AddTool(findReferencesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -147,13 +134,8 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
-		showLineNumbers := true // default value
-		if showLineNumbersArg, ok := request.Params.Arguments["showLineNumbers"].(bool); ok {
-			showLineNumbers = showLineNumbersArg
-		}
-
 		coreLogger.Debug("Executing references for symbol: %s", symbolName)
-		text, err := tools.FindReferences(s.ctx, s.lspClient, symbolName, showLineNumbers)
+		text, err := tools.FindReferences(s.ctx, s.lspClient, symbolName)
 		if err != nil {
 			coreLogger.Error("Failed to find references: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to find references: %v", err)), nil

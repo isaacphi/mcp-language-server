@@ -9,7 +9,7 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
-func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string, showLineNumbers bool) (string, error) {
+func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string) (string, error) {
 	symbolResult, err := client.Symbol(ctx, protocol.WorkspaceSymbolParams{
 		Query: symbolName,
 	})
@@ -85,9 +85,7 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string, 
 			continue
 		}
 
-		if showLineNumbers {
-			definition = addLineNumbers(definition, int(loc.Range.Start.Line)+1)
-		}
+		definition = addLineNumbers(definition, int(loc.Range.Start.Line)+1)
 
 		definitions = append(definitions, banner+locationInfo+definition+"\n")
 	}

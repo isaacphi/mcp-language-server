@@ -83,7 +83,7 @@ func TestReadDefinition(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Call the ReadDefinition tool
-			result, err := tools.ReadDefinition(ctx, suite.Client, tc.symbolName, true)
+			result, err := tools.ReadDefinition(ctx, suite.Client, tc.symbolName)
 			if err != nil {
 				t.Fatalf("Failed to read definition: %v", err)
 			}

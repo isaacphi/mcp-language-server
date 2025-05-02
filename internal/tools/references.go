@@ -12,7 +12,7 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
-func FindReferences(ctx context.Context, client *lsp.Client, symbolName string, showLineNumbers bool) (string, error) {
+func FindReferences(ctx context.Context, client *lsp.Client, symbolName string) (string, error) {
 	// Get context lines from environment variable
 	contextLines := 5
 	if envLines := os.Getenv("LSP_CONTEXT_LINES"); envLines != "" {

@@ -94,7 +94,7 @@ func TestFindReferences(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Call the FindReferences tool
-			result, err := tools.FindReferences(ctx, suite.Client, tc.symbolName, true)
+			result, err := tools.FindReferences(ctx, suite.Client, tc.symbolName)
 			if err != nil {
 				t.Fatalf("Failed to find references: %v", err)
 			}
