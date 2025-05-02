@@ -8,4 +8,5 @@ test-output/
 # Temporary files
 *~
 
-CLAUDE.md
+CLAUDE.md*
+.mcp.json
