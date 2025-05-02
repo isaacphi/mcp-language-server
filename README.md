@@ -28,7 +28,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     <p><strong>Install gopls</strong>: <code>go install golang.org/x/tools/gopls@latest</code></p>
     <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
 
-```json
+<pre>
 {
   "mcpServers": {
     "language-server": {
@@ -43,13 +43,13 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     }
   }
 }
-```
+</pre>
 
-    <p><strong>Note</strong>: Not all clients will need these environment variables. For Claude Desktop you will need to update the environment variables above based on your machine and username:</p>
-    <ul>
-      <li><code>PATH</code> needs to contain the path to <code>go</code> and to <code>gopls</code>. Get this with <code>echo $(which go):$(which gopls)</code></li>
-      <li><code>GOPATH</code>, <code>GOCACHE</code>, and <code>GOMODCACHE</code> may be different on your machine. These are the defaults.</li>
-    </ul>
+<p><strong>Note</strong>: Not all clients will need these environment variables. For Claude Desktop you will need to update the environment variables above based on your machine and username:</p>
+<ul>
+  <li><code>PATH</code> needs to contain the path to <code>go</code> and to <code>gopls</code>. Get this with <code>echo $(which go):$(which gopls)</code></li>
+  <li><code>GOPATH</code>, <code>GOCACHE</code>, and <code>GOMODCACHE</code> may be different on your machine. These are the defaults.</li>
+</ul>
 
   </div>
 </details>
