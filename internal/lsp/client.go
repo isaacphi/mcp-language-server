@@ -218,10 +218,10 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 	path := strings.ToLower(c.Cmd.Path)
 	switch {
 	case strings.Contains(path, "typescript-language-server"):
-		// err := initializeTypescriptLanguageServer(ctx, c, workspaceDir)
-		// if err != nil {
-		// 	return nil, err
-		// }
+		err := initializeTypescriptLanguageServer(ctx, c, workspaceDir)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &result, nil
