@@ -11,7 +11,7 @@ import (
 func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
 
-	applyTextEditTool := mcp.NewTool("apply_text_edit",
+	applyTextEditTool := mcp.NewTool("edit_file",
 		mcp.WithDescription("Apply multiple text edits to a file."),
 		mcp.WithArray("edits",
 			mcp.Required(),
@@ -86,7 +86,7 @@ func (s *mcpServer) registerTools() error {
 			})
 		}
 
-		coreLogger.Debug("Executing apply_text_edit for file: %s", filePath)
+		coreLogger.Debug("Executing edit_file for file: %s", filePath)
 		response, err := tools.ApplyTextEdits(s.ctx, s.lspClient, filePath, edits)
 		if err != nil {
 			coreLogger.Error("Failed to apply edits: %v", err)
@@ -95,7 +95,7 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(response), nil
 	})
 
-	readDefinitionTool := mcp.NewTool("read_definition",
+	readDefinitionTool := mcp.NewTool("definition",
 		mcp.WithDescription("Read the source code definition of a symbol (function, type, constant, etc.) from the codebase. Returns the complete implementation code where the symbol is defined."),
 		mcp.WithString("symbolName",
 			mcp.Required(),
@@ -119,7 +119,7 @@ func (s *mcpServer) registerTools() error {
 			showLineNumbers = showLineNumbersArg
 		}
 
-		coreLogger.Debug("Executing read_definition for symbol: %s", symbolName)
+		coreLogger.Debug("Executing definition for symbol: %s", symbolName)
 		text, err := tools.ReadDefinition(s.ctx, s.lspClient, symbolName, showLineNumbers)
 		if err != nil {
 			coreLogger.Error("Failed to get definition: %v", err)
@@ -128,7 +128,7 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
-	findReferencesTool := mcp.NewTool("find_references",
+	findReferencesTool := mcp.NewTool("references",
 		mcp.WithDescription("Find all usages and references of a symbol throughout the codebase. Returns a list of all files and locations where the symbol appears."),
 		mcp.WithString("symbolName",
 			mcp.Required(),
@@ -152,7 +152,7 @@ func (s *mcpServer) registerTools() error {
 			showLineNumbers = showLineNumbersArg
 		}
 
-		coreLogger.Debug("Executing find_references for symbol: %s", symbolName)
+		coreLogger.Debug("Executing references for symbol: %s", symbolName)
 		text, err := tools.FindReferences(s.ctx, s.lspClient, symbolName, showLineNumbers)
 		if err != nil {
 			coreLogger.Error("Failed to find references: %v", err)
@@ -161,7 +161,7 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
-	getDiagnosticsTool := mcp.NewTool("get_diagnostics",
+	getDiagnosticsTool := mcp.NewTool("diagnostics",
 		mcp.WithDescription("Get diagnostic information for a specific file from the language server."),
 		mcp.WithString("filePath",
 			mcp.Required(),
@@ -194,7 +194,7 @@ func (s *mcpServer) registerTools() error {
 			showLineNumbers = showLineNumbersArg
 		}
 
-		coreLogger.Debug("Executing get_diagnostics for file: %s", filePath)
+		coreLogger.Debug("Executing diagnostics for file: %s", filePath)
 		text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, filePath, contextLines, showLineNumbers)
 		if err != nil {
 			coreLogger.Error("Failed to get diagnostics: %v", err)
@@ -203,68 +203,70 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
-	getCodeLensTool := mcp.NewTool("get_codelens",
-		mcp.WithDescription("Get code lens hints for a given file from the language server."),
-		mcp.WithString("filePath",
-			mcp.Required(),
-			mcp.Description("The path to the file to get code lens information for"),
-		),
-	)
-
-	s.mcpServer.AddTool(getCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
-			return mcp.NewToolResultError("filePath must be a string"), nil
-		}
-
-		coreLogger.Debug("Executing get_codelens for file: %s", filePath)
-		text, err := tools.GetCodeLens(s.ctx, s.lspClient, filePath)
-		if err != nil {
-			coreLogger.Error("Failed to get code lens: %v", err)
-			return mcp.NewToolResultError(fmt.Sprintf("failed to get code lens: %v", err)), nil
-		}
-		return mcp.NewToolResultText(text), nil
-	})
-
-	executeCodeLensTool := mcp.NewTool("execute_codelens",
-		mcp.WithDescription("Execute a code lens command for a given file and lens index."),
-		mcp.WithString("filePath",
-			mcp.Required(),
-			mcp.Description("The path to the file containing the code lens to execute"),
-		),
-		mcp.WithNumber("index",
-			mcp.Required(),
-			mcp.Description("The index of the code lens to execute (from get_codelens output), 1 indexed"),
-		),
-	)
-
-	s.mcpServer.AddTool(executeCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
-			return mcp.NewToolResultError("filePath must be a string"), nil
-		}
-
-		// Handle both float64 and int for index due to JSON parsing
-		var index int
-		switch v := request.Params.Arguments["index"].(type) {
-		case float64:
-			index = int(v)
-		case int:
-			index = v
-		default:
-			return mcp.NewToolResultError("index must be a number"), nil
-		}
-
-		coreLogger.Debug("Executing execute_codelens for file: %s index: %d", filePath, index)
-		text, err := tools.ExecuteCodeLens(s.ctx, s.lspClient, filePath, index)
-		if err != nil {
-			coreLogger.Error("Failed to execute code lens: %v", err)
-			return mcp.NewToolResultError(fmt.Sprintf("failed to execute code lens: %v", err)), nil
-		}
-		return mcp.NewToolResultText(text), nil
-	})
+	// Uncomment to add codelens tools
+	//
+	// getCodeLensTool := mcp.NewTool("get_codelens",
+	// 	mcp.WithDescription("Get code lens hints for a given file from the language server."),
+	// 	mcp.WithString("filePath",
+	// 		mcp.Required(),
+	// 		mcp.Description("The path to the file to get code lens information for"),
+	// 	),
+	// )
+	//
+	// s.mcpServer.AddTool(getCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// 	// Extract arguments
+	// 	filePath, ok := request.Params.Arguments["filePath"].(string)
+	// 	if !ok {
+	// 		return mcp.NewToolResultError("filePath must be a string"), nil
+	// 	}
+	//
+	// 	coreLogger.Debug("Executing get_codelens for file: %s", filePath)
+	// 	text, err := tools.GetCodeLens(s.ctx, s.lspClient, filePath)
+	// 	if err != nil {
+	// 		coreLogger.Error("Failed to get code lens: %v", err)
+	// 		return mcp.NewToolResultError(fmt.Sprintf("failed to get code lens: %v", err)), nil
+	// 	}
+	// 	return mcp.NewToolResultText(text), nil
+	// })
+	//
+	// executeCodeLensTool := mcp.NewTool("execute_codelens",
+	// 	mcp.WithDescription("Execute a code lens command for a given file and lens index."),
+	// 	mcp.WithString("filePath",
+	// 		mcp.Required(),
+	// 		mcp.Description("The path to the file containing the code lens to execute"),
+	// 	),
+	// 	mcp.WithNumber("index",
+	// 		mcp.Required(),
+	// 		mcp.Description("The index of the code lens to execute (from get_codelens output), 1 indexed"),
+	// 	),
+	// )
+	//
+	// s.mcpServer.AddTool(executeCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// 	// Extract arguments
+	// 	filePath, ok := request.Params.Arguments["filePath"].(string)
+	// 	if !ok {
+	// 		return mcp.NewToolResultError("filePath must be a string"), nil
+	// 	}
+	//
+	// 	// Handle both float64 and int for index due to JSON parsing
+	// 	var index int
+	// 	switch v := request.Params.Arguments["index"].(type) {
+	// 	case float64:
+	// 		index = int(v)
+	// 	case int:
+	// 		index = v
+	// 	default:
+	// 		return mcp.NewToolResultError("index must be a number"), nil
+	// 	}
+	//
+	// 	coreLogger.Debug("Executing execute_codelens for file: %s index: %d", filePath, index)
+	// 	text, err := tools.ExecuteCodeLens(s.ctx, s.lspClient, filePath, index)
+	// 	if err != nil {
+	// 		coreLogger.Error("Failed to execute code lens: %v", err)
+	// 		return mcp.NewToolResultError(fmt.Sprintf("failed to execute code lens: %v", err)), nil
+	// 	}
+	// 	return mcp.NewToolResultText(text), nil
+	// })
 
 	hoverTool := mcp.NewTool("hover",
 		mcp.WithDescription("Get hover information (type, documentation) for a symbol at the specified position."),

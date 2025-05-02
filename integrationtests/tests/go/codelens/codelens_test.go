@@ -14,6 +14,8 @@ import (
 
 // TestCodeLens tests the codelens functionality with the Go language server
 func TestCodeLens(t *testing.T) {
+	t.Skip("Remove this line to run codelens tool tests")
+
 	// Test GetCodeLens with a file that should have codelenses
 	t.Run("GetCodeLens", func(t *testing.T) {
 		suite := internal.GetTestSuite(t)
