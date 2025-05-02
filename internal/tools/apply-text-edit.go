@@ -25,15 +25,36 @@ func ApplyTextEdits(ctx context.Context, client *lsp.Client, filePath string, ed
 		return "", fmt.Errorf("could not open file: %v", err)
 	}
 
+	// Create a sorted copy of edits for reporting
+	sortedEdits := make([]TextEdit, len(edits))
+	copy(sortedEdits, edits)
+	sort.Slice(sortedEdits, func(i, j int) bool {
+		return sortedEdits[i].StartLine < sortedEdits[j].StartLine
+	})
+
+	// Track lines added and removed for sorted edits
+	linesRemovedSorted := 0
+	linesAddedSorted := 0
+	for _, edit := range sortedEdits {
+		// Calculate lines removed: end - start + 1
+		removedLineCount := edit.EndLine - edit.StartLine + 1
+		linesRemovedSorted += removedLineCount
+
+		// Calculate lines added: count newlines in the replacement text + 1
+		addedLineCount := 1
+		if edit.NewText != "" {
+			addedLineCount = strings.Count(edit.NewText, "\n") + 1
+		} else if edit.NewText == "" {
+			addedLineCount = 0
+		}
+		linesAddedSorted += addedLineCount
+	}
+
 	// Sort edits by line number in descending order to process from bottom to top
 	// This way line numbers don't shift under us as we make edits
 	sort.Slice(edits, func(i, j int) bool {
 		return edits[i].StartLine > edits[j].StartLine
 	})
-
-	// Track lines added and removed
-	linesRemoved := 0
-	linesAdded := 0
 
 	// Convert from input format to protocol.TextEdit
 	var textEdits []protocol.TextEdit
@@ -43,19 +64,6 @@ func ApplyTextEdits(ctx context.Context, client *lsp.Client, filePath string, ed
 		if err != nil {
 			return "", fmt.Errorf("invalid position: %v", err)
 		}
-
-		// Calculate lines removed: end - start + 1
-		removedLineCount := edit.EndLine - edit.StartLine + 1
-		linesRemoved += removedLineCount
-
-		// Calculate lines added: count newlines in the replacement text + 1
-		addedLineCount := 1
-		if edit.NewText != "" {
-			addedLineCount = strings.Count(edit.NewText, "\n") + 1
-		} else if edit.NewText == "" {
-			addedLineCount = 0
-		}
-		linesAdded += addedLineCount
 
 		// Always do a replacement
 		textEdits = append(textEdits, protocol.TextEdit{
@@ -74,7 +82,7 @@ func ApplyTextEdits(ctx context.Context, client *lsp.Client, filePath string, ed
 		return "", fmt.Errorf("failed to apply text edits: %v", err)
 	}
 
-	return fmt.Sprintf("Successfully applied text edits. %d lines removed, %d lines added.", linesRemoved, linesAdded), nil
+	return fmt.Sprintf("Successfully applied text edits. %d lines removed, %d lines added.", linesRemovedSorted, linesAddedSorted), nil
 }
 
 // getRange creates a protocol.Range that covers the specified start and end lines
