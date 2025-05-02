@@ -54,7 +54,7 @@ func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line
 
 	// Create a slice to store all changes before sorting and writing
 	type FileChanges struct {
-		URI   string
+		URI       string
 		Locations string
 	}
 	var allChanges []FileChanges
@@ -101,12 +101,12 @@ func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line
 			changeCount += len(change.TextDocumentEdit.Edits)
 		}
 	}
-	
+
 	// Sort changes by filename for consistent output
 	sort.Slice(allChanges, func(i, j int) bool {
 		return allChanges[i].URI < allChanges[j].URI
 	})
-	
+
 	// Write sorted changes to the output builder
 	for _, change := range allChanges {
 		locationsBuilder.WriteString(fmt.Sprintf("%s: %s\n", change.URI, change.Locations))
