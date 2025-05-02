@@ -13,9 +13,27 @@ func (s *mcpServer) registerTools() error {
 
 	applyTextEditTool := mcp.NewTool("apply_text_edit",
 		mcp.WithDescription("Apply multiple text edits to a file."),
-		mcp.WithObject("edits",
+		mcp.WithArray("edits",
 			mcp.Required(),
 			mcp.Description("List of edits to apply"),
+			mcp.Items(map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"startLine": map[string]any{
+						"type":        "number",
+						"description": "Start line to replace, inclusive, one-indexed",
+					},
+					"endLine": map[string]any{
+						"type":        "number",
+						"description": "End line to replace, inclusive, one-indexed",
+					},
+					"newText": map[string]any{
+						"type":        "string",
+						"description": "Replacement text. Replace with the new text. Leave blank to remove lines.",
+					},
+				},
+				"required": []string{"startLine", "endLine"},
+			}),
 		),
 		mcp.WithString("filePath",
 			mcp.Required(),
