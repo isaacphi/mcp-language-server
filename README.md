@@ -18,7 +18,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 ## Setup
 
 1. **Install Go**: Follow instructions at <https://golang.org/doc/install>
-2. **Fetch or update this server**: `go install github.com/isaacphi/mcp-language-server@latest`
+2. **Install or update this server**: `go install github.com/isaacphi/mcp-language-server@latest`
 3. **Install a language server**: _follow one of the guides below_
 4. **Configure your MCP client**: _follow one of the guides below_
 
@@ -153,6 +153,8 @@ Behind the scenes, this MCP server can act on `workspace/applyEdit` requests fro
 
 ## About
 
+I hope that this server makes working with medium and large sized codebases more accessible to AI tools.
+
 This codebase makes use of edited code from [gopls](https://go.googlesource.com/tools/+/refs/heads/master/gopls/internal/protocol) to handle LSP communication. See ATTRIBUTION for details. Everything here is covered by a permissive BSD style license.
 
 [mcp-go](https://github.com/mark3labs/mcp-go) is used for MCP communication. Thank you for your service.
@@ -212,11 +214,11 @@ Rebuild after making changes.
 
 ### Logging
 
-Setting the `LOG_LEVEL` environment variable to DEBUG enables verbose logging for all components including messages to and from the language server and the language server's logs.
+Setting the `LOG_LEVEL` environment variable to DEBUG enables verbose logging to stderr for all components including messages to and from the language server and the language server's logs.
 
 ### LSP interaction
 
-- `internal/lsp/methods.go` contains generated code to make calls to the connected language server
+- `internal/lsp/methods.go` contains generated code to make calls to the connected language server.
 - `internal/protocol/tsprotocol.go` contains generated code for LSP types. I borrowed this from `gopls`'s source code. Thank you for your service.
 - LSP allows language servers to return different types for the same methods. Go doesn't like this so there are some ugly workarounds in `internal/protocol/interfaces.go`.
 
