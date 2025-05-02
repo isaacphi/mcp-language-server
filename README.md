@@ -9,7 +9,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 
 ## Demo
 
-mcp-language-server helps MCP enabled clients navigate codebases more easily by giving them access semantic tool like get definition, references, etc.
+`mcp-language-server` helps MCP enabled clients navigate codebases more easily by giving them access semantic tools like get definition, references, rename, and diagnostics.
 
 ![Demo](demo.gif)
 
