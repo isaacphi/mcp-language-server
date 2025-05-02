@@ -1,4 +1,0 @@
-test_workspace::types
-
-// size = 24 (0x18), align = 0x8
-pub type TestType = String
