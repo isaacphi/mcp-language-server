@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
@@ -51,6 +52,13 @@ func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line
 	// Build output
 	var locationsBuilder strings.Builder
 
+	// Create a slice to store all changes before sorting and writing
+	type FileChanges struct {
+		URI   string
+		Locations string
+	}
+	var allChanges []FileChanges
+
 	// Count changes in Changes field
 	if workspaceEdit.Changes != nil {
 		fileCount = len(workspaceEdit.Changes)
@@ -65,7 +73,10 @@ func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line
 					locs.WriteString(", ")
 				}
 			}
-			locationsBuilder.WriteString(fmt.Sprintf("%s: %s\n", uri, locs.String()))
+			allChanges = append(allChanges, FileChanges{
+				URI:       string(uri),
+				Locations: locs.String(),
+			})
 		}
 	}
 
@@ -80,13 +91,25 @@ func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line
 					if i != len(change.TextDocumentEdit.Edits)-1 {
 						locs.WriteString(", ")
 					}
-
 				}
 			}
-			locationsBuilder.WriteString(fmt.Sprintf("%s: %s\n", change.TextDocumentEdit.TextDocument.URI, locs.String()))
+			allChanges = append(allChanges, FileChanges{
+				URI:       string(change.TextDocumentEdit.TextDocument.URI),
+				Locations: locs.String(),
+			})
 			fileCount++
 			changeCount += len(change.TextDocumentEdit.Edits)
 		}
+	}
+	
+	// Sort changes by filename for consistent output
+	sort.Slice(allChanges, func(i, j int) bool {
+		return allChanges[i].URI < allChanges[j].URI
+	})
+	
+	// Write sorted changes to the output builder
+	for _, change := range allChanges {
+		locationsBuilder.WriteString(fmt.Sprintf("%s: %s\n", change.URI, change.Locations))
 	}
 
 	// Apply the workspace edit to files:workspaceEdit
