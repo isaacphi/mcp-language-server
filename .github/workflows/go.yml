@@ -53,7 +53,7 @@ jobs:
         run: go install golang.org/x/tools/gopls@latest
 
       - name: Run Go integration tests
-        run: go test ./integrationtests/languages/go/...
+        run: go test ./integrationtests/tests/go/...
 
   python-integration-tests:
     name: Python Integration Tests
@@ -77,7 +77,7 @@ jobs:
         run: npm install -g pyright
 
       - name: Run Python integration tests
-        run: go test ./integrationtests/languages/python/...
+        run: go test ./integrationtests/tests/python/...
 
   rust-integration-tests:
     name: Rust Integration Tests
@@ -106,7 +106,7 @@ jobs:
       - run: rust-analyzer --version
 
       - name: Run Rust integration tests
-        run: go test ./integrationtests/languages/rust/...
+        run: go test ./integrationtests/tests/rust/...
 
   typescript-integration-tests:
     name: TypeScript Integration Tests
@@ -130,4 +130,4 @@ jobs:
         run: npm install -g typescript typescript-language-server
 
       - name: Run TypeScript integration tests
-        run: go test ./integrationtests/languages/typescript/...
+        run: go test ./integrationtests/tests/typescript/...
