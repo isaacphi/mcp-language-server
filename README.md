@@ -9,11 +9,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 
 ## Demo
 
-- Run it on this repo.
-- Find definition
-- Edit function signature and update all references
-- Rename function
-- Check diagnostics
+![Demo](demo.gif)
 
 ## Setup
 
