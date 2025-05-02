@@ -28,7 +28,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     <p><strong>Install gopls</strong>: <code>go install golang.org/x/tools/gopls@latest</code></p>
     <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
 
-<pre>
+```json
 {
   "mcpServers": {
     "language-server": {
@@ -43,7 +43,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     }
   }
 }
-</pre>
+```
 
     <p><strong>Note</strong>: Not all clients will need these environment variables. For Claude Desktop you will need to update the environment variables above based on your machine and username:</p>
     <ul>
