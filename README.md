@@ -91,7 +91,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
         "--workspace",
         "/Users/you/dev/yourproject/",
         "--lsp",
-        "pyright",
+        "pyright-langserver",
         "--",
         "--stdio"
       ]
@@ -145,13 +145,11 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 - `diagnostics`: Provides diagnostic information for a specific file, including warnings and errors.
 - `hover`: Display documentation, type hints, or other hover information for a given location.
 - `rename_symbol`: Rename a symbol across a project.
-- `edit_file`: Allows making multiple text edits to a file programmatically.
-
-The `edit_file` tool is not strictly related to the language server but it provides a more reliable and context economical way to edit files compared to search and replace based edit tools, provided you have line numbers.
+- `edit_file`: Allows making multiple text edits to a file based on line numbers. Provides a more reliable and context-economical way to edit files compared to search and replace based edit tools.
 
 ## About
 
-I hope that this server makes working with medium and large sized codebases more accessible to AI tools.
+I hope that this server makes working with AI tools more convenient for medium and large sized codebases.
 
 This codebase makes use of edited code from [gopls](https://go.googlesource.com/tools/+/refs/heads/master/gopls/internal/protocol) to handle LSP communication. See ATTRIBUTION for details. Everything here is covered by a permissive BSD style license.
 
