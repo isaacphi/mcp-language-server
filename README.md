@@ -23,11 +23,12 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 4. **Configure your MCP client**: _follow one of the guides below_
 
 <details>
-  <summary>Go (gopls)</summary>
-**Install gopls**: `go install golang.org/x/tools/gopls@latest`
-**Configure your MCP client**: This will be different but similar for each client. For Claude Desktop, add the following to `~/Library/Application\ Support/Claude/claude_desktop_config.json`
+  <summary>Go (gopls)</summary>
+  <div>
+    <p><strong>Install gopls</strong>: <code>go install golang.org/x/tools/gopls@latest</code></p>
+    <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
 
-```json
+<pre>
 {
   "mcpServers": {
     "language-server": {
@@ -42,20 +43,23 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     }
   }
 }
-```
+</pre>
 
-**Note**: Not all clients will need these environment variables. For Claude Desktop you will need to update the environment variables above based on your machine and username:
+    <p><strong>Note</strong>: Not all clients will need these environment variables. For Claude Desktop you will need to update the environment variables above based on your machine and username:</p>
+    <ul>
+      <li><code>PATH</code> needs to contain the path to <code>go</code> and to <code>gopls</code>. Get this with <code>echo $(which go):$(which gopls)</code></li>
+      <li><code>GOPATH</code>, <code>GOCACHE</code>, and <code>GOMODCACHE</code> may be different on your machine. These are the defaults.</li>
+    </ul>
 
-- `PATH` needs to contain the path to `go` and to `gopls`. Get this with `echo $(which go):$(which gopls)`
-- `GOPATH`, `GOCACHE`, and `GOMODCACHE` may be different on your machine. These are the defaults.
-
+  </div>
 </details>
 <details>
-  <summary>Rust (rust-analyzer)</summary>
-**Install rust-analyzer**: `rustup component add rust-analyzer`
-**Configure your MCP client**: This will be different but similar for each client. For Claude Desktop, add the following to `~/Library/Application\ Support/Claude/claude_desktop_config.json`
+  <summary>Rust (rust-analyzer)</summary>
+  <div>
+    <p><strong>Install rust-analyzer</strong>: <code>rustup component add rust-analyzer</code></p>
+    <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
 
-```json
+<pre>
 {
   "mcpServers": {
     "language-server": {
@@ -69,15 +73,16 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     }
   }
 }
-```
-
+</pre>
+  </div>
 </details>
 <details>
-  <summary>Python (pyright)</summary>
-**Install pyright**: `npm install -g pyright`
-**Configure your MCP client**: This will be different but similar for each client. For Claude Desktop, add the following to `~/Library/Application\ Support/Claude/claude_desktop_config.json`
+  <summary>Python (pyright)</summary>
+  <div>
+    <p><strong>Install pyright</strong>: <code>npm install -g pyright</code></p>
+    <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
 
-```json
+<pre>
 {
   "mcpServers": {
     "language-server": {
@@ -93,15 +98,16 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     }
   }
 }
-```
-
+</pre>
+  </div>
 </details>
 <details>
-  <summary>Typescript (typescript-language-server)</summary>
-**Install typescript-language-server**: `npm install -g typescript typescript-language-server`
-**Configure your MCP client**: This will be different but similar for each client. For Claude Desktop, add the following to `~/Library/Application\ Support/Claude/claude_desktop_config.json`
+  <summary>Typescript (typescript-language-server)</summary>
+  <div>
+    <p><strong>Install typescript-language-server</strong>: <code>npm install -g typescript typescript-language-server</code></p>
+    <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
 
-```json
+<pre>
 {
   "mcpServers": {
     "language-server": {
@@ -117,15 +123,19 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     }
   }
 }
-```
-
+</pre>
+  </div>
 </details>
 <details>
-  <summary>Other</summary>
-I have only tested this repo with the servers above but it should be compatible with many more. Note:
-- The language server must communicate over stdio.
-- Any aruments after `--` are sent as arguments to the language server.
-- Any env variables are passed on to the language server.
+  <summary>Other</summary>
+  <div>
+    <p>I have only tested this repo with the servers above but it should be compatible with many more. Note:</p>
+    <ul>
+      <li>The language server must communicate over stdio.</li>
+      <li>Any aruments after <code>--</code> are sent as arguments to the language server.</li>
+      <li>Any env variables are passed on to the language server.</li>
+    </ul>
+  </div>
 </details>
 
 ## Tools
