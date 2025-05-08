@@ -1,0 +1,11 @@
+---
+
+Symbol: TestClass
+/TEST_OUTPUT/workspace/src/consumer.cpp
+Range: L6:C1 - L9:C2
+
+ 6|class TestClass {
+ 7| public:
+ 8|  void method() {}
+ 9|};
+

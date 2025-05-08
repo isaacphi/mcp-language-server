@@ -107,6 +107,15 @@ func normalizePaths(_ *testing.T, input string) string {
 				lines[i] = "/TEST_OUTPUT/workspace/" + parts[1]
 			}
 		}
+		// Some tests, e.g. clangd, may include fully qualified paths to the base /workspaces/ directory
+		if strings.Contains(line, "/workspaces/") {
+			// Extract everything after /workspace/
+			parts := strings.Split(line, "/workspaces/")
+			if len(parts) > 1 {
+				// Replace with a simple placeholder path
+				lines[i] = "/TEST_OUTPUT/workspace/" + parts[1]
+			}
+		}
 	}
 
 	return strings.Join(lines, "\n")

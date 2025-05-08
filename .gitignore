@@ -4,6 +4,12 @@ mcp-language-server
 # Test output
 test-output/
 *.diff
+integrationtests/workspaces/clangd/compile_commands.json
+integrationtests/workspaces/clangd/src/*.o
+integrationtests/workspaces/clangd/clean_program
+integrationtests/workspaces/clangd/program
+integrationtests/workspaces/clangd/.cache
+
 
 # Temporary files
 *~

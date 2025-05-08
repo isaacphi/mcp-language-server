@@ -131,3 +131,39 @@ jobs:
 
       - name: Run TypeScript integration tests
         run: go test ./integrationtests/tests/typescript/...
+
+  clangd-integration-tests:
+    name: Clangd Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          check-latest: true
+          cache: true
+
+      - name: Install LLVM, Clang and bear
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-16 llvm-16 clangd-16 bear
+
+      - name: Verify Clangd Installation
+        run: |
+          sudo ln -s /usr/bin/clangd-16 /usr/bin/clangd
+          clangd-16 --version
+          clangd --version
+      
+      - name: Create compile commands
+        run: |
+          cd integrationtests/workspaces/clangd
+          bear -- make
+          cd ../../../..
+
+      - name: Run Clangd definition tests
+        run: go test ./integrationtests/tests/clangd/definition...
+
+      - name: Run Clangd diagnostics tests
+        run: go test ./integrationtests/tests/clangd/diagnostics...

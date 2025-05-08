@@ -125,6 +125,37 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   </div>
 </details>
 <details>
+  <summary>C/C++ (clangd)</summary>
+  <div>
+    <p><strong>Install clangd</strong>: Download prebuilt binaries from the <a href="https://github.com/clangd/clangd/releases">official LLVM releases page</a> or install via your system's package manager (e.g., <code>apt install clangd</code>, <code>brew install clangd</code>).</p>
+    <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\\ Support/Claude/claude_desktop_config.json</code></p>
+
+<pre>
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "mcp-language-server",
+      "args": [
+        "--workspace",
+        "/Users/you/dev/yourproject/",
+        "--lsp",
+        "/path/to/your/clangd_binary",
+        "--",
+        "--compile-commands-dir=/path/to/yourproject/build_or_compile_commands_dir"
+      ]
+    }
+  }
+}
+</pre>
+    <p><strong>Note</strong>:</p>
+    <ul>
+      <li>Replace <code>/path/to/your/clangd_binary</code> with the actual path to your clangd executable.</li>
+      <li><code>--compile-commands-dir</code> should point to the directory containing your <code>compile_commands.json</code> file (e.g., <code>./build</code>, <code>./cmake-build-debug</code>).</li>
+      <li>Ensure <code>compile_commands.json</code> is generated for your project for clangd to work effectively.</li>
+    </ul>
+  </div>
+</details>
+<details>
   <summary>Other</summary>
   <div>
     <p>I have only tested this repo with the servers above but it should be compatible with many more. Note:</p>

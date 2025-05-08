@@ -1,0 +1,8 @@
+---
+
+Symbol: TEST_CONSTANT
+/TEST_OUTPUT/workspace/src/helper.cpp
+Range: L4:C1 - L4:C29
+
+4|const int TEST_CONSTANT = 42;
+

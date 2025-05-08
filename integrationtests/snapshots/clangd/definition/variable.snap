@@ -1,0 +1,8 @@
+---
+
+Symbol: TEST_VARIABLE
+/TEST_OUTPUT/workspace/src/helper.cpp
+Range: L5:C1 - L5:C24
+
+5|int TEST_VARIABLE = 100;
+

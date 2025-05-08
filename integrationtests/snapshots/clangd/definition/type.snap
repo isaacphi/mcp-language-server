@@ -1,0 +1,8 @@
+---
+
+Symbol: TestType
+/TEST_OUTPUT/workspace/src/types.cpp
+Range: L10:C1 - L10:C21
+
+10|using TestType = int;
+

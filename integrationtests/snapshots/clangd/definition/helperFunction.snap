@@ -1,0 +1,8 @@
+---
+
+Symbol: helperFunction
+/TEST_OUTPUT/workspace/clangd/include/helper.hpp
+Range: L1:C1 - L1:C22
+
+1|void helperFunction();
+
