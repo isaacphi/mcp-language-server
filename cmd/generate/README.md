@@ -7,14 +7,34 @@ Types have been modified to always be union types. A method generator has also b
 ## Use
 
 From the root of the repo, run
+
 ```bash
 go run ./cmd/generate_protocol
 ```
+
 This will generate LSP message types in `internal/protocol`
 
 ## Key Differences from gopls
 
 The main difference from the gopls implementation is in the handling of union types. While gopls simplifies some union types to single types for backward compatibility and easy operability with gopls, this implementation preserves the full union types as specified in the LSP spec.
+
+### Custom Field Additions
+
+The generator supports adding custom fields to generated types through the `additionalFields` map in `tables.go`. This allows extending LSP types with non-standard fields needed for specific language servers.
+
+e.g.
+
+```go
+// additionalFields defines extra fields to add to specific types during generation
+// The key is the Go struct name (after applying goName), the value is a slice of field definitions
+var additionalFields = map[string][]string{
+    "BaseSymbolInformation": {
+        "Score float64 `json:\"score,omitempty\"` // Added for clangd compatibility",
+    },
+}
+```
+
+This adds a `Score` field to the `BaseSymbolInformation` type, necessary for `clangd`.
 
 ## Attribution
 
@@ -38,7 +58,7 @@ exact version can be tied to a githash. By default, the command will download th
 
 The specification has five sections
 
-1. Requests, which describe the Request and Response types for request methods (e.g., *textDocument/didChange*),
+1. Requests, which describe the Request and Response types for request methods (e.g., _textDocument/didChange_),
 2. Notifications, which describe the Request types for notification methods,
 3. Structures, which describe named struct-like types,
 4. TypeAliases, which describe type aliases,

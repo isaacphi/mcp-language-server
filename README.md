@@ -155,7 +155,7 @@ This is beta software. Please let me know by creating an issue if you run into a
 
 ## Contributing
 
-Please keep PRs small and open Issues first for anything substantial. AI slop OK as long as it is tested, passes checks, and doesn't smell too bad.
+Please keep PRs small and open Issues first for anything substantial. AI slop O.K. as long as it is tested, passes checks, and doesn't smell too bad.
 
 ### Setup
 
