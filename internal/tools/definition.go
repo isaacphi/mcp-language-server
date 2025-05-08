@@ -46,7 +46,7 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string) 
 			} else {
 				// For unqualified names like "Method"
 				if v.Kind == protocol.Method {
-					// For methods, only match if the method name matches exactly Type.symbolName or symbolName
+					// For methods, only match if the method name matches exactly Type.symbolName or Type::symbolName or symbolName
 					if !strings.HasSuffix(symbol.GetName(), "::"+symbolName) && !strings.HasSuffix(symbol.GetName(), "."+symbolName) && symbol.GetName() != symbolName {
 						continue
 					}
@@ -63,6 +63,12 @@ func ReadDefinition(ctx context.Context, client *lsp.Client, symbolName string) 
 
 		toolsLogger.Debug("Found symbol: %s", symbol.GetName())
 		loc := symbol.GetLocation()
+
+		err := client.OpenFile(ctx, loc.URI.Path())
+		if err != nil {
+			toolsLogger.Error("Error opening file: %v", err)
+			continue
+		}
 
 		banner := "---\n\n"
 		definition, loc, err := GetFullDefinition(ctx, client, loc)
