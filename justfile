@@ -16,7 +16,7 @@ fmt:
 
 # Generate LSP types and methods
 generate:
-  go generate ./...
+  go run ./cmd/generate
 
 # Run code audit checks
 check:

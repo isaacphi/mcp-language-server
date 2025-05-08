@@ -237,13 +237,21 @@ func genStructs(model *Model) {
 		for _, ex := range s.Mixins {
 			fmt.Fprintf(out, "\t%s\n", goName(ex.Name))
 		}
+
+		// Add any additional fields defined in additionalFields map
+		if additionalFields, ok := additionalFields[nm]; ok {
+			for _, field := range additionalFields {
+				fmt.Fprintf(out, "\t%s\n", field)
+			}
+		}
+
 		out.WriteString("}\n")
 		types[nm] = out.String()
 	}
 
 	// base types
 	// (For URI and DocumentUri, see ../uri.go.)
-	types["LSPAny"] = "type LSPAny = interface{}\n"
+	types["LSPAny"] = "type LSPAny = any\n"
 	// A special case, the only previously existing Or type
 	types["DocumentDiagnosticReport"] = "type DocumentDiagnosticReport = Or_DocumentDiagnosticReport // (alias) \n"
 
@@ -320,7 +328,7 @@ func genGenTypes() {
 			sort.Strings(names)
 			fmt.Fprintf(out, "// created for Or %v\n", names)
 			fmt.Fprintf(out, "type %s struct {%s\n", nm, linex(nt.line+1))
-			fmt.Fprintf(out, "\tValue interface{} `json:\"value\"`\n")
+			fmt.Fprintf(out, "\tValue any `json:\"value\"`\n")
 
 		case "and":
 			fmt.Fprintf(out, "// created for And\n")

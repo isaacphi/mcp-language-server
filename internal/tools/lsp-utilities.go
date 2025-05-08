@@ -56,12 +56,7 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, startLocation pr
 		return false
 	}
 
-	searchSymbols(symbols)
-
-	if !found {
-		// Fall back to the original location if we can't find a better range
-		symbolRange = startLocation.Range
-	}
+	found = searchSymbols(symbols)
 
 	if found {
 		// Convert URI to filesystem path
@@ -90,7 +85,7 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, startLocation pr
 		line := lines[symbolRange.End.Line]
 		trimmedLine := strings.TrimSpace(line)
 
-		// In some cases, constant definitions do not include the full body and instead
+		// In some cases (python), constant definitions do not include the full body and instead
 		// end with an opening bracket. In this case, parse the file until the closing bracket
 		if len(trimmedLine) > 0 {
 			lastChar := trimmedLine[len(trimmedLine)-1]

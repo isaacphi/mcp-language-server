@@ -62,7 +62,7 @@ func generateMethodForRequest(out *bytes.Buffer, r *Request) {
 	}
 	if notNil(r.Result) {
 		resultType = goplsName(r.Result)
-		if resultType == "interface{}" || resultType == "string" {
+		if resultType == "interface{}" || resultType == "string" || resultType == "any" {
 		} else if strings.HasPrefix(resultType, "*") {
 			resultType = "*protocol." + resultType[1:]
 		} else if strings.HasPrefix(resultType, "[]") {

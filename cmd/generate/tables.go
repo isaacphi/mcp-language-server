@@ -116,13 +116,21 @@ var disambiguate = map[string]adjust{
 // which entries of disambiguate got used
 var usedDisambiguate = make(map[string]bool)
 
+// additionalFields defines extra fields to add to specific types during generation
+// The key is the Go struct name (after applying goName), the value is a slice of field definitions
+var additionalFields = map[string][]string{
+	"BaseSymbolInformation": {
+		"Score float64 `json:\"score,omitempty\"` // added for clangd compatibility",
+	},
+}
+
 // For spec compliance, we keep only essential type mappings that don't override OR types
 var goplsType = map[string]string{
 	"ConfigurationParams": "ParamConfiguration",
 	// "DocumentUri":         "DocumentUri",
 	"InitializeParams": "ParamInitialize",
-	"LSPAny":           "interface{}",
-	"[]LSPAny":         "[]interface{}",
+	"LSPAny":           "any",
+	"[]LSPAny":         "[]any",
 	"[]uinteger":       "[]uint32",
 	"boolean":          "bool",
 	"decimal":          "float64",
