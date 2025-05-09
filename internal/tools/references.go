@@ -66,7 +66,12 @@ func FindReferences(ctx context.Context, client *lsp.Client, symbolName string) 
 				IncludeDeclaration: false,
 			},
 		}
-
+		// File is likely to be opened already, but may not be.
+		err := client.OpenFile(ctx, loc.URI.Path())
+		if err != nil {
+			toolsLogger.Error("Error opening file: %v", err)
+			continue
+		}
 		refs, err := client.References(ctx, refsParams)
 		if err != nil {
 			return "", fmt.Errorf("failed to get references: %v", err)
