@@ -11,6 +11,8 @@ int main() {
   helperFunction();
   return 0;
 
+  foo_bar();
+
   // Intentional error: unreachable code
   std::cout << "This is unreachable" << std::endl;
 }

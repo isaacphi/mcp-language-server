@@ -67,7 +67,7 @@ func TestReadDefinition(t *testing.T) {
 		{
 			name:         "Method",
 			symbolName:   "method",
-			expectedText: "void method()",
+			expectedText: "void method(int param)",
 			snapshotName: "method",
 		},
 		{

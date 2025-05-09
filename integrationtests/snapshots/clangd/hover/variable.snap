@@ -1,0 +1,7 @@
+variable TEST_VARIABLE
+
+Type: int
+Value = 100 (0x64)
+A test variable used for integration testing purposes.
+
+int TEST_VARIABLE = 100

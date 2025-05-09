@@ -5,5 +5,10 @@ void consume() { std::cout << "Consume function" << std::endl; }
 
 class TestClass {
  public:
-  void method() {}
+  /**
+   * @brief A method that takes an integer parameter.
+   *
+   * @param param The integer parameter to be processed.
+   */
+  void method(int param) {}
 };

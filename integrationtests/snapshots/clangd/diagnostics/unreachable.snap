@@ -1,10 +1,11 @@
 /TEST_OUTPUT/workspace/src/main.cpp
 Diagnostics in File: 1
-WARNING at L15:C38: Code will never be executed (Source: clang, Code: -Wunreachable-code)
+WARNING at L14:C3: Code will never be executed (Source: clang, Code: -Wunreachable-code)
 
 10|int main() {
 ...
+12|  return 0;
 13|
-14|  // Intentional error: unreachable code
-15|  std::cout << "This is unreachable" << std::endl;
-16|}
+14|  foo_bar();
+15|
+16|  // Intentional error: unreachable code

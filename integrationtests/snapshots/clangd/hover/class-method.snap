@@ -1,0 +1,10 @@
+instance-method method
+
+→ void
+Parameters:
+- int param
+@brief A method that takes an integer parameter.
+@param param The integer parameter to be processed.
+
+// In TestClass
+public: void method(int param)

@@ -1,0 +1,6 @@
+function foo_bar
+
+→ void
+FooBar is a simple function for testing
+
+void foo_bar()
