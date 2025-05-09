@@ -1,7 +1,7 @@
 ---
 
 Symbol: TestStruct
-/TEST_OUTPUT/workspace/src/types.cpp
+/TEST_OUTPUT/workspace/clangd/src/types.cpp
 Range: L6:C1 - L8:C2
 
 6|struct TestStruct {

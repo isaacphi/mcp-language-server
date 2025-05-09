@@ -1,5 +1,6 @@
 // Placeholder file for consumer.cpp
 #include <iostream>
+#include "helper.hpp"
 
 void consume() { std::cout << "Consume function" << std::endl; }
 
@@ -10,5 +11,5 @@ class TestClass {
    *
    * @param param The integer parameter to be processed.
    */
-  void method(int param) {}
+  void method(int param) { helperFunction(); }
 };

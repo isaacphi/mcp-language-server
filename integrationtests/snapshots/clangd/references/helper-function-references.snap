@@ -1,0 +1,31 @@
+---
+
+/TEST_OUTPUT/workspace/clangd/src/consumer.cpp
+References in File: 1
+At: L14:C28
+
+ 9|  /**
+10|   * @brief A method that takes an integer parameter.
+11|   *
+12|   * @param param The integer parameter to be processed.
+13|   */
+14|  void method(int param) { helperFunction(); }
+15|};
+
+---
+
+/TEST_OUTPUT/workspace/clangd/src/main.cpp
+References in File: 1
+At: L11:C3
+
+ 6|  std::cout << "Hello, World!" << std::endl;
+ 7|  return;
+ 8|}
+ 9|
+10|int main() {
+11|  helperFunction();
+12|  return 0;
+13|
+14|  foo_bar();
+15|
+16|  // Intentional error: unreachable code
