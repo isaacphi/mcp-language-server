@@ -17,14 +17,9 @@ import (
 func TestFindReferences(t *testing.T) {
 	// Helper function to open all files and wait for indexing
 	openAllFilesAndWait := func(suite *common.TestSuite, ctx context.Context) {
-		// Open all files to ensure clangd indexes everything
+		// Open one file so that clangd loads compiles commands and begins indexing
 		filesToOpen := []string{
-			// "src/main.cpp",
-			// "src/types.cpp",
-			// "src/helper.cpp",
-			// "src/consumer.cpp",
-			// "src/another_consumer.cpp",
-			"src/clean.cpp",
+			"src/main.cpp",
 		}
 
 		for _, file := range filesToOpen {

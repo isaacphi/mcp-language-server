@@ -16,15 +16,9 @@ import (
 func TestHover(t *testing.T) {
 	// Helper function to open all files and wait for indexing
 	openAllFilesAndWait := func(suite *common.TestSuite, ctx context.Context) {
-		// Open all files to ensure clangd indexes everything
+		// Open one file so that clangd loads compiles commands and begins indexing
 		filesToOpen := []string{
 			"src/main.cpp",
-			"src/types.cpp",
-			"src/helper.cpp",
-			"src/consumer.cpp",
-			"src/another_consumer.cpp",
-			"src/clean.cpp",
-			"include/helper.hpp",
 		}
 
 		for _, file := range filesToOpen {
@@ -36,7 +30,7 @@ func TestHover(t *testing.T) {
 			}
 		}
 		// Wait for indexing to complete. clangd won't index files until they are opened.
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	tests := []struct {
@@ -52,7 +46,7 @@ func TestHover(t *testing.T) {
 		{
 			name:         "Class",
 			file:         "src/consumer.cpp",
-			line:         6, // Assuming TestClass definition
+			line:         7, // Assuming TestClass definition
 			column:       7, // "TestClass"
 			expectedText: "class TestClass",
 			snapshotName: "class-type",
@@ -60,7 +54,7 @@ func TestHover(t *testing.T) {
 		{
 			name:         "Method in Class",
 			file:         "src/consumer.cpp",
-			line:         13, // Assuming method definition within TestClass
+			line:         14, // Assuming method definition within TestClass
 			column:       10, // "method"
 			expectedText: "public: void method(int param)",
 			snapshotName: "class-method",
