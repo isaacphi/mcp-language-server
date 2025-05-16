@@ -131,8 +131,6 @@ func TestHover(t *testing.T) {
 				t.Fatalf("Failed to open %s: %v", tt.file, err)
 			}
 
-			time.Sleep(3 * time.Second)
-
 			// Get hover info
 			result, err := tools.GetHoverInfo(ctx, suite.Client, filePath, tt.line, tt.column)
 			if err != nil {

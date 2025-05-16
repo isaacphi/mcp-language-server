@@ -7,3 +7,6 @@ pub struct TestStruct {
 
 
 size = 32 (0x20), align = 0x8
+
+
+contain types with destructors (drop glue); doesn't have a destructor
