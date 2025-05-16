@@ -26,7 +26,7 @@ type Client struct {
 	nextID atomic.Int32
 
 	// Response handlers
-	handlers   map[int32]chan *Message
+	handlers   map[string]chan *Message
 	handlersMu sync.RWMutex
 
 	// Server request handlers
@@ -71,7 +71,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 		stdin:                 stdin,
 		stdout:                bufio.NewReader(stdout),
 		stderr:                stderr,
-		handlers:              make(map[int32]chan *Message),
+		handlers:              make(map[string]chan *Message),
 		notificationHandlers:  make(map[string]NotificationHandler),
 		serverRequestHandlers: make(map[string]ServerRequestHandler),
 		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),

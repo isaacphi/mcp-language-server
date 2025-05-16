@@ -24,7 +24,7 @@ func WriteMessage(w io.Writer, msg *Message) error {
 	}
 
 	// High-level operation log
-	lspLogger.Debug("Sending message: method=%s id=%d", msg.Method, msg.ID)
+	lspLogger.Debug("Sending message: method=%s id=%v", msg.Method, msg.ID)
 
 	// Wire protocol log (more detailed)
 	wireLogger.Debug("-> Sending: %s", string(data))
@@ -83,12 +83,12 @@ func ReadMessage(r *bufio.Reader) (*Message, error) {
 	}
 
 	// Log higher-level information about the message type
-	if msg.Method != "" && msg.ID != 0 {
-		lspLogger.Debug("Received request from server: method=%s id=%d", msg.Method, msg.ID)
+	if msg.Method != "" && msg.ID != nil && msg.ID.Value != nil {
+		lspLogger.Debug("Received request from server: method=%s id=%v", msg.Method, msg.ID)
 	} else if msg.Method != "" {
 		lspLogger.Debug("Received notification: method=%s", msg.Method)
-	} else if msg.ID != 0 {
-		lspLogger.Debug("Received response for ID: %d", msg.ID)
+	} else if msg.ID != nil && msg.ID.Value != nil {
+		lspLogger.Debug("Received response for ID: %v", msg.ID)
 	}
 
 	return &msg, nil
@@ -109,7 +109,7 @@ func (c *Client) handleMessages() {
 		}
 
 		// Handle server->client request (has both Method and ID)
-		if msg.Method != "" && msg.ID != 0 {
+		if msg.Method != "" && msg.ID != nil && msg.ID.Value != nil {
 			response := &Message{
 				JSONRPC: "2.0",
 				ID:      msg.ID,
@@ -121,7 +121,7 @@ func (c *Client) handleMessages() {
 			c.serverHandlersMu.RUnlock()
 
 			if ok {
-				lspLogger.Debug("Processing server request: method=%s id=%d", msg.Method, msg.ID)
+				lspLogger.Debug("Processing server request: method=%s id=%v", msg.Method, msg.ID)
 				result, err := handler(msg.Params)
 				if err != nil {
 					lspLogger.Error("Error handling server request %s: %v", msg.Method, err)
@@ -158,7 +158,7 @@ func (c *Client) handleMessages() {
 		}
 
 		// Handle notification (has Method but no ID)
-		if msg.Method != "" && msg.ID == 0 {
+		if msg.Method != "" && (msg.ID == nil || msg.ID.Value == nil) {
 			c.notificationMu.RLock()
 			handler, ok := c.notificationHandlers[msg.Method]
 			c.notificationMu.RUnlock()
@@ -173,17 +173,19 @@ func (c *Client) handleMessages() {
 		}
 
 		// Handle response to our request (has ID but no Method)
-		if msg.ID != 0 && msg.Method == "" {
+		if msg.ID != nil && msg.ID.Value != nil && msg.Method == "" {
+			// Convert ID to string for map lookup
+			idStr := msg.ID.String()
 			c.handlersMu.RLock()
-			ch, ok := c.handlers[msg.ID]
+			ch, ok := c.handlers[idStr]
 			c.handlersMu.RUnlock()
 
 			if ok {
-				lspLogger.Debug("Sending response for ID %d to handler", msg.ID)
+				lspLogger.Debug("Sending response for ID %v to handler", msg.ID)
 				ch <- msg
 				close(ch)
 			} else {
-				lspLogger.Debug("No handler for response ID: %d", msg.ID)
+				lspLogger.Debug("No handler for response ID: %v", msg.ID)
 			}
 		}
 	}
@@ -193,7 +195,7 @@ func (c *Client) handleMessages() {
 func (c *Client) Call(ctx context.Context, method string, params any, result any) error {
 	id := c.nextID.Add(1)
 
-	lspLogger.Debug("Making call: method=%s id=%d", method, id)
+	lspLogger.Debug("Making call: method=%s id=%v", method, id)
 
 	msg, err := NewRequest(id, method, params)
 	if err != nil {
@@ -202,13 +204,15 @@ func (c *Client) Call(ctx context.Context, method string, params any, result any
 
 	// Create response channel
 	ch := make(chan *Message, 1)
+	// Convert ID to string for map lookup
+	idStr := msg.ID.String()
 	c.handlersMu.Lock()
-	c.handlers[id] = ch
+	c.handlers[idStr] = ch
 	c.handlersMu.Unlock()
 
 	defer func() {
 		c.handlersMu.Lock()
-		delete(c.handlers, id)
+		delete(c.handlers, idStr)
 		c.handlersMu.Unlock()
 	}()
 
@@ -217,12 +221,12 @@ func (c *Client) Call(ctx context.Context, method string, params any, result any
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	lspLogger.Debug("Waiting for response to request ID: %d", id)
+	lspLogger.Debug("Waiting for response to request ID: %v", msg.ID)
 
 	// Wait for response
 	resp := <-ch
 
-	lspLogger.Debug("Received response for request ID: %d", id)
+	lspLogger.Debug("Received response for request ID: %v", msg.ID)
 
 	if resp.Error != nil {
 		lspLogger.Error("Request failed: %s (code: %d)", resp.Error.Message, resp.Error.Code)
