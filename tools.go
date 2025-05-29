@@ -363,6 +363,88 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
+	incomingCallsTool := mcp.NewTool("incoming_calls",
+		mcp.WithDescription("Resolve the incoming calls for the given symbol. Returns a tree of incoming calls and their location"),
+		mcp.WithString("symbolName",
+			mcp.Required(),
+			mcp.Description("The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"),
+		),
+		mcp.WithNumber("maxDepth",
+			mcp.Description("max depth of call tree"),
+			mcp.DefaultNumber(5),
+		),
+	)
+	s.mcpServer.AddTool(incomingCallsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Extract arguments
+		symbolName, ok := request.Params.Arguments["symbolName"].(string)
+		if !ok {
+			return mcp.NewToolResultError("symbolName must be a string"), nil
+		}
+
+		// default value
+		maxDepth := 5
+
+		if arg, ok := request.Params.Arguments["maxDepth"]; ok {
+			switch v := arg.(type) {
+			case float64:
+				maxDepth = int(v)
+			case int:
+				maxDepth = v
+			default:
+				return mcp.NewToolResultError("maxDepth must be a number"), nil
+			}
+		}
+
+		coreLogger.Debug("Executing incoming calls for symbol: %s", symbolName)
+		text, err := tools.GetIncomingCalls(s.ctx, s.lspClient, symbolName, maxDepth)
+		if err != nil {
+			coreLogger.Error("Failed to find incoming calls: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to find incoming calls: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
+	outgoingCallsTool := mcp.NewTool("outgoing_calls",
+		mcp.WithDescription("Resolve the outgoing calls for the given symbol. Returns a tree of outgoing calls and their location"),
+		mcp.WithString("symbolName",
+			mcp.Required(),
+			mcp.Description("The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"),
+		),
+		mcp.WithNumber("maxDepth",
+			mcp.Description("max depth of call tree"),
+			mcp.DefaultNumber(5),
+		),
+	)
+	s.mcpServer.AddTool(outgoingCallsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Extract arguments
+		symbolName, ok := request.Params.Arguments["symbolName"].(string)
+		if !ok {
+			return mcp.NewToolResultError("symbolName must be a string"), nil
+		}
+
+		// default value
+		maxDepth := 5
+
+		if arg, ok := request.Params.Arguments["maxDepth"]; ok {
+			switch v := arg.(type) {
+			case float64:
+				maxDepth = int(v)
+			case int:
+				maxDepth = v
+			default:
+				return mcp.NewToolResultError("maxDepth must be a number"), nil
+			}
+		}
+
+		coreLogger.Debug("Executing outgoing calls for symbol: %s", symbolName)
+		text, err := tools.GetOutgoingCalls(s.ctx, s.lspClient, symbolName, maxDepth)
+		if err != nil {
+			coreLogger.Error("Failed to find outgoing calls: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to find outgoing calls: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
 	coreLogger.Info("Successfully registered all MCP tools")
 	return nil
 }
