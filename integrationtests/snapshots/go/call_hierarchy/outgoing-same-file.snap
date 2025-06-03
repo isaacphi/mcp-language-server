@@ -1,0 +1,12 @@
+
+---
+Name: main
+Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • main.go
+- Calls: FooBar
+  Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • main.go
+  - Calls: Println
+    Detail: fmt • print.go
+- Calls: Println
+  Detail: fmt • print.go
+  - Calls: Fprintln
+    Detail: fmt • print.go

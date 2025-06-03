@@ -1,0 +1,18 @@
+
+---
+Name: ConsumerFunction
+Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • consumer.go
+- Calls: GetName
+  Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • types.go
+- Calls: HelperFunction
+  Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • helper.go
+- Calls: Method
+  Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • types.go
+- Calls: Println
+  Detail: fmt • print.go
+  - Calls: Fprintln
+    Detail: fmt • print.go
+- Calls: Process
+  Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • types.go
+  - Calls: Printf
+    Detail: fmt • print.go

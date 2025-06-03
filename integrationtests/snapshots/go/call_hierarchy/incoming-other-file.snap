@@ -1,0 +1,8 @@
+
+---
+Name: HelperFunction
+Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • helper.go
+- Called By: AnotherConsumer
+  Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • another_consumer.go
+- Called By: ConsumerFunction
+  Detail: github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace • consumer.go
