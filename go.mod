@@ -3,6 +3,7 @@ module github.com/isaacphi/mcp-language-server
 go 1.24.0
 
 require (
+	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/mark3labs/mcp-go v0.32.0
