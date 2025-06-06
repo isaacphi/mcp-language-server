@@ -22,16 +22,9 @@ func FindReferences(ctx context.Context, client *lsp.Client, symbolName string) 
 	}
 
 	// First get the symbol location like ReadDefinition does
-	symbolResult, err := client.Symbol(ctx, protocol.WorkspaceSymbolParams{
-		Query: symbolName,
-	})
+	symbolName, results, err := QuerySymbol(ctx, client, symbolName)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch symbol: %v", err)
-	}
-
-	results, err := symbolResult.Results()
-	if err != nil {
-		return "", fmt.Errorf("failed to parse results: %v", err)
+		return "", err
 	}
 
 	var allReferences []string

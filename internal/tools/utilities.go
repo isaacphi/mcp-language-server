@@ -1,12 +1,14 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
@@ -166,4 +168,34 @@ func FormatLinesWithRanges(lines []string, ranges []LineRange) string {
 	}
 
 	return result.String()
+}
+
+func doQuerySymbol(ctx context.Context, client *lsp.Client, symbolName string) ([]protocol.WorkspaceSymbolResult, error) {
+
+	symbolResult, err := client.Symbol(ctx, protocol.WorkspaceSymbolParams{
+		Query: symbolName,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch symbol: %v", err)
+	}
+
+	results, err := symbolResult.Results()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse results: %v", err)
+	}
+	return results, nil
+}
+
+func QuerySymbol(ctx context.Context, client *lsp.Client, symbolName string) (string, []protocol.WorkspaceSymbolResult, error) {
+	results, err := doQuerySymbol(ctx, client, symbolName)
+
+	// clangd doesn't resolve "struct foo", only "foo"
+	if len(results) == 0 && strings.HasPrefix(symbolName, "struct ") {
+		results, err = doQuerySymbol(ctx, client, symbolName[7:])
+		if len(results) > 0 {
+			symbolName = symbolName[7:]
+		}
+	}
+
+	return symbolName, results, err
 }
