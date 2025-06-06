@@ -129,6 +129,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   <div>
     <p><strong>Install clangd</strong>: Download prebuilt binaries from the <a href="https://github.com/clangd/clangd/releases">official LLVM releases page</a> or install via your system's package manager (e.g., <code>apt install clangd</code>, <code>brew install clangd</code>).</p>
     <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\\ Support/Claude/claude_desktop_config.json</code></p>
+    <p><strong>NOTE</strong>: clangd will not resolve symbols until the first file is opened. Use the `-open` argument to trigger indexing.</p>
 
 <pre>
 {
@@ -140,6 +141,8 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
         "/Users/you/dev/yourproject/",
         "--lsp",
         "/path/to/your/clangd_binary",
+        "--open",
+        "/Users/you/dev/yourproject/main.cpp",
         "--",
         "--compile-commands-dir=/path/to/yourproject/build_or_compile_commands_dir"
       ]

@@ -8,9 +8,11 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/isaacphi/mcp-language-server/internal/logging"
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/watcher"
@@ -23,6 +25,7 @@ var coreLogger = logging.NewLogger(logging.Core)
 type config struct {
 	workspaceDir string
 	lspCommand   string
+	openGlobs    StringArrayFlag
 	lspArgs      []string
 }
 
@@ -35,10 +38,25 @@ type mcpServer struct {
 	workspaceWatcher *watcher.WorkspaceWatcher
 }
 
+// StringArrayFlag is a custom flag type to handle an array of strings
+type StringArrayFlag []string
+
+// Set appends a new value to the custom flag value
+func (s *StringArrayFlag) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
+
+// String returns the string representation of the custom flag value
+func (s *StringArrayFlag) String() string {
+	return strings.Join(*s, ",")
+}
+
 func parseConfig() (*config, error) {
 	cfg := &config{}
 	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory")
 	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (args should be passed after --)")
+	flag.Var(&cfg.openGlobs, "open", "Glob of files to open by default (can specify more than once)")
 	flag.Parse()
 
 	// Get remaining args after -- as LSP arguments
@@ -99,8 +117,39 @@ func (s *mcpServer) initializeLSP() error {
 
 	coreLogger.Debug("Server capabilities: %+v", initResult.Capabilities)
 
+	if len(s.config.openGlobs) > 0 {
+		s.openInitialFiles()
+	}
+
 	go s.workspaceWatcher.WatchWorkspace(s.ctx, s.config.workspaceDir)
 	return client.WaitForServerReady(s.ctx)
+}
+
+func (s *mcpServer) openInitialFiles() {
+
+	filepath.WalkDir(s.config.workspaceDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() {
+			for _, pattern := range s.config.openGlobs {
+				match, err := doublestar.PathMatch(pattern, path)
+				if err != nil {
+					return err
+				}
+
+				if match {
+					if err := s.lspClient.OpenFile(s.ctx, path); err != nil {
+						coreLogger.Error("Failed to open file %s: %v", path, err)
+					}
+					break
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
 func (s *mcpServer) start() error {
