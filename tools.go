@@ -43,13 +43,13 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(applyTextEditTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
-			return mcp.NewToolResultError("filePath must be a string"), nil
+		filePath, err := request.RequireString("filePath")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
 		// Extract edits array
-		editsArg, ok := request.Params.Arguments["edits"]
+		editsArg, ok := request.GetArguments()["edits"]
 		if !ok {
 			return mcp.NewToolResultError("edits is required"), nil
 		}
@@ -105,9 +105,9 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(readDefinitionTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		symbolName, ok := request.Params.Arguments["symbolName"].(string)
-		if !ok {
-			return mcp.NewToolResultError("symbolName must be a string"), nil
+		symbolName, err := request.RequireString("symbolName")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
 		coreLogger.Debug("Executing definition for symbol: %s", symbolName)
@@ -129,9 +129,9 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(findReferencesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		symbolName, ok := request.Params.Arguments["symbolName"].(string)
-		if !ok {
-			return mcp.NewToolResultError("symbolName must be a string"), nil
+		symbolName, err := request.RequireString("symbolName")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
 		coreLogger.Debug("Executing references for symbol: %s", symbolName)
@@ -161,20 +161,13 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(getDiagnosticsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
-			return mcp.NewToolResultError("filePath must be a string"), nil
+		filePath, err := request.RequireString("filePath")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		contextLines := 5 // default value
-		if contextLinesArg, ok := request.Params.Arguments["contextLines"].(int); ok {
-			contextLines = contextLinesArg
-		}
-
-		showLineNumbers := true // default value
-		if showLineNumbersArg, ok := request.Params.Arguments["showLineNumbers"].(bool); ok {
-			showLineNumbers = showLineNumbersArg
-		}
+		contextLines := request.GetInt("contextLines", 5)
+		showLineNumbers := request.GetBool("showLineNumbers", true)
 
 		coreLogger.Debug("Executing diagnostics for file: %s", filePath)
 		text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, filePath, contextLines, showLineNumbers)
@@ -268,29 +261,19 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(hoverTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
-			return mcp.NewToolResultError("filePath must be a string"), nil
+		filePath, err := request.RequireString("filePath")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		// Handle both float64 and int for line and column due to JSON parsing
-		var line, column int
-		switch v := request.Params.Arguments["line"].(type) {
-		case float64:
-			line = int(v)
-		case int:
-			line = v
-		default:
-			return mcp.NewToolResultError("line must be a number"), nil
+		line, err := request.RequireInt("line")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		switch v := request.Params.Arguments["column"].(type) {
-		case float64:
-			column = int(v)
-		case int:
-			column = v
-		default:
-			return mcp.NewToolResultError("column must be a number"), nil
+		column, err := request.RequireInt("column")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
 		coreLogger.Debug("Executing hover for file: %s line: %d column: %d", filePath, line, column)
@@ -324,34 +307,24 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(renameSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
-			return mcp.NewToolResultError("filePath must be a string"), nil
+		filePath, err := request.RequireString("filePath")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		newName, ok := request.Params.Arguments["newName"].(string)
-		if !ok {
-			return mcp.NewToolResultError("newName must be a string"), nil
+		newName, err := request.RequireString("newName")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		// Handle both float64 and int for line and column due to JSON parsing
-		var line, column int
-		switch v := request.Params.Arguments["line"].(type) {
-		case float64:
-			line = int(v)
-		case int:
-			line = v
-		default:
-			return mcp.NewToolResultError("line must be a number"), nil
+		line, err := request.RequireInt("line")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		switch v := request.Params.Arguments["column"].(type) {
-		case float64:
-			column = int(v)
-		case int:
-			column = v
-		default:
-			return mcp.NewToolResultError("column must be a number"), nil
+		column, err := request.RequireInt("column")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
 		coreLogger.Debug("Executing rename_symbol for file: %s line: %d column: %d newName: %s", filePath, line, column, newName)
