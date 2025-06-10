@@ -1,0 +1,10 @@
+---
+
+Symbol: nsFunction2
+/TEST_OUTPUT/workspace/clangd/src/namespace.cpp
+Range: L11:C1 - L13:C2
+
+11|void nsFunction2() {
+12|    // empty   
+13|}
+
