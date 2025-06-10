@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
@@ -30,35 +31,40 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, startLocation pr
 		return "", protocol.Location{}, fmt.Errorf("failed to process document symbols: %w", err)
 	}
 
-	var symbolRange protocol.Range
-	found := false
-
 	// Search for symbol at startLocation
-	var searchSymbols func(symbols []protocol.DocumentSymbolResult) bool
-	searchSymbols = func(symbols []protocol.DocumentSymbolResult) bool {
+	// - multiple symbols might match (for example, a C++ namespace) so find
+	//   all of the matching symbols and use the smallest one (or the first one
+	//   if there is a tie)
+	var matchingSymbols []protocol.Range
+
+	var searchSymbols func(symbols []protocol.DocumentSymbolResult)
+	searchSymbols = func(symbols []protocol.DocumentSymbolResult) {
 		for _, sym := range symbols {
 			if containsPosition(sym.GetRange(), startLocation.Range.Start) {
-				symbolRange = sym.GetRange()
-				found = true
-				return true
+				matchingSymbols = append(matchingSymbols, sym.GetRange())
 			}
+
 			// Handle nested symbols if it's a DocumentSymbol
 			if ds, ok := sym.(*protocol.DocumentSymbol); ok && len(ds.Children) > 0 {
 				childSymbols := make([]protocol.DocumentSymbolResult, len(ds.Children))
 				for i := range ds.Children {
 					childSymbols[i] = &ds.Children[i]
 				}
-				if searchSymbols(childSymbols) {
-					return true
-				}
+				searchSymbols(childSymbols)
 			}
 		}
-		return false
 	}
 
-	found = searchSymbols(symbols)
+	searchSymbols(symbols)
 
-	if found {
+	// Identify the smallest overlapping symbol
+	slices.SortStableFunc(matchingSymbols, func(a, b protocol.Range) int {
+		return int(a.End.Line-a.Start.Line) - int(b.End.Line-b.Start.Line)
+	})
+
+	if len(matchingSymbols) > 0 {
+		symbolRange := matchingSymbols[0]
+
 		// Convert URI to filesystem path
 		filePath, err := url.PathUnescape(strings.TrimPrefix(string(startLocation.URI), "file://"))
 		if err != nil {

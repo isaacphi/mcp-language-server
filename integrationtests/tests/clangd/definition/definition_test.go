@@ -66,6 +66,12 @@ func TestReadDefinition(t *testing.T) {
 			snapshotName: "method",
 		},
 		{
+			name:         "Namespace function",
+			symbolName:   "nsFunction2",
+			expectedText: "void nsFunction2()",
+			snapshotName: "nsFunction",
+		},
+		{
 			name:         "Struct",
 			symbolName:   "TestStruct",
 			expectedText: "struct TestStruct",

@@ -29,7 +29,7 @@ TARGET_CLEAN_PROGRAM = clean_program # Assuming this is another program to be bu
 # Listing them explicitly for clarity in target dependencies.
 OBJ_MAIN = $(OBJDIR)/main.o
 # Add other specific object files your 'program' executable depends on
-OTHER_OBJS = $(OBJDIR)/helper.o $(OBJDIR)/types.o $(OBJDIR)/consumer.o $(OBJDIR)/another_consumer.o
+OTHER_OBJS = $(OBJDIR)/helper.o $(OBJDIR)/types.o $(OBJDIR)/consumer.o $(OBJDIR)/another_consumer.o $(OBJDIR)/namespace.o
 OBJ_FOR_CLEAN_PROGRAM = $(OBJDIR)/clean.o
 
 
