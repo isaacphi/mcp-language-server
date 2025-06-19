@@ -196,8 +196,8 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 		return nil, fmt.Errorf("initialize failed: %w", err)
 	}
 
-	if err := c.Notify(ctx, "initialized", struct{}{}); err != nil {
-		return nil, fmt.Errorf("initialized notification failed: %w", err)
+	if err := c.Initialized(ctx, protocol.InitializedParams{}); err != nil {
+		return nil, fmt.Errorf("initialized failed: %w", err)
 	}
 
 	// Register handlers
@@ -207,12 +207,6 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 	c.RegisterNotificationHandler("window/showMessage", HandleServerMessage)
 	c.RegisterNotificationHandler("textDocument/publishDiagnostics",
 		func(params json.RawMessage) { HandleDiagnostics(c, params) })
-
-	// Notify the LSP server
-	err := c.Initialized(ctx, protocol.InitializedParams{})
-	if err != nil {
-		return nil, fmt.Errorf("initialization failed: %w", err)
-	}
 
 	// LSP sepecific Initialization
 	path := strings.ToLower(c.Cmd.Path)
