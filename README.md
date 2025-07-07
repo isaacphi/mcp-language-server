@@ -42,7 +42,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   }
 }
 </pre>
-<p>For claude code run the following command:</p>
+<p>For Claude Code run the following command:</p>
 <pre><code>claude mcp add language-server mcp-language-server -- --workspace /Users/you/dev/yourproject/ --lsp gopls</code></pre>
 
 <p><strong>Note</strong>: Not all clients will need these environment variables. For Claude Desktop you will need to update the environment variables above based on your machine and username:</p>
@@ -74,7 +74,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   }
 }
 </pre>
-<p>For claude code run the following command:</p>
+<p>For Claude Code run the following command:</p>
 <pre><code>claude mcp add language-server mcp-language-server -- --workspace /Users/you/dev/yourproject/ --lsp rust-analyzer</code></pre>
   </div>
 </details>
@@ -101,7 +101,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   }
 }
 </pre>
-<p>For claude code run the following command:</p>
+<p>For Claude Code run the following command:</p>
 <pre><code>claude mcp add language-server mcp-language-server -- --workspace /Users/you/dev/yourproject/ --lsp pyright-langserver -- --stdio</code></pre>
   </div>
 </details>
@@ -128,7 +128,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   }
 }
 </pre>
-  <p>For claude code run the following command:</p>
+  <p>For Claude Code run the following command:</p>
   <pre><code>claude mcp add language-server mcp-language-server -- --workspace /Users/you/dev/yourproject/ --lsp typescript-language-server -- --stdio</code></pre>
   </div>
 </details>
@@ -155,7 +155,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   }
 }
 </pre>
-  <p>For claude code run the following command:</p>
+  <p>For Claude Code run the following command:</p>
   <pre><code>claude mcp add language-server mcp-language-server -- --workspace /Users/you/dev/yourproject/ --lsp /path/to/your/clangd_binary -- --compile-commands-dir=/path/to/yourproject/build_or_compile_commands_dir</code></pre>
     <p><strong>Note</strong>:</p>
     <ul>
