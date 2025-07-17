@@ -1,0 +1,58 @@
+name: Verify Build
+
+on:
+  pull_request:
+    paths:
+      - 'flake.nix'
+      - 'go.mod'
+      - 'go.sum'
+      - '**.go'
+  push:
+    branches: [ main ]
+
+jobs:
+  verify-nix-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v24
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+
+    - name: Verify flake
+      run: |
+        nix flake check --impure
+
+    - name: Build package
+      run: |
+        nix build --impure
+
+    - name: Test run
+      run: |
+        nix run --impure . -- --help
+
+    - name: Verify vendorHash is correct
+      run: |
+        # Get current hash from flake.nix
+        current_hash=$(grep -o 'vendorHash = "sha256-[^"]*"' flake.nix | cut -d'"' -f2)
+        
+        # Calculate expected hash
+        drv_path=$(nix eval --impure '.#packages.x86_64-linux.default.goModules.drvPath' | tr -d '"')
+        expected_hash_raw=$(nix derivation show "$drv_path" | jq -r '.[] | .outputs.out.hash')
+        expected_hash=$(nix hash to-sri "sha256:$expected_hash_raw")
+        
+        echo "Current vendorHash: $current_hash"
+        echo "Expected vendorHash: $expected_hash"
+        
+        if [ "$current_hash" != "$expected_hash" ]; then
+          echo "❌ ERROR: vendorHash mismatch!"
+          echo "The vendorHash in flake.nix does not match the actual Go module dependencies."
+          echo "Please update the vendorHash or let the automation handle it."
+          exit 1
+        else
+          echo "✅ vendorHash is correct!"
+        fi

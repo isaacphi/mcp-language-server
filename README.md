@@ -15,17 +15,31 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 
 ## Setup
 
+### Option 1: Using Go
+
 1. **Install Go**: Follow instructions at <https://golang.org/doc/install>
 2. **Install or update this server**: `go install github.com/isaacphi/mcp-language-server@latest`
 3. **Install a language server**: _follow one of the guides below_
 4. **Configure your MCP client**: _follow one of the guides below_
 
+### Option 2: Using Nix
+
+1. **Run directly with Nix**: `nix run github:isaacphi/mcp-language-server -- --workspace /path/to/your/project --lsp gopls`
+2. **Install a language server**: _follow one of the guides below_
+3. **Configure your MCP client**: _follow one of the guides below_
+
 <details>
   <summary>Go (gopls)</summary>
   <div>
-    <p><strong>Install gopls</strong>: <code>go install golang.org/x/tools/gopls@latest</code></p>
-    <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
-
+    <p><strong>Install gopls</strong>:</p>
+    <ul>
+      <li><strong>Go</strong>: <code>go install golang.org/x/tools/gopls@latest</code></li>
+      <li><strong>Nix</strong>: <code>nix profile install nixpkgs#gopls</code> or use in shell</li>
+    </ul>
+    
+    <p><strong>Configure your MCP client</strong>:</p>
+    
+    <p><em>Using Go installation:</em></p>
 <pre>
 {
   "mcpServers": {
@@ -37,6 +51,25 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
         "GOPATH": "/users/you/go",
         "GOCACHE": "/users/you/Library/Caches/go-build",
         "GOMODCACHE": "/Users/you/go/pkg/mod"
+      }
+    }
+  }
+}
+</pre>
+
+    <p><em>Using Nix:</em></p>
+<pre>
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "nix",
+      "args": [
+        "run", "github:isaacphi/mcp-language-server", "--",
+        "--workspace", "/Users/you/dev/yourproject/",
+        "--lsp", "gopls"
+      ],
+      "env": {
+        "PATH": "/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin"
       }
     }
   }
@@ -77,9 +110,15 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 <details>
   <summary>Python (pyright)</summary>
   <div>
-    <p><strong>Install pyright</strong>: <code>npm install -g pyright</code></p>
-    <p><strong>Configure your MCP client</strong>: This will be different but similar for each client. For Claude Desktop, add the following to <code>~/Library/Application\ Support/Claude/claude_desktop_config.json</code></p>
-
+    <p><strong>Install pyright</strong>:</p>
+    <ul>
+      <li><strong>npm</strong>: <code>npm install -g pyright</code></li>
+      <li><strong>Nix</strong>: <code>nix profile install nixpkgs#pyright</code> or use in shell</li>
+    </ul>
+    
+    <p><strong>Configure your MCP client</strong>:</p>
+    
+    <p><em>Using npm installation:</em></p>
 <pre>
 {
   "mcpServers": {
@@ -92,6 +131,23 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
         "pyright-langserver",
         "--",
         "--stdio"
+      ]
+    }
+  }
+}
+</pre>
+
+    <p><em>Using Nix:</em></p>
+<pre>
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "nix",
+      "args": [
+        "run", "github:isaacphi/mcp-language-server", "--",
+        "--workspace", "/Users/you/dev/yourproject/",
+        "--lsp", "pyright-langserver",
+        "--", "--stdio"
       ]
     }
   }
@@ -234,6 +290,32 @@ Configure your Claude Desktop (or similar) to use the local binary:
 ```
 
 Rebuild after making changes.
+
+## Nix Usage
+
+### Quick Start
+
+```bash
+# Run directly from GitHub
+nix run github:isaacphi/mcp-language-server -- --workspace /path/to/project --lsp gopls
+
+# Clone and run locally
+git clone https://github.com/isaacphi/mcp-language-server.git
+cd mcp-language-server
+nix run . -- --workspace /path/to/project --lsp gopls
+
+# Development shell with Go and tools
+nix develop
+```
+
+### Nix Flake
+
+This project includes a `flake.nix` with:
+- **`packages.default`**: The mcp-language-server binary
+- **`apps.default`**: Direct execution with `nix run`
+- **`devShells.default`**: Development environment with Go, just, and gopls
+
+The `vendorHash` is automatically maintained by GitHub Actions when Go dependencies change.
 
 ### Logging
 

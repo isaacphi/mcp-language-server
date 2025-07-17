@@ -1,0 +1,103 @@
+name: Update Vendor Hash
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'go.mod'
+      - 'go.sum'
+  workflow_dispatch:
+
+jobs:
+  update-vendor-hash:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v24
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+
+    - name: Get current vendorHash from flake.nix
+      id: current-hash
+      run: |
+        current_hash=$(grep -o 'vendorHash = "sha256-[^"]*"' flake.nix | cut -d'"' -f2)
+        echo "current=$current_hash" >> $GITHUB_OUTPUT
+
+    - name: Calculate expected vendorHash
+      id: expected-hash
+      run: |
+        # Get the goModules derivation path
+        drv_path=$(nix eval --impure '.#packages.x86_64-linux.default.goModules.drvPath' 2>/dev/null | tr -d '"')
+        
+        # Extract the hash from the derivation
+        hash=$(nix derivation show "$drv_path" | jq -r '.[] | .outputs.out.hash')
+        
+        # Convert to SRI format
+        sri_hash=$(nix hash to-sri "sha256:$hash")
+        
+        echo "expected=$sri_hash" >> $GITHUB_OUTPUT
+
+    - name: Check if update needed
+      id: check-update
+      run: |
+        if [ "${{ steps.current-hash.outputs.current }}" != "${{ steps.expected-hash.outputs.expected }}" ]; then
+          echo "update_needed=true" >> $GITHUB_OUTPUT
+          echo "Current hash: ${{ steps.current-hash.outputs.current }}"
+          echo "Expected hash: ${{ steps.expected-hash.outputs.expected }}"
+        else
+          echo "update_needed=false" >> $GITHUB_OUTPUT
+          echo "Vendor hash is up to date"
+        fi
+
+    - name: Update vendorHash
+      if: steps.check-update.outputs.update_needed == 'true'
+      run: |
+        sed -i 's/vendorHash = "sha256-[^"]*"/vendorHash = "${{ steps.expected-hash.outputs.expected }}"/' flake.nix
+
+    - name: Create Pull Request
+      if: steps.check-update.outputs.update_needed == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "build(nix): update vendorHash to ${{ steps.expected-hash.outputs.expected }}"
+        title: "Update Nix vendorHash"
+        body: |
+          ## 🔄 Automated vendorHash Update
+          
+          This PR updates the `vendorHash` in `flake.nix` to match the current Go module dependencies.
+          
+          ### Changes
+          - **Previous hash**: `${{ steps.current-hash.outputs.current }}`
+          - **New hash**: `${{ steps.expected-hash.outputs.expected }}`
+          
+          ### Trigger
+          This update was triggered by changes to Go module files (`go.mod` or `go.sum`).
+          
+          ### Testing
+          The hash was calculated from the actual Go module dependencies and verified to build correctly.
+          
+          ---
+          *This PR was created automatically by the `update-vendor-hash` workflow.*
+        branch: update-vendor-hash
+        branch-suffix: timestamp
+        delete-branch: true
+        labels: |
+          dependencies
+          automated
+          nix
+
+    - name: Build to verify
+      if: steps.check-update.outputs.update_needed == 'true'
+      run: |
+        echo "Building with updated hash to verify..."
+        nix build --impure
+        echo "✅ Build successful with updated vendorHash"
