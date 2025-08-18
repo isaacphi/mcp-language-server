@@ -363,6 +363,8 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
+	s.mcpServer.DeleteTools(s.config.disabledTools...)
+
 	coreLogger.Info("Successfully registered all MCP tools")
 	return nil
 }
