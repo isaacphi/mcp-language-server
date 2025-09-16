@@ -11,7 +11,7 @@ import (
 )
 
 func ExtractTextFromLocation(loc protocol.Location) (string, error) {
-	path := strings.TrimPrefix(string(loc.URI), "file://")
+    path := protocol.DocumentUri(string(loc.URI)).Path()
 
 	content, err := os.ReadFile(path)
 	if err != nil {

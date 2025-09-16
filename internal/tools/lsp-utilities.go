@@ -60,7 +60,7 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, startLocation pr
 
 	if found {
 		// Convert URI to filesystem path
-		filePath, err := url.PathUnescape(strings.TrimPrefix(string(startLocation.URI), "file://"))
+    filePath, err := url.PathUnescape(protocol.DocumentUri(string(startLocation.URI)).Path())
 		if err != nil {
 			return "", protocol.Location{}, fmt.Errorf("failed to unescape URI: %w", err)
 		}

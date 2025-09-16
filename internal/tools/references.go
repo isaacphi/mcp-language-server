@@ -94,7 +94,7 @@ func FindReferences(ctx context.Context, client *lsp.Client, symbolName string) 
 		for _, uriStr := range uris {
 			uri := protocol.DocumentUri(uriStr)
 			fileRefs := refsByFile[uri]
-			filePath := strings.TrimPrefix(uriStr, "file://")
+            filePath := protocol.DocumentUri(uriStr).Path()
 
 			// Format file header
 			fileInfo := fmt.Sprintf("---\n\n%s\nReferences in File: %d\n",

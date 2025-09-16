@@ -220,7 +220,7 @@ func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath str
 				return
 			}
 
-			uri := fmt.Sprintf("file://%s", event.Name)
+            uri := string(protocol.URIFromPath(event.Name))
 
 			// Check if this is a file (not a directory) and should be excluded
 			isFile := false

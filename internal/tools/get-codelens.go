@@ -21,7 +21,7 @@ func GetCodeLens(ctx context.Context, client *lsp.Client, filePath string) (stri
 
 	// Create document identifier
 	docIdentifier := protocol.TextDocumentIdentifier{
-		URI: protocol.DocumentUri("file://" + filePath),
+    URI: protocol.URIFromPath(filePath),
 	}
 
 	// Request code lens from LSP

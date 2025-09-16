@@ -31,7 +31,7 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 	time.Sleep(time.Second * 3)
 
 	// Convert the file path to URI format
-	uri := protocol.DocumentUri("file://" + filePath)
+    uri := protocol.URIFromPath(filePath)
 
 	// Request fresh diagnostics
 	diagParams := protocol.DocumentDiagnosticParams{

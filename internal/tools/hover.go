@@ -24,7 +24,7 @@ func GetHoverInfo(ctx context.Context, client *lsp.Client, filePath string, line
 		Line:      uint32(line - 1),
 		Character: uint32(column - 1),
 	}
-	uri := protocol.DocumentUri("file://" + filePath)
+    uri := protocol.URIFromPath(filePath)
 	params.TextDocument = protocol.TextDocumentIdentifier{
 		URI: uri,
 	}

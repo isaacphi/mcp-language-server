@@ -21,7 +21,7 @@ func ExecuteCodeLens(ctx context.Context, client *lsp.Client, filePath string, i
 
 	// Get code lenses
 	docIdentifier := protocol.TextDocumentIdentifier{
-		URI: protocol.DocumentUri("file://" + filePath),
+    URI: protocol.URIFromPath(filePath),
 	}
 
 	params := protocol.CodeLensParams{
