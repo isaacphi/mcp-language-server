@@ -43,13 +43,14 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(applyTextEditTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
+		filePath := request.GetString("filePath", "")
+		if filePath == "" {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
 		// Extract edits array
-		editsArg, ok := request.Params.Arguments["edits"]
+		args := request.GetArguments()
+		editsArg, ok := args["edits"]
 		if !ok {
 			return mcp.NewToolResultError("edits is required"), nil
 		}
@@ -105,8 +106,8 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(readDefinitionTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		symbolName, ok := request.Params.Arguments["symbolName"].(string)
-		if !ok {
+		symbolName := request.GetString("symbolName", "")
+		if symbolName == "" {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
@@ -129,8 +130,8 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(findReferencesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		symbolName, ok := request.Params.Arguments["symbolName"].(string)
-		if !ok {
+		symbolName := request.GetString("symbolName", "")
+		if symbolName == "" {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
@@ -161,19 +162,18 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(getDiagnosticsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
+		filePath := request.GetString("filePath", "")
+		if filePath == "" {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
-		contextLines := 5 // default value
-		if contextLinesArg, ok := request.Params.Arguments["contextLines"].(int); ok {
-			contextLines = contextLinesArg
-		}
+		contextLines := request.GetInt("contextLines", 5)
 
 		showLineNumbers := true // default value
-		if showLineNumbersArg, ok := request.Params.Arguments["showLineNumbers"].(bool); ok {
-			showLineNumbers = showLineNumbersArg
+		if args := request.GetArguments(); args != nil {
+			if v, ok := args["showLineNumbers"].(bool); ok {
+				showLineNumbers = v
+			}
 		}
 
 		coreLogger.Debug("Executing diagnostics for file: %s", filePath)
@@ -268,28 +268,17 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(hoverTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
+		filePath := request.GetString("filePath", "")
+		if filePath == "" {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
-		// Handle both float64 and int for line and column due to JSON parsing
-		var line, column int
-		switch v := request.Params.Arguments["line"].(type) {
-		case float64:
-			line = int(v)
-		case int:
-			line = v
-		default:
+		line := request.GetInt("line", 0)
+		column := request.GetInt("column", 0)
+		if line <= 0 {
 			return mcp.NewToolResultError("line must be a number"), nil
 		}
-
-		switch v := request.Params.Arguments["column"].(type) {
-		case float64:
-			column = int(v)
-		case int:
-			column = v
-		default:
+		if column <= 0 {
 			return mcp.NewToolResultError("column must be a number"), nil
 		}
 
@@ -324,33 +313,22 @@ func (s *mcpServer) registerTools() error {
 
 	s.mcpServer.AddTool(renameSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
-		filePath, ok := request.Params.Arguments["filePath"].(string)
-		if !ok {
+		filePath := request.GetString("filePath", "")
+		if filePath == "" {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
-		newName, ok := request.Params.Arguments["newName"].(string)
-		if !ok {
+		newName := request.GetString("newName", "")
+		if newName == "" {
 			return mcp.NewToolResultError("newName must be a string"), nil
 		}
 
-		// Handle both float64 and int for line and column due to JSON parsing
-		var line, column int
-		switch v := request.Params.Arguments["line"].(type) {
-		case float64:
-			line = int(v)
-		case int:
-			line = v
-		default:
+		line := request.GetInt("line", 0)
+		column := request.GetInt("column", 0)
+		if line <= 0 {
 			return mcp.NewToolResultError("line must be a number"), nil
 		}
-
-		switch v := request.Params.Arguments["column"].(type) {
-		case float64:
-			column = int(v)
-		case int:
-			column = v
-		default:
+		if column <= 0 {
 			return mcp.NewToolResultError("column must be a number"), nil
 		}
 
