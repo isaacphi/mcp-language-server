@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -180,7 +179,7 @@ func (s *mcpServer) start() error {
 	for language, lspConfig := range s.config.lspConfig.LSPs {
 		if lspConfig.Workspace != "" {
 			coreLogger.Debug("Auto-starting LSP for language: %s", language)
-			_, err := s.lspManager.StartLSP(context.Background(), lspConfig.Workspace, language)
+			_, err := s.lspManager.StartLSP(lspConfig.Workspace, language)
 			if err != nil {
 				coreLogger.Error("Failed to start LSP for language %s: %v", language, err)
 				// Continue starting other LSPs even if one fails

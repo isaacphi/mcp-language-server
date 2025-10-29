@@ -46,7 +46,7 @@ func NewLSPManager(config *Config) *LSPManager {
 }
 
 // StartLSP starts a new LSP instance for the given language and workspace
-func (m *LSPManager) StartLSP(ctx context.Context, workspacePath, language string) (string, error) {
+func (m *LSPManager) StartLSP(workspacePath, language string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -75,7 +75,7 @@ func (m *LSPManager) StartLSP(ctx context.Context, workspacePath, language strin
 	id := uuid.New().String()
 
 	// Create context for this LSP instance
-	instanceCtx, cancel := context.WithCancel(ctx)
+	instanceCtx, cancel := context.WithCancel(context.Background())
 
 	// Create LSP client
 	client, err := lsp.NewClient(lspConfig.Command, lspConfig.Args...)
@@ -343,7 +343,7 @@ func (m *LSPManager) SaveSession(filepath string) error {
 
 // LoadSession loads LSP instances from a session file
 // It stops LSPs not in the session and starts LSPs that are in the session
-func (m *LSPManager) LoadSession(ctx context.Context, filepath string) error {
+func (m *LSPManager) LoadSession(filepath string) error {
 	session, err := LoadSessionFile(filepath)
 	if err != nil {
 		return fmt.Errorf("failed to load session file: %w", err)
@@ -385,7 +385,7 @@ func (m *LSPManager) LoadSession(ctx context.Context, filepath string) error {
 		if _, exists := currentLSPs[key]; !exists {
 			lspManagerLogger.Info("Starting LSP from session: workspace=%s, language=%s",
 				entry.Workspace, entry.Language)
-			_, err := m.StartLSP(ctx, entry.Workspace, entry.Language)
+			_, err := m.StartLSP(entry.Workspace, entry.Language)
 			if err != nil {
 				lspManagerLogger.Error("Failed to start LSP for %s/%s: %v",
 					entry.Workspace, entry.Language, err)

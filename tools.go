@@ -481,7 +481,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			}
 
 			coreLogger.Debug("Executing lsp_start for language: %s, workspace: %s", language, workspace)
-			id, err := s.lspManager.StartLSP(context.Background(), workspace, language)
+			id, err := s.lspManager.StartLSP(workspace, language)
 			if err != nil {
 				coreLogger.Error("Failed to start LSP: %v", err)
 				return mcp.NewToolResultError(fmt.Sprintf("failed to start LSP: %v", err)), nil
@@ -560,7 +560,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			}
 
 			coreLogger.Debug("Executing lsp_load from file: %s", filepath)
-			err := s.lspManager.LoadSession(context.Background(), filepath)
+			err := s.lspManager.LoadSession(filepath)
 			if err != nil {
 				coreLogger.Error("Failed to load session: %v", err)
 				return mcp.NewToolResultError(fmt.Sprintf("failed to load session: %v", err)), nil
