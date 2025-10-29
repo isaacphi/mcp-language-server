@@ -22,7 +22,6 @@ type config struct {
 	lspConfig *Config
 
 	// Mode flags
-	isConfigMode  bool
 	isSessionMode bool
 	isLegacyMode  bool
 }
@@ -71,8 +70,6 @@ func parseConfig() (*config, error) {
 
 	if hasConfig {
 		// Config mode (with optional session mode)
-		cfg.isConfigMode = true
-
 		lspConfig, err := LoadConfigFile(configFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load config file: %v", err)
@@ -143,7 +140,6 @@ func parseConfig() (*config, error) {
 	}
 
 	// Legacy mode: create a synthetic config with single LSP for manager
-	cfg.isConfigMode = true
 	cfg.isLegacyMode = true
 	cfg.lspConfig = &Config{
 		Defaults: make(map[string]LSPDefaultConfig), // Not used in legacy mode (tools not registered)
