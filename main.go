@@ -29,11 +29,11 @@ type config struct {
 }
 
 type mcpServer struct {
-	config      config
-	lspManager  *LSPManager
-	mcpServer   *server.MCPServer
-	ctx         context.Context
-	cancelFunc  context.CancelFunc
+	config     config
+	lspManager *LSPManager
+	mcp        *server.MCPServer
+	ctx        context.Context
+	cancelFunc context.CancelFunc
 }
 
 func parseConfig() (*config, error) {
@@ -193,7 +193,7 @@ func (s *mcpServer) start() error {
 		}
 	}
 
-	s.mcpServer = server.NewMCPServer(
+	s.mcp = server.NewMCPServer(
 		"MCP Language Server",
 		"v0.0.2",
 		server.WithLogging(),
@@ -205,7 +205,7 @@ func (s *mcpServer) start() error {
 		return fmt.Errorf("tool registration failed: %v", err)
 	}
 
-	return server.ServeStdio(s.mcpServer)
+	return server.ServeStdio(s.mcp)
 }
 
 func main() {

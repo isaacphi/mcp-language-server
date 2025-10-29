@@ -62,7 +62,7 @@ func (s *mcpServer) registerTools() error {
 		),
 	)
 
-	s.mcpServer.AddTool(applyTextEditTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcp.AddTool(applyTextEditTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
 		filePath, ok := request.Params.Arguments["filePath"].(string)
 		if !ok {
@@ -135,7 +135,7 @@ func (s *mcpServer) registerTools() error {
 		),
 	)
 
-	s.mcpServer.AddTool(readDefinitionTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcp.AddTool(readDefinitionTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
 		symbolName, ok := request.Params.Arguments["symbolName"].(string)
 		if !ok {
@@ -170,7 +170,7 @@ func (s *mcpServer) registerTools() error {
 		),
 	)
 
-	s.mcpServer.AddTool(findReferencesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcp.AddTool(findReferencesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
 		symbolName, ok := request.Params.Arguments["symbolName"].(string)
 		if !ok {
@@ -213,7 +213,7 @@ func (s *mcpServer) registerTools() error {
 		),
 	)
 
-	s.mcpServer.AddTool(getDiagnosticsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcp.AddTool(getDiagnosticsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
 		filePath, ok := request.Params.Arguments["filePath"].(string)
 		if !ok {
@@ -257,7 +257,7 @@ func (s *mcpServer) registerTools() error {
 	// 	),
 	// )
 	//
-	// s.mcpServer.AddTool(getCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// s.mcp.AddTool(getCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// 	// Extract arguments
 	// 	filePath, ok := request.Params.Arguments["filePath"].(string)
 	// 	if !ok {
@@ -285,7 +285,7 @@ func (s *mcpServer) registerTools() error {
 	// 	),
 	// )
 	//
-	// s.mcpServer.AddTool(executeCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// s.mcp.AddTool(executeCodeLensTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// 	// Extract arguments
 	// 	filePath, ok := request.Params.Arguments["filePath"].(string)
 	// 	if !ok {
@@ -331,7 +331,7 @@ func (s *mcpServer) registerTools() error {
 		),
 	)
 
-	s.mcpServer.AddTool(hoverTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcp.AddTool(hoverTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
 		filePath, ok := request.Params.Arguments["filePath"].(string)
 		if !ok {
@@ -398,7 +398,7 @@ func (s *mcpServer) registerTools() error {
 		),
 	)
 
-	s.mcpServer.AddTool(renameSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcp.AddTool(renameSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Extract arguments
 		filePath, ok := request.Params.Arguments["filePath"].(string)
 		if !ok {
@@ -469,7 +469,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			),
 		)
 
-		s.mcpServer.AddTool(lspStartTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.mcp.AddTool(lspStartTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			workspace, ok := request.Params.Arguments["workspace"].(string)
 			if !ok {
 				return mcp.NewToolResultError("workspace must be a string"), nil
@@ -500,7 +500,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			),
 		)
 
-		s.mcpServer.AddTool(lspStopTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.mcp.AddTool(lspStopTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			id, ok := request.Params.Arguments["id"].(string)
 			if !ok {
 				return mcp.NewToolResultError("id must be a string"), nil
@@ -526,7 +526,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			),
 		)
 
-		s.mcpServer.AddTool(lspSaveTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.mcp.AddTool(lspSaveTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			filepath, ok := request.Params.Arguments["filepath"].(string)
 			if !ok {
 				return mcp.NewToolResultError("filepath must be a string"), nil
@@ -553,7 +553,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			),
 		)
 
-		s.mcpServer.AddTool(lspLoadTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.mcp.AddTool(lspLoadTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			filepath, ok := request.Params.Arguments["filepath"].(string)
 			if !ok {
 				return mcp.NewToolResultError("filepath must be a string"), nil
@@ -580,7 +580,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			),
 		)
 
-		s.mcpServer.AddTool(lspSelectTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.mcp.AddTool(lspSelectTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			id, ok := request.Params.Arguments["id"].(string)
 			if !ok {
 				return mcp.NewToolResultError("id must be a string"), nil
@@ -604,7 +604,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			mcp.WithDescription("List all available language identifiers defined in the configuration file."),
 		)
 
-		s.mcpServer.AddTool(lspLanguagesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.mcp.AddTool(lspLanguagesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			coreLogger.Debug("Executing lsp_languages")
 
 			if s.lspManager.config == nil {
@@ -638,7 +638,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 		mcp.WithDescription("List all currently running LSP instances with their IDs, languages, and workspaces."),
 	)
 
-	s.mcpServer.AddTool(lspListTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.mcp.AddTool(lspListTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		coreLogger.Debug("Executing lsp_list")
 		instances := s.lspManager.ListLSPs()
 
