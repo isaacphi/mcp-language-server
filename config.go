@@ -8,9 +8,10 @@ import (
 
 // LSPConfig defines the configuration for a single language server
 type LSPConfig struct {
-	Command string            `json:"command"`
-	Args    []string          `json:"args,omitempty"`
-	Env     map[string]string `json:"env,omitempty"`
+	Command   string            `json:"command"`
+	Args      []string          `json:"args,omitempty"`
+	Env       map[string]string `json:"env,omitempty"`
+	Workspace string            `json:"workspace,omitempty"` // Used for legacy mode or explicit workspace
 }
 
 // Config represents the configuration file structure

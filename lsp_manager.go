@@ -31,10 +31,10 @@ type LSPInstance struct {
 
 // LSPManager manages multiple LSP server instances
 type LSPManager struct {
-	instances     map[string]*LSPInstance
-	mu            sync.RWMutex
-	lastStartedID string
-	config        *Config
+	instances   map[string]*LSPInstance
+	mu          sync.RWMutex
+	defaultLSP  string // ID of the default/selected LSP
+	config      *Config
 }
 
 // NewLSPManager creates a new LSP manager
@@ -93,6 +93,9 @@ func (m *LSPManager) StartLSP(ctx context.Context, workspacePath, language strin
 		client.Cmd.Env = env
 	}
 
+	// Set as default LSP
+	m.defaultLSP = id
+
 	// Initialize the LSP client
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -140,7 +143,6 @@ func (m *LSPManager) StartLSP(ctx context.Context, workspacePath, language strin
 	}
 
 	m.instances[id] = instance
-	m.lastStartedID = id
 
 	lspManagerLogger.Info("Started LSP instance %s for language %s in workspace %s", id, language, workspaceDir)
 
@@ -208,13 +210,13 @@ func (m *LSPManager) StopLSP(id string) error {
 	instance.CancelFunc()
 	instance.Status = "stopped"
 
-	// Update last started ID if this was the last started instance
-	if m.lastStartedID == id {
-		m.lastStartedID = ""
-		// Find the most recently started instance that's still running
+	// Update default LSP if this was the default instance
+	if m.defaultLSP == id {
+		m.defaultLSP = ""
+		// Find another running instance to set as default
 		for instanceID, inst := range m.instances {
 			if inst.Status == "running" {
-				m.lastStartedID = instanceID
+				m.defaultLSP = instanceID
 				break
 			}
 		}
@@ -243,18 +245,18 @@ func (m *LSPManager) GetLSP(id string) (*LSPInstance, error) {
 	return instance, nil
 }
 
-// GetLastStartedLSP retrieves the most recently started LSP instance
-func (m *LSPManager) GetLastStartedLSP() (*LSPInstance, error) {
+// GetDefaultLSP retrieves the default/selected LSP instance
+func (m *LSPManager) GetDefaultLSP() (*LSPInstance, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	if m.lastStartedID == "" {
+	if m.defaultLSP == "" {
 		return nil, fmt.Errorf("no LSP instance has been started. Use lsp_start tool first")
 	}
 
-	instance, ok := m.instances[m.lastStartedID]
+	instance, ok := m.instances[m.defaultLSP]
 	if !ok || instance.Status != "running" {
-		return nil, fmt.Errorf("last started LSP instance is no longer available")
+		return nil, fmt.Errorf("default LSP instance is no longer available")
 	}
 
 	return instance, nil
@@ -291,15 +293,15 @@ func (m *LSPManager) StopAll() {
 }
 
 // ResolveLSPInstance returns the LSP instance to use based on the optional ID
-// If id is empty, returns the last started LSP
+// If id is empty, returns the default LSP
 func (m *LSPManager) ResolveLSPInstance(id string) (*LSPInstance, error) {
 	if id == "" {
-		return m.GetLastStartedLSP()
+		return m.GetDefaultLSP()
 	}
 	return m.GetLSP(id)
 }
 
-// SelectLSP sets the specified LSP instance as the default (last started)
+// SelectLSP sets the specified LSP instance as the default
 func (m *LSPManager) SelectLSP(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -313,7 +315,7 @@ func (m *LSPManager) SelectLSP(id string) error {
 		return fmt.Errorf("LSP instance %s is not running (status: %s)", id, instance.Status)
 	}
 
-	m.lastStartedID = id
+	m.defaultLSP = id
 	return nil
 }
 

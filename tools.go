@@ -11,28 +11,21 @@ import (
 )
 
 // getLSPClient resolves the LSP client to use based on the optional id parameter
-// In legacy mode, always returns the single lspClient
-// In config mode, uses the lspManager to resolve by id or use the last started LSP
+// If id is provided, uses that specific LSP instance
+// If id is omitted, uses the default (currently selected) LSP instance
 func (s *mcpServer) getLSPClient(id string) (*lsp.Client, error) {
-	if s.config.isConfigMode {
-		instance, err := s.lspManager.ResolveLSPInstance(id)
-		if err != nil {
-			return nil, err
-		}
-		return instance.Client, nil
+	instance, err := s.lspManager.ResolveLSPInstance(id)
+	if err != nil {
+		return nil, err
 	}
-	// Legacy mode
-	if s.lspClient == nil {
-		return nil, fmt.Errorf("LSP client not initialized")
-	}
-	return s.lspClient, nil
+	return instance.Client, nil
 }
 
 func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
 
-	// Register LSP management tools in config mode
-	if s.config.isConfigMode {
+	// Register LSP management tools in config mode (but not legacy mode)
+	if s.config.isConfigMode && !s.config.isLegacyMode {
 		s.registerLSPManagementTools()
 	}
 

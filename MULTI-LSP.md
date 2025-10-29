@@ -85,7 +85,7 @@ All existing tools accept an optional `id` parameter to target a specific LSP:
 - `rename_symbol(filePath, line, column, newName, id?)`
 - `edit_file(filePath, edits, id?)`
 
-If `id` is omitted in config mode, the last started LSP is used.
+If `id` is omitted in config mode, the default (currently selected) LSP is used.
 
 ## Session File Format
 
