@@ -454,7 +454,7 @@ func (s *mcpServer) registerTools() error {
 func (s *mcpServer) registerLSPManagementTools() {
 	coreLogger.Debug("Registering LSP management tools")
 
-	// In session mode, only register lsp_list (not lsp_start, lsp_stop, lsp_save)
+	// In session mode, only register lsp_list (not lsp_start, lsp_stop, lsp_save, lsp_load)
 	if !s.config.isSessionMode {
 		// lsp_start tool
 		lspStartTool := mcp.NewTool("lsp_start",
@@ -541,6 +541,33 @@ func (s *mcpServer) registerLSPManagementTools() {
 
 			instances := s.lspManager.ListLSPs()
 			result := fmt.Sprintf("Saved %d LSP instance(s) to %s", len(instances), filepath)
+			return mcp.NewToolResultText(result), nil
+		})
+
+		// lsp_load tool
+		lspLoadTool := mcp.NewTool("lsp_load",
+			mcp.WithDescription("Load LSP instances from a session file. Stops LSPs not in the file and starts LSPs that are in the file but not running."),
+			mcp.WithString("filepath",
+				mcp.Required(),
+				mcp.Description("Path to the session file to load"),
+			),
+		)
+
+		s.mcpServer.AddTool(lspLoadTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			filepath, ok := request.Params.Arguments["filepath"].(string)
+			if !ok {
+				return mcp.NewToolResultError("filepath must be a string"), nil
+			}
+
+			coreLogger.Debug("Executing lsp_load from file: %s", filepath)
+			err := s.lspManager.LoadSession(s.ctx, filepath)
+			if err != nil {
+				coreLogger.Error("Failed to load session: %v", err)
+				return mcp.NewToolResultError(fmt.Sprintf("failed to load session: %v", err)), nil
+			}
+
+			instances := s.lspManager.ListLSPs()
+			result := fmt.Sprintf("Loaded session from %s\nCurrently running: %d LSP instance(s)", filepath, len(instances))
 			return mcp.NewToolResultText(result), nil
 		})
 
