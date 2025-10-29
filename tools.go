@@ -10,10 +10,11 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// getLSPClient resolves the LSP client to use based on the optional id parameter
+// getLSPClient resolves the LSP client to use based on the optional id parameter in the request
 // If id is provided, uses that specific LSP instance
 // If id is omitted, uses the default (currently selected) LSP instance
-func (s *mcpServer) getLSPClient(id string) (*lsp.Client, error) {
+func (s *mcpServer) getLSPClient(request mcp.CallToolRequest) (*lsp.Client, error) {
+	id, _ := request.Params.Arguments["id"].(string) // Optional
 	instance, err := s.lspManager.ResolveLSPInstance(id)
 	if err != nil {
 		return nil, err
@@ -69,8 +70,6 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
-		id, _ := request.Params.Arguments["id"].(string) // Optional
-
 		// Extract edits array
 		editsArg, ok := request.Params.Arguments["edits"]
 		if !ok {
@@ -110,7 +109,7 @@ func (s *mcpServer) registerTools() error {
 		}
 
 		// Get the appropriate LSP client
-		client, err := s.getLSPClient(id)
+		client, err := s.getLSPClient(request)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
 		}
@@ -142,10 +141,8 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
-		id, _ := request.Params.Arguments["id"].(string) // Optional
-
 		// Get the appropriate LSP client
-		client, err := s.getLSPClient(id)
+		client, err := s.getLSPClient(request)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
 		}
@@ -177,10 +174,8 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
-		id, _ := request.Params.Arguments["id"].(string) // Optional
-
 		// Get the appropriate LSP client
-		client, err := s.getLSPClient(id)
+		client, err := s.getLSPClient(request)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
 		}
@@ -220,8 +215,6 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
-		id, _ := request.Params.Arguments["id"].(string) // Optional
-
 		contextLines := 5 // default value
 		if contextLinesArg, ok := request.Params.Arguments["contextLines"].(int); ok {
 			contextLines = contextLinesArg
@@ -233,7 +226,7 @@ func (s *mcpServer) registerTools() error {
 		}
 
 		// Get the appropriate LSP client
-		client, err := s.getLSPClient(id)
+		client, err := s.getLSPClient(request)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
 		}
@@ -338,8 +331,6 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("filePath must be a string"), nil
 		}
 
-		id, _ := request.Params.Arguments["id"].(string) // Optional
-
 		// Handle both float64 and int for line and column due to JSON parsing
 		var line, column int
 		switch v := request.Params.Arguments["line"].(type) {
@@ -361,7 +352,7 @@ func (s *mcpServer) registerTools() error {
 		}
 
 		// Get the appropriate LSP client
-		client, err := s.getLSPClient(id)
+		client, err := s.getLSPClient(request)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
 		}
@@ -410,8 +401,6 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("newName must be a string"), nil
 		}
 
-		id, _ := request.Params.Arguments["id"].(string) // Optional
-
 		// Handle both float64 and int for line and column due to JSON parsing
 		var line, column int
 		switch v := request.Params.Arguments["line"].(type) {
@@ -433,7 +422,7 @@ func (s *mcpServer) registerTools() error {
 		}
 
 		// Get the appropriate LSP client
-		client, err := s.getLSPClient(id)
+		client, err := s.getLSPClient(request)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
 		}
