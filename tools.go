@@ -26,7 +26,7 @@ func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
 
 	// Register LSP management tools in config mode (but not legacy mode)
-	if !s.config.isLegacyMode {
+	if s.config.isConfigMode && !s.config.isLegacyMode {
 		s.registerLSPManagementTools()
 	}
 
