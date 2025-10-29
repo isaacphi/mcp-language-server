@@ -28,7 +28,7 @@ Run with `--config` and `--session` flags to auto-load a session on startup:
 mcp-language-server --config config.json --session my-session.json
 ```
 
-In session mode, LSP management tools (`lsp_start`, `lsp_stop`, `lsp_save`, `lsp_load`) are not registered. Edit the session file and restart the server to change LSPs.
+In session mode, LSP management tools (`lsp_start`, `lsp_stop`, `lsp_save`) are not registered. Edit the session file and restart the server to change LSPs.
 
 ## Configuration File
 
@@ -72,7 +72,6 @@ JSON file defining LSP configurations by language:
 - **`lsp_select(id)`** - Set a different LSP as default
 - **`lsp_languages()`** - List available languages from config (config mode only)
 - **`lsp_save(filepath)`** - Save current LSP configuration to a session file (config mode only)
-- **`lsp_load(filepath)`** - Load LSP configuration from a session file (config mode only)
 
 ### Language Tools
 
@@ -133,10 +132,7 @@ Save session:
 lsp_save(filepath="/home/user/.lsp-sessions/fullstack.json")
 ```
 
-Later, restore:
-```
-lsp_load(filepath="/home/user/.lsp-sessions/fullstack.json")
-```
+To restore a session, restart the server with `--session` flag pointing to the saved session file.
 
 ## Configuration Examples
 
