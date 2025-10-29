@@ -150,21 +150,16 @@ func parseConfig() (*config, error) {
 	// Legacy mode: create a synthetic config with single LSP for manager
 	cfg.isConfigMode = true
 	cfg.isLegacyMode = true
-
-	defaultConfig := LSPDefaultConfig{
-		Command: lspCommand,
-		Args:    lspArgs,
-		Env:     map[string]string{},
-	}
-
 	cfg.lspConfig = &Config{
-		Defaults: map[string]LSPDefaultConfig{
-			"default": defaultConfig,
-		},
+		Defaults: make(map[string]LSPDefaultConfig), // Not used in legacy mode (tools not registered)
 		LSPs: map[string]LSPConfig{
 			"default": {
-				LSPDefaultConfig: defaultConfig,
-				Workspace:        absWorkspace,
+				LSPDefaultConfig: LSPDefaultConfig{
+					Command: lspCommand,
+					Args:    lspArgs,
+					Env:     map[string]string{},
+				},
+				Workspace: absWorkspace,
 			},
 		},
 	}
