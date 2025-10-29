@@ -19,12 +19,8 @@ import (
 var coreLogger = logging.NewLogger(logging.Core)
 
 type config struct {
-	// Config mode fields
-	configFile string
-	lspConfig  *Config
-
-	// Session mode fields
-	sessionFile string
+	// Loaded LSP configuration
+	lspConfig *Config
 
 	// Mode flags
 	isConfigMode  bool
@@ -45,11 +41,13 @@ func parseConfig() (*config, error) {
 	workspaceDir := ""
 	lspCommand := ""
 	var lspArgs []string
+	var configFile string
+	var sessionFile string
 
 	flag.StringVar(&workspaceDir, "workspace", "", "Path to workspace directory (legacy mode)")
 	flag.StringVar(&lspCommand, "lsp", "", "LSP command to run (legacy mode, args should be passed after --)")
-	flag.StringVar(&cfg.configFile, "config", "", "Path to config file for multi-LSP mode")
-	flag.StringVar(&cfg.sessionFile, "session", "", "Path to session file (disables runtime LSP add/remove)")
+	flag.StringVar(&configFile, "config", "", "Path to config file for multi-LSP mode")
+	flag.StringVar(&sessionFile, "session", "", "Path to session file (disables runtime LSP add/remove)")
 	flag.Parse()
 
 	// Get remaining args after -- as LSP arguments
@@ -58,8 +56,8 @@ func parseConfig() (*config, error) {
 	// Determine mode based on provided flags
 	hasWorkspace := workspaceDir != ""
 	hasLSP := lspCommand != ""
-	hasConfig := cfg.configFile != ""
-	hasSession := cfg.sessionFile != ""
+	hasConfig := configFile != ""
+	hasSession := sessionFile != ""
 
 	// Validate mode combinations
 	if hasConfig && (hasWorkspace || hasLSP) {
@@ -78,7 +76,7 @@ func parseConfig() (*config, error) {
 		// Config mode (with optional session mode)
 		cfg.isConfigMode = true
 
-		lspConfig, err := LoadConfigFile(cfg.configFile)
+		lspConfig, err := LoadConfigFile(configFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load config file: %v", err)
 		}
@@ -89,10 +87,10 @@ func parseConfig() (*config, error) {
 			cfg.isSessionMode = true
 
 			// Load the session file if it exists
-			session, err := LoadSessionFile(cfg.sessionFile)
+			session, err := LoadSessionFile(sessionFile)
 			if err != nil {
 				if os.IsNotExist(err) {
-					coreLogger.Warn("Session file does not exist yet: %s (will be created on save)", cfg.sessionFile)
+					coreLogger.Warn("Session file does not exist yet: %s (will be created on save)", sessionFile)
 					// No session to load, keep LSPs empty but in session mode
 				} else {
 					return nil, fmt.Errorf("failed to access session file: %v", err)
@@ -112,7 +110,7 @@ func parseConfig() (*config, error) {
 					}
 				}
 
-				coreLogger.Info("Loaded session from %s with %d LSPs", cfg.sessionFile, len(session.LSPs))
+				coreLogger.Info("Loaded session from %s with %d LSPs", sessionFile, len(session.LSPs))
 			}
 
 			coreLogger.Info("Running in session mode (LSP add/remove disabled)")
