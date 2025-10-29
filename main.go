@@ -21,34 +21,109 @@ import (
 var coreLogger = logging.NewLogger(logging.Core)
 
 type config struct {
+	// Legacy mode fields
 	workspaceDir string
 	lspCommand   string
 	lspArgs      []string
+
+	// Config mode fields
+	configFile string
+	lspConfig  *Config
+
+	// Session mode fields
+	sessionFile string
+
+	// Mode flags
+	isConfigMode  bool
+	isSessionMode bool
 }
 
 type mcpServer struct {
-	config           config
+	config config
+
+	// Legacy mode: single LSP client
 	lspClient        *lsp.Client
-	mcpServer        *server.MCPServer
-	ctx              context.Context
-	cancelFunc       context.CancelFunc
 	workspaceWatcher *watcher.WorkspaceWatcher
+
+	// Config mode: LSP manager
+	lspManager *LSPManager
+
+	mcpServer  *server.MCPServer
+	ctx        context.Context
+	cancelFunc context.CancelFunc
 }
 
 func parseConfig() (*config, error) {
 	cfg := &config{}
-	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory")
-	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (args should be passed after --)")
+	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory (legacy mode)")
+	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (legacy mode, args should be passed after --)")
+	flag.StringVar(&cfg.configFile, "config", "", "Path to config file for multi-LSP mode")
+	flag.StringVar(&cfg.sessionFile, "session", "", "Path to session file (disables runtime LSP add/remove)")
 	flag.Parse()
 
 	// Get remaining args after -- as LSP arguments
 	cfg.lspArgs = flag.Args()
 
-	// Validate workspace directory
-	if cfg.workspaceDir == "" {
-		return nil, fmt.Errorf("workspace directory is required")
+	// Determine mode based on provided flags
+	hasWorkspace := cfg.workspaceDir != ""
+	hasLSP := cfg.lspCommand != ""
+	hasConfig := cfg.configFile != ""
+	hasSession := cfg.sessionFile != ""
+
+	// Validate mode combinations
+	if hasConfig && (hasWorkspace || hasLSP) {
+		return nil, fmt.Errorf("cannot use --config with --workspace or --lsp flags")
 	}
 
+	if hasSession && (hasWorkspace || hasLSP) {
+		return nil, fmt.Errorf("cannot use --session with --workspace or --lsp flags")
+	}
+
+	if hasSession && !hasConfig {
+		return nil, fmt.Errorf("--session requires --config flag")
+	}
+
+	if hasConfig {
+		// Config mode (with optional session mode)
+		cfg.isConfigMode = true
+
+		lspConfig, err := LoadConfigFile(cfg.configFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load config file: %v", err)
+		}
+		cfg.lspConfig = lspConfig
+
+		if hasSession {
+			// Session mode
+			cfg.isSessionMode = true
+
+			// Validate session file exists
+			if _, err := os.Stat(cfg.sessionFile); err != nil {
+				if os.IsNotExist(err) {
+					coreLogger.Warn("Session file does not exist yet: %s (will be created on save)", cfg.sessionFile)
+				} else {
+					return nil, fmt.Errorf("failed to access session file: %v", err)
+				}
+			}
+
+			coreLogger.Info("Running in session mode (LSP add/remove disabled)")
+		} else {
+			coreLogger.Info("Running in config mode with multi-LSP support")
+		}
+
+		return cfg, nil
+	}
+
+	// Legacy mode - require both workspace and lsp
+	if !hasWorkspace {
+		return nil, fmt.Errorf("workspace directory is required (use --workspace, --config, or --config with --session)")
+	}
+
+	if !hasLSP {
+		return nil, fmt.Errorf("LSP command is required (use --lsp, --config, or --config with --session)")
+	}
+
+	// Validate workspace directory
 	workspaceDir, err := filepath.Abs(cfg.workspaceDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path for workspace: %v", err)
@@ -60,24 +135,28 @@ func parseConfig() (*config, error) {
 	}
 
 	// Validate LSP command
-	if cfg.lspCommand == "" {
-		return nil, fmt.Errorf("LSP command is required")
-	}
-
 	if _, err := exec.LookPath(cfg.lspCommand); err != nil {
 		return nil, fmt.Errorf("LSP command not found: %s", cfg.lspCommand)
 	}
 
+	coreLogger.Info("Running in legacy mode with single LSP")
 	return cfg, nil
 }
 
 func newServer(config *config) (*mcpServer, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &mcpServer{
+	s := &mcpServer{
 		config:     *config,
 		ctx:        ctx,
 		cancelFunc: cancel,
-	}, nil
+	}
+
+	// Initialize LSP manager in config mode
+	if config.isConfigMode {
+		s.lspManager = NewLSPManager(config.lspConfig)
+	}
+
+	return s, nil
 }
 
 func (s *mcpServer) initializeLSP() error {
@@ -104,8 +183,23 @@ func (s *mcpServer) initializeLSP() error {
 }
 
 func (s *mcpServer) start() error {
-	if err := s.initializeLSP(); err != nil {
-		return err
+	// Only initialize LSP in legacy mode
+	// In config mode, LSPs are started dynamically via lsp_start tool or session file
+	if !s.config.isConfigMode {
+		if err := s.initializeLSP(); err != nil {
+			return err
+		}
+	} else if s.config.isSessionMode {
+		// Auto-load session in session mode
+		if _, err := os.Stat(s.config.sessionFile); err == nil {
+			coreLogger.Info("Auto-loading session from %s", s.config.sessionFile)
+			if err := s.lspManager.LoadSession(s.ctx, s.config.sessionFile); err != nil {
+				coreLogger.Error("Failed to load session: %v", err)
+				// Don't fail startup if session load fails
+			}
+		} else {
+			coreLogger.Info("No existing session file to load")
+		}
 	}
 
 	s.mcpServer = server.NewMCPServer(
@@ -193,44 +287,53 @@ func main() {
 func cleanup(s *mcpServer, done chan struct{}) {
 	coreLogger.Info("Cleanup initiated for PID: %d", os.Getpid())
 
-	// Create a context with timeout for shutdown operations
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	if s.config.isConfigMode {
+		// Config mode: stop all LSP instances via manager
+		if s.lspManager != nil {
+			coreLogger.Info("Stopping all LSP instances")
+			s.lspManager.StopAll()
+		}
+	} else {
+		// Legacy mode: stop single LSP client
+		// Create a context with timeout for shutdown operations
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	if s.lspClient != nil {
-		coreLogger.Info("Closing open files")
-		s.lspClient.CloseAllFiles(ctx)
+		if s.lspClient != nil {
+			coreLogger.Info("Closing open files")
+			s.lspClient.CloseAllFiles(ctx)
 
-		// Create a shorter timeout context for the shutdown request
-		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 500*time.Millisecond)
-		defer shutdownCancel()
+			// Create a shorter timeout context for the shutdown request
+			shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+			defer shutdownCancel()
 
-		// Run shutdown in a goroutine with timeout to avoid blocking if LSP doesn't respond
-		shutdownDone := make(chan struct{})
-		go func() {
-			coreLogger.Info("Sending shutdown request")
-			if err := s.lspClient.Shutdown(shutdownCtx); err != nil {
-				coreLogger.Error("Shutdown request failed: %v", err)
+			// Run shutdown in a goroutine with timeout to avoid blocking if LSP doesn't respond
+			shutdownDone := make(chan struct{})
+			go func() {
+				coreLogger.Info("Sending shutdown request")
+				if err := s.lspClient.Shutdown(shutdownCtx); err != nil {
+					coreLogger.Error("Shutdown request failed: %v", err)
+				}
+				close(shutdownDone)
+			}()
+
+			// Wait for shutdown with timeout
+			select {
+			case <-shutdownDone:
+				coreLogger.Info("Shutdown request completed")
+			case <-time.After(1 * time.Second):
+				coreLogger.Warn("Shutdown request timed out, proceeding with exit")
 			}
-			close(shutdownDone)
-		}()
 
-		// Wait for shutdown with timeout
-		select {
-		case <-shutdownDone:
-			coreLogger.Info("Shutdown request completed")
-		case <-time.After(1 * time.Second):
-			coreLogger.Warn("Shutdown request timed out, proceeding with exit")
-		}
+			coreLogger.Info("Sending exit notification")
+			if err := s.lspClient.Exit(ctx); err != nil {
+				coreLogger.Error("Exit notification failed: %v", err)
+			}
 
-		coreLogger.Info("Sending exit notification")
-		if err := s.lspClient.Exit(ctx); err != nil {
-			coreLogger.Error("Exit notification failed: %v", err)
-		}
-
-		coreLogger.Info("Closing LSP client")
-		if err := s.lspClient.Close(); err != nil {
-			coreLogger.Error("Failed to close LSP client: %v", err)
+			coreLogger.Info("Closing LSP client")
+			if err := s.lspClient.Close(); err != nil {
+				coreLogger.Error("Failed to close LSP client: %v", err)
+			}
 		}
 	}
 
