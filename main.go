@@ -32,8 +32,6 @@ type mcpServer struct {
 	config     config
 	lspManager *LSPManager
 	mcp        *server.MCPServer
-	ctx        context.Context
-	cancelFunc context.CancelFunc
 }
 
 func parseConfig() (*config, error) {
@@ -167,11 +165,8 @@ func parseConfig() (*config, error) {
 }
 
 func newServer(config *config) (*mcpServer, error) {
-	ctx, cancel := context.WithCancel(context.Background())
 	s := &mcpServer{
 		config:     *config,
-		ctx:        ctx,
-		cancelFunc: cancel,
 		lspManager: NewLSPManager(config.lspConfig),
 	}
 
@@ -185,7 +180,7 @@ func (s *mcpServer) start() error {
 	for language, lspConfig := range s.config.lspConfig.LSPs {
 		if lspConfig.Workspace != "" {
 			coreLogger.Debug("Auto-starting LSP for language: %s", language)
-			_, err := s.lspManager.StartLSP(s.ctx, lspConfig.Workspace, language)
+			_, err := s.lspManager.StartLSP(context.Background(), lspConfig.Workspace, language)
 			if err != nil {
 				coreLogger.Error("Failed to start LSP for language %s: %v", language, err)
 				// Continue starting other LSPs even if one fails
