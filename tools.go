@@ -611,8 +611,8 @@ func (s *mcpServer) registerLSPManagementTools() {
 				return mcp.NewToolResultError("No config loaded"), nil
 			}
 
-			languages := make([]string, 0, len(s.lspManager.config.LSPs))
-			for lang := range s.lspManager.config.LSPs {
+			languages := make([]string, 0, len(s.lspManager.config.Defaults))
+			for lang := range s.lspManager.config.Defaults {
 				languages = append(languages, lang)
 			}
 
@@ -625,8 +625,8 @@ func (s *mcpServer) registerLSPManagementTools() {
 
 			result := "Available Languages:\n\n"
 			for _, lang := range languages {
-				lspConfig := s.lspManager.config.LSPs[lang]
-				result += fmt.Sprintf("- %s (command: %s)\n", lang, lspConfig.Command)
+				defaultConfig := s.lspManager.config.Defaults[lang]
+				result += fmt.Sprintf("- %s (command: %s)\n", lang, defaultConfig.Command)
 			}
 
 			return mcp.NewToolResultText(result), nil

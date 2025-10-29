@@ -93,26 +93,24 @@ func parseConfig() (*config, error) {
 			if err != nil {
 				if os.IsNotExist(err) {
 					coreLogger.Warn("Session file does not exist yet: %s (will be created on save)", cfg.sessionFile)
-					// No session to load, keep config as-is but in session mode
+					// No session to load, keep LSPs empty but in session mode
 				} else {
 					return nil, fmt.Errorf("failed to access session file: %v", err)
 				}
 			} else {
-				// Build LSP config from session file, combining session workspaces with config definitions
-				sessionLSPs := make(map[string]LSPConfig)
+				// Build LSP configs from session file, combining workspace from session with defaults from config
 				for _, entry := range session.LSPs {
-					lspConfig, ok := cfg.lspConfig.LSPs[entry.Language]
+					defaultLSP, ok := cfg.lspConfig.Defaults[entry.Language]
 					if !ok {
 						return nil, fmt.Errorf("language %s in session file not found in config", entry.Language)
 					}
 
-					// Copy config and set workspace from session entry
-					lspConfig.Workspace = entry.Workspace
-					sessionLSPs[entry.Language] = lspConfig
+					// Create LSPConfig by copying from LSPDefaultConfig and setting workspace
+					cfg.lspConfig.LSPs[entry.Language] = LSPConfig{
+						LSPDefaultConfig: defaultLSP,
+						Workspace:        entry.Workspace,
+					}
 				}
-
-				// Replace LSPs with only those from session
-				cfg.lspConfig.LSPs = sessionLSPs
 
 				coreLogger.Info("Loaded session from %s with %d LSPs", cfg.sessionFile, len(session.LSPs))
 			}
@@ -152,13 +150,21 @@ func parseConfig() (*config, error) {
 	// Legacy mode: create a synthetic config with single LSP for manager
 	cfg.isConfigMode = true
 	cfg.isLegacyMode = true
+
+	defaultConfig := LSPDefaultConfig{
+		Command: lspCommand,
+		Args:    lspArgs,
+		Env:     map[string]string{},
+	}
+
 	cfg.lspConfig = &Config{
+		Defaults: map[string]LSPDefaultConfig{
+			"default": defaultConfig,
+		},
 		LSPs: map[string]LSPConfig{
 			"default": {
-				Command:   lspCommand,
-				Args:      lspArgs,
-				Env:       map[string]string{},
-				Workspace: absWorkspace,
+				LSPDefaultConfig: defaultConfig,
+				Workspace:        absWorkspace,
 			},
 		},
 	}
