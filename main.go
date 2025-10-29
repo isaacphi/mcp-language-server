@@ -23,7 +23,7 @@ type config struct {
 
 	// Mode flags
 	isSessionMode  bool
-	isSingleLspMode bool
+	isSingleLSPMode bool
 }
 
 type mcpServer struct {
@@ -140,7 +140,7 @@ func parseConfig() (*config, error) {
 	}
 
 	// Legacy mode: create a synthetic config with single LSP for manager
-	cfg.isSingleLspMode = true
+	cfg.isSingleLSPMode = true
 	cfg.lspConfig = &Config{
 		Defaults: make(map[string]LSPDefaultConfig), // Not used in legacy mode (tools not registered)
 		LSPs: map[string]LSPConfig{
