@@ -25,8 +25,8 @@ func (s *mcpServer) getLSPClient(request mcp.CallToolRequest) (*lsp.Client, erro
 func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
 
-	// Register LSP management tools in config mode (but not legacy mode)
-	if !s.config.isLegacyMode {
+	// Register LSP management tools only when not in single LSP mode
+	if !s.config.isSingleLspMode {
 		s.registerLSPManagementTools()
 	}
 
