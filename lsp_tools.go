@@ -12,7 +12,8 @@ import (
 func (s *mcpServer) registerLSPManagementTools() {
 	coreLogger.Debug("Registering LSP management tools")
 
-	// In session mode, only register lsp_list (not lsp_start, lsp_stop, lsp_save, lsp_load)
+	// In session mode, only register lsp_list and lsp_select (not lsp_start, lsp_stop, lsp_save, lsp_load)
+	// These tools are available in unbounded mode only
 	if !s.config.isSessionMode {
 		// lsp_start tool
 		lspStartTool := mcp.NewTool("lsp_start",
@@ -129,35 +130,7 @@ func (s *mcpServer) registerLSPManagementTools() {
 			return mcp.NewToolResultText(result), nil
 		})
 
-		// lsp_select tool
-		lspSelectTool := mcp.NewTool("lsp_select",
-			mcp.WithDescription("Select a different LSP instance as the default for commands that don't specify an ID."),
-			mcp.WithString("id",
-				mcp.Required(),
-				mcp.Description("The ID of the LSP instance to set as default"),
-			),
-		)
-
-		s.mcpServer.AddTool(lspSelectTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			id, ok := request.Params.Arguments["id"].(string)
-			if !ok {
-				return mcp.NewToolResultError("id must be a string"), nil
-			}
-
-			coreLogger.Debug("Executing lsp_select for ID: %s", id)
-			err := s.lspManager.SelectLSP(id)
-			if err != nil {
-				coreLogger.Error("Failed to select LSP: %v", err)
-				return mcp.NewToolResultError(fmt.Sprintf("failed to select LSP: %v", err)), nil
-			}
-
-			// Get the instance details for confirmation
-			instance, _ := s.lspManager.GetLSP(id)
-			result := fmt.Sprintf("Selected LSP as default:\nID: %s\nLanguage: %s\nWorkspace: %s", id, instance.Language, instance.WorkspacePath)
-			return mcp.NewToolResultText(result), nil
-		})
-
-		// lsp_languages tool - show available languages from config (only in config mode, not session mode)
+		// lsp_languages tool - show available languages from config (only in unbounded mode, not session mode)
 		lspLanguagesTool := mcp.NewTool("lsp_languages",
 			mcp.WithDescription("List all available language identifiers defined in the configuration file."),
 		)
@@ -190,6 +163,34 @@ func (s *mcpServer) registerLSPManagementTools() {
 			return mcp.NewToolResultText(result), nil
 		})
 	}
+
+	// lsp_select tool - registered in all modes (free and session)
+	lspSelectTool := mcp.NewTool("lsp_select",
+		mcp.WithDescription("Select a different LSP instance as the default for commands that don't specify an ID."),
+		mcp.WithString("id",
+			mcp.Required(),
+			mcp.Description("The ID of the LSP instance to set as default"),
+		),
+	)
+
+	s.mcpServer.AddTool(lspSelectTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		id, ok := request.Params.Arguments["id"].(string)
+		if !ok {
+			return mcp.NewToolResultError("id must be a string"), nil
+		}
+
+		coreLogger.Debug("Executing lsp_select for ID: %s", id)
+		err := s.lspManager.SelectLSP(id)
+		if err != nil {
+			coreLogger.Error("Failed to select LSP: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to select LSP: %v", err)), nil
+		}
+
+		// Get the instance details for confirmation
+		instance, _ := s.lspManager.GetLSP(id)
+		result := fmt.Sprintf("Selected LSP as default:\nID: %s\nLanguage: %s\nWorkspace: %s", id, instance.Language, instance.WorkspacePath)
+		return mcp.NewToolResultText(result), nil
+	})
 
 	// lsp_list tool - always registered, even in session mode
 	lspListTool := mcp.NewTool("lsp_list",

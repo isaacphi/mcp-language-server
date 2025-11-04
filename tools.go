@@ -58,7 +58,7 @@ func (s *mcpServer) registerTools() error {
 			mcp.Description("Path to the file to edit"),
 		),
 		mcp.WithString("id",
-			mcp.Description("LSP instance ID (optional, defaults to last started LSP in config mode)"),
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -129,7 +129,7 @@ func (s *mcpServer) registerTools() error {
 			mcp.Description("The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"),
 		),
 		mcp.WithString("id",
-			mcp.Description("LSP instance ID (optional, defaults to last started LSP in config mode)"),
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -162,7 +162,7 @@ func (s *mcpServer) registerTools() error {
 			mcp.Description("The name of the symbol to search for (e.g. 'mypackage.MyFunction', 'MyType')"),
 		),
 		mcp.WithString("id",
-			mcp.Description("LSP instance ID (optional, defaults to last started LSP in config mode)"),
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -203,7 +203,7 @@ func (s *mcpServer) registerTools() error {
 			mcp.DefaultBool(true),
 		),
 		mcp.WithString("id",
-			mcp.Description("LSP instance ID (optional, defaults to last started LSP in config mode)"),
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -319,7 +319,7 @@ func (s *mcpServer) registerTools() error {
 			mcp.Description("The column number where the hover is requested (1-indexed)"),
 		),
 		mcp.WithString("id",
-			mcp.Description("LSP instance ID (optional, defaults to last started LSP in config mode)"),
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -384,7 +384,7 @@ func (s *mcpServer) registerTools() error {
 			mcp.Description("The new name for the symbol"),
 		),
 		mcp.WithString("id",
-			mcp.Description("LSP instance ID (optional, defaults to last started LSP in config mode)"),
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 

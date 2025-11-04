@@ -4,7 +4,13 @@ The MCP Language Server supports running multiple language servers simultaneousl
 
 ## Modes of Operation
 
-### Legacy Mode (Single LSP)
+| Mode | Command | Use Case | Runtime Changes |
+|------|---------|----------|-----------------|
+| **Single-MCP** | `--workspace <path> --lsp <cmd>` | Single language server for one workspace | Not supported |
+| **Unbounded** | `--config <file>` or auto-detected | Multiple LSPs, manage dynamically | All tools available |
+| **Session** | `--config <file> --session <file>` or auto-detected config | Multiple LSPs, fixed configuration | Only `lsp_list` and `lsp_select` |
+
+### Single-MCP Mode
 
 Run with `--workspace` and `--lsp` flags:
 
@@ -12,13 +18,17 @@ Run with `--workspace` and `--lsp` flags:
 mcp-language-server --workspace /path/to/project --lsp gopls
 ```
 
-### Config Mode (Multi-LSP)
+Single-MCP mode runs a single language server. LSP management tools are not available.
+
+### Unbounded Mode
 
 Run with `--config` flag:
 
 ```bash
 mcp-language-server --config config.json
 ```
+
+Unbounded mode allows you to dynamically start and stop language servers. All LSP management tools are available.
 
 ### Session Mode
 
@@ -28,7 +38,20 @@ Run with `--config` and `--session` flags to auto-load a session on startup:
 mcp-language-server --config config.json --session my-session.json
 ```
 
-In session mode, LSP management tools (`lsp_start`, `lsp_stop`, `lsp_save`, `lsp_load`) are not registered. Edit the session file and restart the server to change LSPs.
+Session mode loads a predefined set of LSPs. LSP management tools (`lsp_start`, `lsp_stop`, `lsp_save`, `lsp_load`) are not registered. Only `lsp_list` and `lsp_select` are available. Edit the session file and restart the server to add/remove LSPs.
+
+## Auto-Detection of Config File
+
+The server automatically looks for a config file in standard locations (in order):
+
+1. `~/.mcp-language-server.json`
+2. `~/.config/mcp-language-server.json`
+
+This is used when:
+- No parameters provided: `mcp-language-server`
+- Only `--session` provided: `mcp-language-server --session my-session.json`
+
+If no config file is found in these cases, an error is raised. To use a custom path, explicitly specify `--config`.
 
 ## Configuration File
 
@@ -66,13 +89,13 @@ JSON file defining LSP configurations by language:
 
 ### LSP Management
 
-- **`lsp_start(workspace, language)`** - Start a new LSP instance
-- **`lsp_stop(id)`** - Stop a running LSP by ID
+- **`lsp_start(workspace, language)`** - Start a new LSP instance (unbounded mode only)
+- **`lsp_stop(id)`** - Stop a running LSP by ID (unbounded mode only)
 - **`lsp_list()`** - List all running LSP instances
 - **`lsp_select(id)`** - Set a different LSP as default
-- **`lsp_languages()`** - List available languages from config (config mode only)
-- **`lsp_save(filepath)`** - Save current LSP configuration to a session file (config mode only)
-- **`lsp_load(filepath)`** - Load LSP configuration from a session file (config mode only)
+- **`lsp_languages()`** - List available languages from config (unbounded mode only)
+- **`lsp_save(filepath)`** - Save current LSP configuration to a session file (unbounded mode only)
+- **`lsp_load(filepath)`** - Load LSP configuration from a session file (unbounded mode only)
 
 ### Language Tools
 
@@ -85,7 +108,7 @@ All existing tools accept an optional `id` parameter to target a specific LSP:
 - `rename_symbol(filePath, line, column, newName, id?)`
 - `edit_file(filePath, edits, id?)`
 
-If `id` is omitted in config mode, the default (currently selected) LSP is used.
+If `id` is omitted in unbounded mode, the default (currently selected) LSP is used.
 
 ## Session File Format
 
@@ -108,34 +131,39 @@ Save and restore LSP configurations:
 
 ## Usage Example
 
-Start server in config mode:
+### Auto-detected Unbounded Mode
 ```bash
-mcp-language-server --config config.json
+# Uses ~/.mcp-language-server.json or ~/.config/mcp-language-server.json
+mcp-language-server
 ```
 
-Start LSPs:
+Then dynamically start LSPs:
 ```
 lsp_start(workspace="/project/backend", language="go")
 lsp_start(workspace="/project/frontend", language="typescript")
+definition(symbolName="MyFunc")  # Uses last started LSP (TypeScript)
+definition(symbolName="MyFunc", id="<lsp-id>")  # Use specific LSP
 ```
 
-Use tools:
+Save the current setup:
 ```
-# Use Go LSP (explicitly)
-definition(symbolName="MyFunc", id="550e8400...")
-
-# Use last started LSP (TypeScript in this case)
-definition(symbolName="myFunc")
+lsp_save(filepath="~/.config/my-session.json")
 ```
 
-Save session:
-```
-lsp_save(filepath="/home/user/.lsp-sessions/fullstack.json")
+### Session Mode (Auto-detected config)
+```bash
+mcp-language-server --session ~/.config/my-session.json
 ```
 
-Later, restore:
+Restore a saved session:
 ```
-lsp_load(filepath="/home/user/.lsp-sessions/fullstack.json")
+lsp_load(filepath="~/.config/my-session.json")
+lsp_select(id="<lsp-id>")  # Switch default LSP
+```
+
+### Single-MCP Mode
+```bash
+mcp-language-server --workspace /path/to/project --lsp gopls
 ```
 
 ## Configuration Examples
@@ -163,23 +191,45 @@ which typescript-language-server
 
 ## MCP Client Configuration
 
-### Claude Desktop (Config Mode)
+### Claude Desktop (Auto-detected Unbounded Mode)
+
+```json
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "mcp-language-server"
+    }
+  }
+}
+```
+
+### Claude Desktop (Explicit Unbounded Mode)
 
 ```json
 {
   "mcpServers": {
     "language-server": {
       "command": "mcp-language-server",
-      "args": ["--config", "/path/to/config.json"],
-      "env": {
-        "LOG_LEVEL": "INFO"
-      }
+      "args": ["--config", "/path/to/config.json"]
     }
   }
 }
 ```
 
-### Claude Desktop (Legacy Mode)
+### Claude Desktop (Session Mode)
+
+```json
+{
+  "mcpServers": {
+    "language-server": {
+      "command": "mcp-language-server",
+      "args": ["--session", "~/.config/my-session.json"]
+    }
+  }
+}
+```
+
+### Claude Desktop (Single-MCP Mode)
 
 ```json
 {
@@ -197,15 +247,16 @@ which typescript-language-server
 
 ## Error Handling
 
-- **No LSP Started**: Call `lsp_start` before using language tools
+- **No config file found**: Create `~/.mcp-language-server.json` or use `--config` flag
+- **No LSP Started**: Call `lsp_start` before using language tools (unbounded mode)
 - **Invalid Language**: Language must be defined in config file
-- **Invalid ID**: LSP instance not found by the given ID
+- **Invalid ID**: LSP instance not found or no longer running
 - **Session Load Error**: Check workspace paths exist and language names match config
 
 ## Notes
 
-- Each LSP instance is isolated with its own workspace
-- LSPs are cleaned up on shutdown
-- The last started LSP is used as default when no ID specified
+- Each LSP instance isolated with its own workspace
+- Last started LSP is the default (use `lsp_select` to change)
+- `lsp_list` shows which LSP is currently default
+- In session mode, `lsp_select` switches between pre-loaded LSPs
 - Environment variables in config are merged with system environment
-- All LSP communication happens over stdio

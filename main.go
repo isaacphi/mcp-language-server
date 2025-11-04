@@ -32,6 +32,30 @@ type mcpServer struct {
 	mcpServer  *server.MCPServer
 }
 
+// detectConfigFile looks for a config file in standard locations:
+// 1. ~/.mcp-language-server.json
+// 2. ~/.config/mcp-language-server.json
+// Returns the path to the first existing file or an error if none found
+func detectConfigFile() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	locations := []string{
+		filepath.Join(homeDir, ".mcp-language-server.json"),
+		filepath.Join(homeDir, ".config", "mcp-language-server.json"),
+	}
+
+	for _, location := range locations {
+		if _, err := os.Stat(location); err == nil {
+			return location, nil
+		}
+	}
+
+	return "", fmt.Errorf("no config file found in standard locations: %v", locations)
+}
+
 func parseConfig() (*config, error) {
 	cfg := &config{}
 	workspaceDir := ""
@@ -40,9 +64,9 @@ func parseConfig() (*config, error) {
 	var configFile string
 	var sessionFile string
 
-	flag.StringVar(&workspaceDir, "workspace", "", "Path to workspace directory (legacy mode)")
-	flag.StringVar(&lspCommand, "lsp", "", "LSP command to run (legacy mode, args should be passed after --)")
-	flag.StringVar(&configFile, "config", "", "Path to config file for multi-LSP mode")
+	flag.StringVar(&workspaceDir, "workspace", "", "Path to workspace directory (single-mcp mode)")
+	flag.StringVar(&lspCommand, "lsp", "", "LSP command to run (single-mcp mode, args should be passed after --)")
+	flag.StringVar(&configFile, "config", "", "Path to config file for unbounded or session mode")
 	flag.StringVar(&sessionFile, "session", "", "Path to session file (disables runtime LSP add/remove)")
 	flag.Parse()
 
@@ -55,6 +79,25 @@ func parseConfig() (*config, error) {
 	hasConfig := configFile != ""
 	hasSession := sessionFile != ""
 
+	// Auto-detect config file if no parameters are provided or if --session is used without --config
+	if !hasConfig && ((!hasWorkspace && !hasLSP && !hasSession) || hasSession) {
+		detectedConfig, err := detectConfigFile()
+		if err != nil {
+			if !hasWorkspace && !hasLSP && !hasSession {
+				// No parameters provided at all - suggest auto-detection locations
+				return nil, fmt.Errorf("no configuration provided. Please use:\n"+
+					"  - --workspace and --lsp for single-mcp mode, or\n"+
+					"  - --config for unbounded or session mode, or\n"+
+					"  - place config file at ~/.mcp-language-server.json or ~/.config/mcp-language-server.json")
+			}
+			// --session without --config
+			return nil, fmt.Errorf("--session requires --config flag or a config file at ~/.mcp-language-server.json or ~/.config/mcp-language-server.json: %v", err)
+		}
+		configFile = detectedConfig
+		hasConfig = true
+		coreLogger.Info("Auto-detected config file: %s", configFile)
+	}
+
 	// Validate mode combinations
 	if hasConfig && (hasWorkspace || hasLSP) {
 		return nil, fmt.Errorf("cannot use --config with --workspace or --lsp flags")
@@ -64,12 +107,8 @@ func parseConfig() (*config, error) {
 		return nil, fmt.Errorf("cannot use --session with --workspace or --lsp flags")
 	}
 
-	if hasSession && !hasConfig {
-		return nil, fmt.Errorf("--session requires --config flag")
-	}
-
 	if hasConfig {
-		// Config mode (with optional session mode)
+		// Free mode (with optional session mode)
 		lspConfig, err := LoadConfigFile(configFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load config file: %v", err)
@@ -109,13 +148,13 @@ func parseConfig() (*config, error) {
 
 			coreLogger.Info("Running in session mode (LSP add/remove disabled)")
 		} else {
-			coreLogger.Info("Running in config mode with multi-LSP support")
+			coreLogger.Info("Running in unbounded mode with multi-LSP support")
 		}
 
 		return cfg, nil
 	}
 
-	// Legacy mode - require both workspace and lsp
+	// Single-MCP mode - require both workspace and lsp
 	if !hasWorkspace {
 		return nil, fmt.Errorf("workspace directory is required (use --workspace, --config, or --config with --session)")
 	}
@@ -139,10 +178,10 @@ func parseConfig() (*config, error) {
 		return nil, fmt.Errorf("LSP command not found: %s", lspCommand)
 	}
 
-	// Legacy mode: create a synthetic config with single LSP for manager
+	// Single-MCP mode: create a synthetic config with single LSP for manager
 	cfg.isSingleLSPMode = true
 	cfg.lspConfig = &Config{
-		Defaults: make(map[string]LSPDefaultConfig), // Not used in legacy mode (tools not registered)
+		Defaults: make(map[string]LSPDefaultConfig), // Not used in single-mcp mode (tools not registered)
 		LSPs: map[string]LSPConfig{
 			"default": {
 				LSPDefaultConfig: LSPDefaultConfig{
@@ -155,7 +194,7 @@ func parseConfig() (*config, error) {
 		},
 	}
 
-	coreLogger.Info("Running in legacy mode with single LSP")
+	coreLogger.Info("Running in single-mcp mode with single LSP")
 	return cfg, nil
 }
 
@@ -171,7 +210,7 @@ func newServer(config *config) (*mcpServer, error) {
 
 func (s *mcpServer) start() error {
 	// Auto-start all configured LSPs that have a workspace
-	// This applies to all modes: legacy, config, and session (session LSPs are pre-configured in parseConfig)
+	// This applies to all modes: single-mcp, free, and session (session LSPs are pre-configured in parseConfig)
 	for language, lspConfig := range s.config.lspConfig.LSPs {
 		if lspConfig.Workspace != "" {
 			coreLogger.Debug("Auto-starting LSP for language: %s", language)
