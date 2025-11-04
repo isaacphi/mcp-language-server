@@ -4,12 +4,30 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/tools"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+// getLSPClient resolves the LSP client to use based on the optional id parameter in the request
+// If id is provided, uses that specific LSP instance
+// If id is omitted, uses the default (currently selected) LSP instance
+func (s *mcpServer) getLSPClient(request mcp.CallToolRequest) (*lsp.Client, error) {
+	id, _ := request.Params.Arguments["id"].(string) // Optional
+	instance, err := s.lspManager.ResolveLSPInstance(id)
+	if err != nil {
+		return nil, err
+	}
+	return instance.Client, nil
+}
+
 func (s *mcpServer) registerTools() error {
 	coreLogger.Debug("Registering MCP tools")
+
+	// Register LSP management tools only when not in single LSP mode
+	if !s.config.isSingleLSPMode {
+		s.registerLSPManagementTools()
+	}
 
 	applyTextEditTool := mcp.NewTool("edit_file",
 		mcp.WithDescription("Apply multiple text edits to a file."),
@@ -38,6 +56,9 @@ func (s *mcpServer) registerTools() error {
 		mcp.WithString("filePath",
 			mcp.Required(),
 			mcp.Description("Path to the file to edit"),
+		),
+		mcp.WithString("id",
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -86,8 +107,14 @@ func (s *mcpServer) registerTools() error {
 			})
 		}
 
+		// Get the appropriate LSP client
+		client, err := s.getLSPClient(request)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
+		}
+
 		coreLogger.Debug("Executing edit_file for file: %s", filePath)
-		response, err := tools.ApplyTextEdits(s.ctx, s.lspClient, filePath, edits)
+		response, err := tools.ApplyTextEdits(context.Background(), client, filePath, edits)
 		if err != nil {
 			coreLogger.Error("Failed to apply edits: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to apply edits: %v", err)), nil
@@ -101,6 +128,9 @@ func (s *mcpServer) registerTools() error {
 			mcp.Required(),
 			mcp.Description("The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"),
 		),
+		mcp.WithString("id",
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
+		),
 	)
 
 	s.mcpServer.AddTool(readDefinitionTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -110,8 +140,14 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
+		// Get the appropriate LSP client
+		client, err := s.getLSPClient(request)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
+		}
+
 		coreLogger.Debug("Executing definition for symbol: %s", symbolName)
-		text, err := tools.ReadDefinition(s.ctx, s.lspClient, symbolName)
+		text, err := tools.ReadDefinition(context.Background(), client, symbolName)
 		if err != nil {
 			coreLogger.Error("Failed to get definition: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get definition: %v", err)), nil
@@ -125,6 +161,9 @@ func (s *mcpServer) registerTools() error {
 			mcp.Required(),
 			mcp.Description("The name of the symbol to search for (e.g. 'mypackage.MyFunction', 'MyType')"),
 		),
+		mcp.WithString("id",
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
+		),
 	)
 
 	s.mcpServer.AddTool(findReferencesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -134,8 +173,14 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
+		// Get the appropriate LSP client
+		client, err := s.getLSPClient(request)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
+		}
+
 		coreLogger.Debug("Executing references for symbol: %s", symbolName)
-		text, err := tools.FindReferences(s.ctx, s.lspClient, symbolName)
+		text, err := tools.FindReferences(context.Background(), client, symbolName)
 		if err != nil {
 			coreLogger.Error("Failed to find references: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to find references: %v", err)), nil
@@ -157,6 +202,9 @@ func (s *mcpServer) registerTools() error {
 			mcp.Description("If true, adds line numbers to the output"),
 			mcp.DefaultBool(true),
 		),
+		mcp.WithString("id",
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
+		),
 	)
 
 	s.mcpServer.AddTool(getDiagnosticsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -176,8 +224,14 @@ func (s *mcpServer) registerTools() error {
 			showLineNumbers = showLineNumbersArg
 		}
 
+		// Get the appropriate LSP client
+		client, err := s.getLSPClient(request)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
+		}
+
 		coreLogger.Debug("Executing diagnostics for file: %s", filePath)
-		text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, filePath, contextLines, showLineNumbers)
+		text, err := tools.GetDiagnosticsForFile(context.Background(), client, filePath, contextLines, showLineNumbers)
 		if err != nil {
 			coreLogger.Error("Failed to get diagnostics: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get diagnostics: %v", err)), nil
@@ -203,7 +257,7 @@ func (s *mcpServer) registerTools() error {
 	// 	}
 	//
 	// 	coreLogger.Debug("Executing get_codelens for file: %s", filePath)
-	// 	text, err := tools.GetCodeLens(s.ctx, s.lspClient, filePath)
+	// 	text, err := tools.GetCodeLens(context.Background(), s.lspClient, filePath)
 	// 	if err != nil {
 	// 		coreLogger.Error("Failed to get code lens: %v", err)
 	// 		return mcp.NewToolResultError(fmt.Sprintf("failed to get code lens: %v", err)), nil
@@ -242,7 +296,7 @@ func (s *mcpServer) registerTools() error {
 	// 	}
 	//
 	// 	coreLogger.Debug("Executing execute_codelens for file: %s index: %d", filePath, index)
-	// 	text, err := tools.ExecuteCodeLens(s.ctx, s.lspClient, filePath, index)
+	// 	text, err := tools.ExecuteCodeLens(context.Background(), s.lspClient, filePath, index)
 	// 	if err != nil {
 	// 		coreLogger.Error("Failed to execute code lens: %v", err)
 	// 		return mcp.NewToolResultError(fmt.Sprintf("failed to execute code lens: %v", err)), nil
@@ -263,6 +317,9 @@ func (s *mcpServer) registerTools() error {
 		mcp.WithNumber("column",
 			mcp.Required(),
 			mcp.Description("The column number where the hover is requested (1-indexed)"),
+		),
+		mcp.WithString("id",
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -293,8 +350,14 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("column must be a number"), nil
 		}
 
+		// Get the appropriate LSP client
+		client, err := s.getLSPClient(request)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
+		}
+
 		coreLogger.Debug("Executing hover for file: %s line: %d column: %d", filePath, line, column)
-		text, err := tools.GetHoverInfo(s.ctx, s.lspClient, filePath, line, column)
+		text, err := tools.GetHoverInfo(context.Background(), client, filePath, line, column)
 		if err != nil {
 			coreLogger.Error("Failed to get hover information: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get hover information: %v", err)), nil
@@ -319,6 +382,9 @@ func (s *mcpServer) registerTools() error {
 		mcp.WithString("newName",
 			mcp.Required(),
 			mcp.Description("The new name for the symbol"),
+		),
+		mcp.WithString("id",
+			mcp.Description("LSP instance ID (optional, defaults to last started LSP in unbounded mode)"),
 		),
 	)
 
@@ -354,8 +420,14 @@ func (s *mcpServer) registerTools() error {
 			return mcp.NewToolResultError("column must be a number"), nil
 		}
 
+		// Get the appropriate LSP client
+		client, err := s.getLSPClient(request)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get LSP client: %v", err)), nil
+		}
+
 		coreLogger.Debug("Executing rename_symbol for file: %s line: %d column: %d newName: %s", filePath, line, column, newName)
-		text, err := tools.RenameSymbol(s.ctx, s.lspClient, filePath, line, column, newName)
+		text, err := tools.RenameSymbol(context.Background(), client, filePath, line, column, newName)
 		if err != nil {
 			coreLogger.Error("Failed to rename symbol: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to rename symbol: %v", err)), nil

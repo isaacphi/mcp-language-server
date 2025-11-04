@@ -1,0 +1,36 @@
+{
+  "lsps": {
+    "go": {
+      "command": "gopls",
+      "args": [],
+      "env": {
+        "GOPATH": "/home/user/go",
+        "GOCACHE": "/home/user/.cache/go-build"
+      }
+    },
+    "rust": {
+      "command": "rust-analyzer",
+      "args": []
+    },
+    "python": {
+      "command": "pyright-langserver",
+      "args": ["--", "--stdio"]
+    },
+    "typescript": {
+      "command": "typescript-language-server",
+      "args": ["--stdio"]
+    },
+    "javascript": {
+      "command": "typescript-language-server",
+      "args": ["--stdio"]
+    },
+    "c": {
+      "command": "clangd",
+      "args": []
+    },
+    "cpp": {
+      "command": "clangd",
+      "args": []
+    }
+  }
+}

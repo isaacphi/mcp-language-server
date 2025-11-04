@@ -167,6 +167,27 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   </div>
 </details>
 
+## Multi-LSP Support
+
+This server supports running multiple language servers simultaneously. See [MULTI-LSP.md](MULTI-LSP.md) for configuration and usage details.
+
+### Quick Example
+
+Configure with multiple languages:
+
+```bash
+mcp-language-server --config config.json
+```
+
+Then start LSP instances as needed:
+
+```
+lsp_start(workspace="/path/to/go-project", language="go")
+lsp_start(workspace="/path/to/rust-project", language="rust")
+```
+
+See [MULTI-LSP.md](MULTI-LSP.md) for session management, auto-loading, and more.
+
 ## Tools
 
 - `definition`: Retrieves the complete source code definition of any symbol (function, type, constant, etc.) from your codebase.

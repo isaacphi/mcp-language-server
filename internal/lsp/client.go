@@ -46,10 +46,29 @@ type Client struct {
 	openFilesMu sync.RWMutex
 }
 
-func NewClient(command string, args ...string) (*Client, error) {
+// NewClient creates and starts an LSP client process
+// workspace: directory where the LSP process should run (empty = use current directory)
+// env: environment variables to pass to the process (nil = inherit parent process environment)
+// args: command line arguments to pass to the LSP command
+func NewClient(command string, workspace string, env map[string]string, args ...string) (*Client, error) {
 	cmd := exec.Command(command, args...)
-	// Copy env
-	cmd.Env = os.Environ()
+
+	// Set working directory if provided
+	if workspace != "" {
+		cmd.Dir = workspace
+	}
+
+	// Set environment variables if provided, otherwise inherit from parent
+	if env != nil {
+		// Convert map to []string format expected by exec.Cmd
+		var cmdEnv []string
+		for key, value := range env {
+			cmdEnv = append(cmdEnv, fmt.Sprintf("%s=%s", key, value))
+		}
+		cmd.Env = cmdEnv
+	} else {
+		cmd.Env = os.Environ()
+	}
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

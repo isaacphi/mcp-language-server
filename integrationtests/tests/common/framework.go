@@ -156,7 +156,8 @@ func (ts *TestSuite) Setup() error {
 	ts.t.Logf("Copied workspace from %s to %s", ts.Config.WorkspaceDir, workspaceDir)
 
 	// Create and initialize LSP client
-	client, err := lsp.NewClient(ts.Config.Command, ts.Config.Args...)
+	// NewClient signature: command, workspace, env, args...
+	client, err := lsp.NewClient(ts.Config.Command, workspaceDir, nil, ts.Config.Args...)
 	if err != nil {
 		return fmt.Errorf("failed to create LSP client: %w", err)
 	}
