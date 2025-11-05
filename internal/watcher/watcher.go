@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/isaacphi/mcp-language-server/internal/glob"
 	"github.com/isaacphi/mcp-language-server/internal/logging"
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
@@ -17,6 +18,41 @@ import (
 
 // Create a logger for the watcher component
 var watcherLogger = logging.NewLogger(logging.Watcher)
+
+// Glob pattern cache to avoid re-parsing the same patterns
+var (
+	globCache     sync.Map // Thread-safe map: pattern string -> *glob.Glob
+	globCacheSize int      // Approximate cache size
+	globCacheMu   sync.Mutex
+	maxCacheSize  = 100 // Clear cache if it exceeds this size (safety valve)
+)
+
+// parseGlobCached parses a glob pattern with caching. If cache exceeds
+// maxCacheSize, it's completely cleared and a warning is logged.
+func parseGlobCached(pattern string) (*glob.Glob, error) {
+	if g, ok := globCache.Load(pattern); ok {
+		return g.(*glob.Glob), nil
+	}
+
+	g, err := glob.Parse(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	globCacheMu.Lock()
+	globCacheSize++
+	cleared := globCacheSize > maxCacheSize
+	if cleared {
+		globCache = sync.Map{}
+		globCacheSize = 1
+	}
+	globCacheMu.Unlock()
+	globCache.Store(pattern, g)
+	if cleared {
+		watcherLogger.Warn("Glob pattern cache exceeded %d entries, clearing cache (possible pattern leak)", maxCacheSize)
+	}
+	return g, nil
+}
 
 // WorkspaceWatcher manages LSP file watching
 type WorkspaceWatcher struct {
@@ -339,109 +375,7 @@ func (w *WorkspaceWatcher) isPathWatched(path string) (bool, protocol.WatchKind)
 	return false, 0
 }
 
-// matchesGlob handles advanced glob patterns including ** and alternatives
-func matchesGlob(pattern, path string) bool {
-	// Handle file extension patterns with braces like *.{go,mod,sum}
-	if strings.Contains(pattern, "{") && strings.Contains(pattern, "}") {
-		// Extract extensions from pattern like "*.{go,mod,sum}"
-		parts := strings.SplitN(pattern, "{", 2)
-		if len(parts) == 2 {
-			prefix := parts[0]
-			extPart := strings.SplitN(parts[1], "}", 2)
-			if len(extPart) == 2 {
-				extensions := strings.Split(extPart[0], ",")
-				suffix := extPart[1]
-
-				// Check if the path matches any of the extensions
-				for _, ext := range extensions {
-					extPattern := prefix + ext + suffix
-					isMatch := matchesSimpleGlob(extPattern, path)
-					if isMatch {
-						return true
-					}
-				}
-				return false
-			}
-		}
-	}
-
-	return matchesSimpleGlob(pattern, path)
-}
-
-// matchesSimpleGlob handles glob patterns with ** wildcards
-func matchesSimpleGlob(pattern, path string) bool {
-	// Handle special case for **/*.ext pattern (common in LSP)
-	if strings.HasPrefix(pattern, "**/") {
-		rest := strings.TrimPrefix(pattern, "**/")
-
-		// If the rest is a simple file extension pattern like *.go
-		if strings.HasPrefix(rest, "*.") {
-			ext := strings.TrimPrefix(rest, "*")
-			isMatch := strings.HasSuffix(path, ext)
-			return isMatch
-		}
-
-		// Otherwise, try to check if the path ends with the rest part
-		isMatch := strings.HasSuffix(path, rest)
-
-		// If it matches directly, great!
-		if isMatch {
-			return true
-		}
-
-		// Otherwise, check if any path component matches
-		pathComponents := strings.Split(path, "/")
-		for i := range pathComponents {
-			subPath := strings.Join(pathComponents[i:], "/")
-			if strings.HasSuffix(subPath, rest) {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	// Handle other ** wildcard pattern cases
-	if strings.Contains(pattern, "**") {
-		parts := strings.Split(pattern, "**")
-
-		// Validate the path starts with the first part
-		if !strings.HasPrefix(path, parts[0]) && parts[0] != "" {
-			return false
-		}
-
-		// For patterns like "**/*.go", just check the suffix
-		if len(parts) == 2 && parts[0] == "" {
-			isMatch := strings.HasSuffix(path, parts[1])
-			return isMatch
-		}
-
-		// For other patterns, handle middle part
-		remaining := strings.TrimPrefix(path, parts[0])
-		if len(parts) == 2 {
-			isMatch := strings.HasSuffix(remaining, parts[1])
-			return isMatch
-		}
-	}
-
-	// Handle simple * wildcard for file extension patterns (*.go, *.sum, etc)
-	if strings.HasPrefix(pattern, "*.") {
-		ext := strings.TrimPrefix(pattern, "*")
-		isMatch := strings.HasSuffix(path, ext)
-		return isMatch
-	}
-
-	// Fall back to simple matching for simpler patterns
-	matched, err := filepath.Match(pattern, path)
-	if err != nil {
-		watcherLogger.Error("Error matching pattern %s: %v", pattern, err)
-		return false
-	}
-
-	return matched
-}
-
-// matchesPattern checks if a path matches the glob pattern
+// matchesPattern checks if a path matches the glob pattern using LSP-compliant glob matching
 func (w *WorkspaceWatcher) matchesPattern(path string, pattern protocol.GlobPattern) bool {
 	patternInfo, err := pattern.AsPattern()
 	if err != nil {
@@ -452,39 +386,28 @@ func (w *WorkspaceWatcher) matchesPattern(path string, pattern protocol.GlobPatt
 	basePath := patternInfo.GetBasePath()
 	patternText := patternInfo.GetPattern()
 
-	// watcherLogger.Debug("Matching path %s against pattern %s (base: %s)", path, patternText, basePath)
+	watcherLogger.Debug("Matching path %s against pattern %s (base: %s)", path, patternText, basePath)
 
 	path = filepath.ToSlash(path)
 
-	// Special handling for wildcard patterns like "**/*"
-	if patternText == "**/*" {
-		// This should match any file
-		// watcherLogger.Debug("Using special matching for **/* pattern")
-		return true
+	// Parse the glob pattern (with caching)
+	g, err := parseGlobCached(patternText)
+	if err != nil {
+		watcherLogger.Error("Error parsing glob pattern %q: %v", patternText, err)
+		return false
 	}
 
-	// Special handling for wildcard patterns like "**/*.ext"
-	if strings.HasPrefix(patternText, "**/") {
-		if strings.HasPrefix(strings.TrimPrefix(patternText, "**/"), "*.") {
-			// Extension pattern like **/*.go
-			ext := strings.TrimPrefix(strings.TrimPrefix(patternText, "**/"), "*")
-			// watcherLogger.Debug("Using extension matching for **/*.ext pattern: checking if %s ends with %s", path, ext)
-			return strings.HasSuffix(path, ext)
-		} else {
-			// Any other pattern starting with **/ should match any path
-			// watcherLogger.Debug("Using path substring matching for **/ pattern")
+	// For patterns without a base path
+	if basePath == "" {
+		// Check if the pattern matches the full path or just the file basename
+		if g.Match(path) {
 			return true
 		}
-	}
-
-	// For simple patterns without base path
-	if basePath == "" {
-		// Check if the pattern matches the full path or just the file extension
-		fullPathMatch := matchesGlob(patternText, path)
-		baseNameMatch := matchesGlob(patternText, filepath.Base(path))
-
-		watcherLogger.Debug("No base path, fullPathMatch: %v, baseNameMatch: %v", fullPathMatch, baseNameMatch)
-		return fullPathMatch || baseNameMatch
+		// Also try matching against just the basename
+		if g.Match(filepath.Base(path)) {
+			return true
+		}
+		return false
 	}
 
 	// For relative patterns
@@ -499,10 +422,7 @@ func (w *WorkspaceWatcher) matchesPattern(path string, pattern protocol.GlobPatt
 	}
 	relPath = filepath.ToSlash(relPath)
 
-	isMatch := matchesGlob(patternText, relPath)
-	watcherLogger.Debug("Relative path matching: %s against %s = %v", relPath, patternText, isMatch)
-
-	return isMatch
+	return g.Match(relPath)
 }
 
 // debounceHandleFileEvent handles file events with debouncing to reduce notifications
