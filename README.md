@@ -161,7 +161,7 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
     <p>I have only tested this repo with the servers above but it should be compatible with many more. Note:</p>
     <ul>
       <li>The language server must communicate over stdio.</li>
-      <li>Any aruments after <code>--</code> are sent as arguments to the language server.</li>
+      <li>Any arguments after <code>--</code> are sent as arguments to the language server.</li>
       <li>Any env variables are passed on to the language server.</li>
     </ul>
   </div>
