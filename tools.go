@@ -13,6 +13,8 @@ func (s *mcpServer) registerTools() error {
 
 	applyTextEditTool := mcp.NewTool("edit_file",
 		mcp.WithDescription("Apply multiple text edits to a file."),
+		mcp.WithTitleAnnotation("Edit File"),
+		mcp.WithDestructiveHintAnnotation(true),
 		mcp.WithArray("edits",
 			mcp.Required(),
 			mcp.Description("List of edits to apply"),
@@ -97,6 +99,8 @@ func (s *mcpServer) registerTools() error {
 
 	readDefinitionTool := mcp.NewTool("definition",
 		mcp.WithDescription("Read the source code definition of a symbol (function, type, constant, etc.) from the codebase. Returns the complete implementation code where the symbol is defined."),
+		mcp.WithTitleAnnotation("Go to Definition"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("symbolName",
 			mcp.Required(),
 			mcp.Description("The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"),
@@ -121,6 +125,8 @@ func (s *mcpServer) registerTools() error {
 
 	findReferencesTool := mcp.NewTool("references",
 		mcp.WithDescription("Find all usages and references of a symbol throughout the codebase. Returns a list of all files and locations where the symbol appears."),
+		mcp.WithTitleAnnotation("Find References"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("symbolName",
 			mcp.Required(),
 			mcp.Description("The name of the symbol to search for (e.g. 'mypackage.MyFunction', 'MyType')"),
@@ -145,6 +151,8 @@ func (s *mcpServer) registerTools() error {
 
 	getDiagnosticsTool := mcp.NewTool("diagnostics",
 		mcp.WithDescription("Get diagnostic information for a specific file from the language server."),
+		mcp.WithTitleAnnotation("Get Diagnostics"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("filePath",
 			mcp.Required(),
 			mcp.Description("The path to the file to get diagnostics for"),
@@ -252,6 +260,8 @@ func (s *mcpServer) registerTools() error {
 
 	hoverTool := mcp.NewTool("hover",
 		mcp.WithDescription("Get hover information (type, documentation) for a symbol at the specified position."),
+		mcp.WithTitleAnnotation("Hover Information"),
+		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("filePath",
 			mcp.Required(),
 			mcp.Description("The path to the file to get hover information for"),
@@ -304,6 +314,8 @@ func (s *mcpServer) registerTools() error {
 
 	renameSymbolTool := mcp.NewTool("rename_symbol",
 		mcp.WithDescription("Rename a symbol (variable, function, class, etc.) at the specified position and update all references throughout the codebase."),
+		mcp.WithTitleAnnotation("Rename Symbol"),
+		mcp.WithDestructiveHintAnnotation(true),
 		mcp.WithString("filePath",
 			mcp.Required(),
 			mcp.Description("The path to the file containing the symbol to rename"),
