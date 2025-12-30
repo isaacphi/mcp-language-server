@@ -126,6 +126,8 @@ func DetectLanguageID(uri string) protocol.LanguageKind {
 		return protocol.LangXSL
 	case ".yaml", ".yml":
 		return protocol.LangYAML
+	case ".v":
+		return protocol.LanguageKind("coq")
 	default:
 		return protocol.LanguageKind("") // Unknown language
 	}
