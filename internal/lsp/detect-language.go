@@ -120,6 +120,8 @@ func DetectLanguageID(uri string) protocol.LanguageKind {
 		return protocol.LangTypeScript
 	case ".tsx":
 		return protocol.LangTypeScriptReact
+	case ".v":
+		return protocol.LanguageKind("coq")
 	case ".xml":
 		return protocol.LangXML
 	case ".xsl":
