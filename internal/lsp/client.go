@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -96,6 +97,33 @@ func NewClient(command string, args ...string) (*Client, error) {
 	}()
 
 	// Start message handling loop
+	go client.handleMessages()
+
+	return client, nil
+}
+
+// NewClientHeadless connects to an already-running LSP server at addr (e.g. "localhost:6060").
+// The server must speak LSP JSON-RPC over the stream (Content-Length + JSON). No process is
+// started and stderr is not read. For gopls, start the server with -listen=:6060 so it
+// accepts LSP connections on that port (--debug is for the debug HTTP server, not LSP).
+func NewClientHeadless(addr string) (*Client, error) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to LSP at %s: %w", addr, err)
+	}
+
+	client := &Client{
+		Cmd:                   nil,
+		stdin:                 conn,
+		stdout:                bufio.NewReader(conn),
+		stderr:                nil,
+		handlers:              make(map[string]chan *Message),
+		notificationHandlers:  make(map[string]NotificationHandler),
+		serverRequestHandlers: make(map[string]ServerRequestHandler),
+		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),
+		openFiles:             make(map[string]*OpenFileInfo),
+	}
+
 	go client.handleMessages()
 
 	return client, nil
@@ -214,13 +242,15 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 		return nil, fmt.Errorf("initialization failed: %w", err)
 	}
 
-	// LSP sepecific Initialization
-	path := strings.ToLower(c.Cmd.Path)
-	switch {
-	case strings.Contains(path, "typescript-language-server"):
-		err := initializeTypescriptLanguageServer(ctx, c, workspaceDir)
-		if err != nil {
-			return nil, err
+	// LSP-specific initialization (only when we started the process; headless client has no Cmd)
+	if c.Cmd != nil {
+		path := strings.ToLower(c.Cmd.Path)
+		switch {
+		case strings.Contains(path, "typescript-language-server"):
+			err := initializeTypescriptLanguageServer(ctx, c, workspaceDir)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -228,14 +258,21 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 }
 
 func (c *Client) Close() error {
-	// Try to close all open files first
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Attempt to close files but continue shutdown regardless
 	c.CloseAllFiles(ctx)
 
-	// Force kill the LSP process if it doesn't exit within timeout
+	if c.Cmd == nil {
+		// Headless mode: only close the connection; do not send shutdown/exit or kill any process
+		if err := c.stdin.Close(); err != nil {
+			lspLogger.Error("Failed to close connection: %v", err)
+			return err
+		}
+		return nil
+	}
+
+	// Subprocess mode: close stdin then wait for process (with optional force kill)
 	forcedKill := make(chan struct{})
 	go func() {
 		select {
@@ -250,19 +287,16 @@ func (c *Client) Close() error {
 			}
 			close(forcedKill)
 		case <-forcedKill:
-			// Channel closed from completion path
 			return
 		}
 	}()
 
-	// Close stdin to signal the server
 	if err := c.stdin.Close(); err != nil {
 		lspLogger.Error("Failed to close stdin: %v", err)
 	}
 
-	// Wait for process to exit
 	err := c.Cmd.Wait()
-	close(forcedKill) // Stop the force kill goroutine
+	close(forcedKill)
 
 	return err
 }

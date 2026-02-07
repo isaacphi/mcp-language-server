@@ -19,8 +19,9 @@ import (
 // LSPTestConfig defines configuration for a language server test
 type LSPTestConfig struct {
 	Name             string   // Name of the language server
-	Command          string   // Command to run
-	Args             []string // Arguments
+	Command          string   // Command to run (ignored if ConnectAddr is set)
+	Args             []string // Arguments (ignored if ConnectAddr is set)
+	ConnectAddr      string   // If set, connect to existing LSP at this address (headless) instead of starting Command
 	WorkspaceDir     string   // Template workspace directory
 	InitializeTimeMs int      // Time to wait after initialization in ms
 }
@@ -39,6 +40,7 @@ type TestSuite struct {
 	logFile      string
 	t            *testing.T
 	LanguageName string
+	headless     bool // true when using ConnectAddr (skip shutdown/exit on cleanup)
 }
 
 // NewTestSuite creates a new test suite for the given language server
@@ -156,12 +158,25 @@ func (ts *TestSuite) Setup() error {
 	ts.t.Logf("Copied workspace from %s to %s", ts.Config.WorkspaceDir, workspaceDir)
 
 	// Create and initialize LSP client
-	client, err := lsp.NewClient(ts.Config.Command, ts.Config.Args...)
-	if err != nil {
-		return fmt.Errorf("failed to create LSP client: %w", err)
+	var client *lsp.Client
+	if ts.Config.ConnectAddr != "" {
+		ts.headless = true
+		var err error
+		client, err = lsp.NewClientHeadless(ts.Config.ConnectAddr)
+		if err != nil {
+			return fmt.Errorf("failed to connect to LSP at %s: %w", ts.Config.ConnectAddr, err)
+		}
+		ts.Client = client
+		ts.t.Logf("Connected to LSP at %s (headless)", ts.Config.ConnectAddr)
+	} else {
+		var err error
+		client, err = lsp.NewClient(ts.Config.Command, ts.Config.Args...)
+		if err != nil {
+			return fmt.Errorf("failed to create LSP client: %w", err)
+		}
+		ts.Client = client
+		ts.t.Logf("Started LSP: %s %v", ts.Config.Command, ts.Config.Args)
 	}
-	ts.Client = client
-	ts.t.Logf("Started LSP: %s %v", ts.Config.Command, ts.Config.Args)
 
 	// Initialize LSP and set up file watcher
 	initResult, err := client.InitializeLSPClient(ts.Context, workspaceDir)
@@ -197,24 +212,21 @@ func (ts *TestSuite) Cleanup() {
 		// Cancel context to stop watchers
 		ts.Cancel()
 
-		// Shutdown LSP
+		// Shutdown LSP (headless: only close connection; subprocess: shutdown + exit + close)
 		if ts.Client != nil {
-			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+			if !ts.headless {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
 
-			ts.t.Logf("Shutting down LSP client")
-			err := ts.Client.Shutdown(shutdownCtx)
-			if err != nil {
-				ts.t.Logf("Shutdown failed: %v", err)
+				ts.t.Logf("Shutting down LSP client")
+				if err := ts.Client.Shutdown(shutdownCtx); err != nil {
+					ts.t.Logf("Shutdown failed: %v", err)
+				}
+				if err := ts.Client.Exit(shutdownCtx); err != nil {
+					ts.t.Logf("Exit failed: %v", err)
+				}
 			}
-
-			err = ts.Client.Exit(shutdownCtx)
-			if err != nil {
-				ts.t.Logf("Exit failed: %v", err)
-			}
-
-			err = ts.Client.Close()
-			if err != nil {
+			if err := ts.Client.Close(); err != nil {
 				ts.t.Logf("Close failed: %v", err)
 			}
 		}
