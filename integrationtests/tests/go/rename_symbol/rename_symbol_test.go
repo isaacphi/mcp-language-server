@@ -12,101 +12,110 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/tools"
 )
 
-// TestRenameSymbol tests the RenameSymbol functionality with the Go language server
+// TestRenameSymbol tests the RenameSymbol functionality with the Go language server.
+// Runs in both subprocess and headless (listen-mode) modes.
 func TestRenameSymbol(t *testing.T) {
-	// Test with a successful rename of a symbol that exists
-	t.Run("SuccessfulRename", func(t *testing.T) {
-		// Get a test suite with clean code
-		suite := internal.GetTestSuite(t)
+	for _, mode := range []struct {
+		name     string
+		headless bool
+	}{{"Subprocess", false}, {"Headless", true}} {
 
-		// Wait for initialization
-		time.Sleep(2 * time.Second)
+		t.Run(mode.name, func(t *testing.T) {
+			// Test with a successful rename of a symbol that exists
+			t.Run("SuccessfulRename", func(t *testing.T) {
+				// Get a test suite with clean code
+				suite := internal.GetTestSuite(t, mode.headless)
 
-		ctx, cancel := context.WithTimeout(suite.Context, 5*time.Second)
-		defer cancel()
+				// Wait for initialization
+				time.Sleep(2 * time.Second)
 
-		// Ensure the file is open
-		filePath := filepath.Join(suite.WorkspaceDir, "types.go")
-		err := suite.Client.OpenFile(ctx, filePath)
-		if err != nil {
-			t.Fatalf("Failed to open types.go: %v", err)
-		}
+				ctx, cancel := context.WithTimeout(suite.Context, 5*time.Second)
+				defer cancel()
 
-		// Request to rename SharedConstant to UpdatedConstant at its definition
-		// The constant is defined at line 25, column 7 of types.go
-		result, err := tools.RenameSymbol(ctx, suite.Client, filePath, 25, 7, "UpdatedConstant")
-		if err != nil {
-			t.Fatalf("RenameSymbol failed: %v", err)
-		}
+				// Ensure the file is open
+				filePath := filepath.Join(suite.WorkspaceDir, "types.go")
+				err := suite.Client.OpenFile(ctx, filePath)
+				if err != nil {
+					t.Fatalf("Failed to open types.go: %v", err)
+				}
 
-		// Verify the constant was renamed
-		if !strings.Contains(result, "Successfully renamed symbol") {
-			t.Errorf("Expected success message but got: %s", result)
-		}
+				// Request to rename SharedConstant to UpdatedConstant at its definition
+				// The constant is defined at line 25, column 7 of types.go
+				result, err := tools.RenameSymbol(ctx, suite.Client, filePath, 25, 7, "UpdatedConstant")
+				if err != nil {
+					t.Fatalf("RenameSymbol failed: %v", err)
+				}
 
-		// Verify it's mentioned that it renamed multiple occurrences
-		if !strings.Contains(result, "occurrences") {
-			t.Errorf("Expected multiple occurrences to be renamed but got: %s", result)
-		}
+				// Verify the constant was renamed
+				if !strings.Contains(result, "Successfully renamed symbol") {
+					t.Errorf("Expected success message but got: %s", result)
+				}
 
-		common.SnapshotTest(t, "go", "rename_symbol", "successful", result)
+				// Verify it's mentioned that it renamed multiple occurrences
+				if !strings.Contains(result, "occurrences") {
+					t.Errorf("Expected multiple occurrences to be renamed but got: %s", result)
+				}
 
-		// Verify that the rename worked by checking for the updated constant name in the file
-		fileContent, err := suite.ReadFile("types.go")
-		if err != nil {
-			t.Fatalf("Failed to read types.go: %v", err)
-		}
+				common.SnapshotTest(t, "go", "rename_symbol", "successful", result)
 
-		if !strings.Contains(fileContent, "UpdatedConstant") {
-			t.Errorf("Expected to find renamed constant 'UpdatedConstant' in types.go")
-		}
+				// Verify that the rename worked by checking for the updated constant name in the file
+				fileContent, err := suite.ReadFile("types.go")
+				if err != nil {
+					t.Fatalf("Failed to read types.go: %v", err)
+				}
 
-		// Also check that it was renamed in the consumer file
-		consumerContent, err := suite.ReadFile("consumer.go")
-		if err != nil {
-			t.Fatalf("Failed to read consumer.go: %v", err)
-		}
+				if !strings.Contains(fileContent, "UpdatedConstant") {
+					t.Errorf("Expected to find renamed constant 'UpdatedConstant' in types.go")
+				}
 
-		if !strings.Contains(consumerContent, "UpdatedConstant") {
-			t.Errorf("Expected to find renamed constant 'UpdatedConstant' in consumer.go")
-		}
-	})
+				// Also check that it was renamed in the consumer file
+				consumerContent, err := suite.ReadFile("consumer.go")
+				if err != nil {
+					t.Fatalf("Failed to read consumer.go: %v", err)
+				}
 
-	// Test with a symbol that doesn't exist
-	t.Run("SymbolNotFound", func(t *testing.T) {
-		// Get a test suite with clean code
-		suite := internal.GetTestSuite(t)
+				if !strings.Contains(consumerContent, "UpdatedConstant") {
+					t.Errorf("Expected to find renamed constant 'UpdatedConstant' in consumer.go")
+				}
+			})
 
-		// Wait for initialization
-		time.Sleep(2 * time.Second)
+			// Test with a symbol that doesn't exist
+			t.Run("SymbolNotFound", func(t *testing.T) {
+				// Get a test suite with clean code
+				suite := internal.GetTestSuite(t, mode.headless)
+				// Wait for initialization
 
-		ctx, cancel := context.WithTimeout(suite.Context, 5*time.Second)
-		defer cancel()
+				time.Sleep(2 * time.Second)
 
-		// Ensure the file is open
-		filePath := filepath.Join(suite.WorkspaceDir, "clean.go")
-		err := suite.Client.OpenFile(ctx, filePath)
-		if err != nil {
-			t.Fatalf("Failed to open clean.go: %v", err)
-		}
+				ctx, cancel := context.WithTimeout(suite.Context, 5*time.Second)
+				defer cancel()
 
-		// Request to rename a symbol at a position where no symbol exists
-		// The clean.go file doesn't have content at this position
-		_, err = tools.RenameSymbol(ctx, suite.Client, filePath, 10, 10, "NewName")
+				// Ensure the file is open
+				filePath := filepath.Join(suite.WorkspaceDir, "clean.go")
+				err := suite.Client.OpenFile(ctx, filePath)
+				if err != nil {
+					t.Fatalf("Failed to open clean.go: %v", err)
+				}
 
-		// Expect an error because there's no symbol at that position
-		if err == nil {
-			t.Errorf("Expected an error when renaming non-existent symbol, but got success")
-		}
+				// Request to rename a symbol at a position where no symbol exists
+				// The clean.go file doesn't have content at this position
+				_, err = tools.RenameSymbol(ctx, suite.Client, filePath, 10, 10, "NewName")
 
-		// Save the error message for the snapshot
-		errorMessage := err.Error()
+				// Expect an error because there's no symbol at that position
+				if err == nil {
+					t.Errorf("Expected an error when renaming non-existent symbol, but got success")
+				}
 
-		// Verify it mentions failing to rename
-		if !strings.Contains(errorMessage, "failed to rename") {
-			t.Errorf("Expected error message about failed rename but got: %s", errorMessage)
-		}
+				// Save the error message for the snapshot
+				errorMessage := err.Error()
 
-		common.SnapshotTest(t, "go", "rename_symbol", "not_found", errorMessage)
-	})
+				// Verify it mentions failing to rename
+				if !strings.Contains(errorMessage, "failed to rename") && !strings.Contains(errorMessage, "column is beyond") {
+					t.Errorf("Expected error message about failed rename but got: %s", errorMessage)
+				}
+
+				common.SnapshotTest(t, "go", "rename_symbol", "not_found", errorMessage)
+			})
+		})
+	}
 }

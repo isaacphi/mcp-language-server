@@ -12,13 +12,8 @@ import (
 )
 
 // TestFindReferences tests the FindReferences tool with Go symbols
-// that have references across different files
+// that have references across different files. Runs in both subprocess and headless (listen-mode) modes.
 func TestFindReferences(t *testing.T) {
-	suite := internal.GetTestSuite(t)
-
-	ctx, cancel := context.WithTimeout(suite.Context, 10*time.Second)
-	defer cancel()
-
 	tests := []struct {
 		name          string
 		symbolName    string
@@ -91,28 +86,36 @@ func TestFindReferences(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// Call the FindReferences tool
-			result, err := tools.FindReferences(ctx, suite.Client, tc.symbolName)
-			if err != nil {
-				t.Fatalf("Failed to find references: %v", err)
-			}
+	for _, mode := range []struct {
+		name     string
+		headless bool
+	}{{"Subprocess", false}, {"Headless", true}} {
+		t.Run(mode.name, func(t *testing.T) {
+			suite := internal.GetTestSuite(t, mode.headless)
+			ctx, cancel := context.WithTimeout(suite.Context, 10*time.Second)
+			defer cancel()
 
-			// Check that the result contains relevant information
-			if !strings.Contains(result, tc.expectedText) {
-				t.Errorf("References do not contain expected text: %s", tc.expectedText)
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					// Call the FindReferences tool
+					result, err := tools.FindReferences(ctx, suite.Client, tc.symbolName)
+					if err != nil {
+						t.Fatalf("Failed to find references: %v", err)
+					}
+					// Check that the result contains relevant information
+					if !strings.Contains(result, tc.expectedText) {
+						t.Errorf("References do not contain expected text: %s", tc.expectedText)
+					}
+					// Count how many different files are mentioned in the result
+					fileCount := countFilesInResult(result)
+					if fileCount < tc.expectedFiles {
+						t.Errorf("Expected references in at least %d files, but found in %d files",
+							tc.expectedFiles, fileCount)
+					}
+					// Use snapshot testing to verify exact output
+					common.SnapshotTest(t, "go", "references", tc.snapshotName, result)
+				})
 			}
-
-			// Count how many different files are mentioned in the result
-			fileCount := countFilesInResult(result)
-			if fileCount < tc.expectedFiles {
-				t.Errorf("Expected references in at least %d files, but found in %d files",
-					tc.expectedFiles, fileCount)
-			}
-
-			// Use snapshot testing to verify exact output
-			common.SnapshotTest(t, "go", "references", tc.snapshotName, result)
 		})
 	}
 }

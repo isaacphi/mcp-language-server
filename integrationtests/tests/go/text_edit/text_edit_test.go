@@ -12,17 +12,9 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/tools"
 )
 
-// TestApplyTextEdits tests the ApplyTextEdits tool with various edit scenarios
+// TestApplyTextEdits tests the ApplyTextEdits tool with various edit scenarios.
+// Runs in both subprocess and headless (listen-mode) modes.
 func TestApplyTextEdits(t *testing.T) {
-	suite := internal.GetTestSuite(t)
-
-	ctx, cancel := context.WithTimeout(suite.Context, 10*time.Second)
-	defer cancel()
-
-	// Create a test file with known content we can edit
-	testFileName := "edit_test.go"
-	testFilePath := filepath.Join(suite.WorkspaceDir, testFileName)
-
 	initialContent := `package main
 
 import "fmt"
@@ -40,12 +32,6 @@ func AnotherFunction() {
 	fmt.Println("That we can modify")
 }
 `
-
-	// Write the test file using the suite's method to ensure proper handling
-	err := suite.WriteFile(testFileName, initialContent)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
 
 	tests := []struct {
 		name          string
@@ -163,55 +149,67 @@ func AnotherFunction() {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, mode := range []struct {
+		name     string
+		headless bool
+	}{{"Subprocess", false}, {"Headless", true}} {
+
+		t.Run(mode.name, func(t *testing.T) {
+			suite := internal.GetTestSuite(t, mode.headless)
+			ctx, cancel := context.WithTimeout(suite.Context, 10*time.Second)
+			defer cancel()
+
+			testFileName := "edit_test.go"
+			testFilePath := filepath.Join(suite.WorkspaceDir, testFileName)
+
 			// Reset the file before each test
 			err := suite.WriteFile(testFileName, initialContent)
 			if err != nil {
-				t.Fatalf("Failed to reset test file: %v", err)
+				t.Fatalf("Failed to create test file: %v", err)
 			}
 
-			// Call the ApplyTextEdits tool with the non-URL file path
-			result, err := tools.ApplyTextEdits(ctx, suite.Client, testFilePath, tc.edits)
-			if err != nil {
-				t.Fatalf("Failed to apply text edits: %v", err)
-			}
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					err := suite.WriteFile(testFileName, initialContent)
+					if err != nil {
+						t.Fatalf("Failed to reset test file: %v", err)
+					}
 
-			// Verify the result message
-			if !strings.Contains(result, "Successfully applied text edits") {
-				t.Errorf("Result does not contain success message: %s", result)
-			}
+					// Call the ApplyTextEdits tool with the non-URL file path
+					result, err := tools.ApplyTextEdits(ctx, suite.Client, testFilePath, tc.edits)
+					if err != nil {
+						t.Fatalf("Failed to apply text edits: %v", err)
+					}
 
-			// Read the file content after edits
-			content, err := suite.ReadFile(testFileName)
-			if err != nil {
-				t.Fatalf("Failed to read test file after edits: %v", err)
-			}
+					// Verify the result message
+					if !strings.Contains(result, "Successfully applied text edits") {
+						t.Errorf("Result does not contain success message: %s", result)
+					}
 
-			// Run all verification functions
-			for _, verify := range tc.verifications {
-				verify(t, content)
-			}
+					// Read the file content after edits
+					content, err := suite.ReadFile(testFileName)
+					if err != nil {
+						t.Fatalf("Failed to read test file after edits: %v", err)
+					}
 
-			// Use snapshot testing to verify the exact result
-			snapshotName := strings.ToLower(strings.ReplaceAll(tc.name, " ", "_"))
-			common.SnapshotTest(t, "go", "text_edit", snapshotName, result)
+					// Run all verification functions
+					for _, verify := range tc.verifications {
+						verify(t, content)
+					}
+
+					// Use snapshot testing to verify the exact result
+					snapshotName := strings.ToLower(strings.ReplaceAll(tc.name, " ", "_"))
+					common.SnapshotTest(t, "go", "text_edit", snapshotName, result)
+				})
+			}
 		})
 	}
 }
 
-// TestApplyTextEditsWithBorderCases tests edge cases for the ApplyTextEdits tool
+// TestApplyTextEditsWithBorderCases tests edge cases for the ApplyTextEdits tool.
+// Runs in both subprocess and headless (listen-mode) modes.
 func TestApplyTextEditsWithBorderCases(t *testing.T) {
-	suite := internal.GetTestSuite(t)
-
-	ctx, cancel := context.WithTimeout(suite.Context, 10*time.Second)
-	defer cancel()
-
-	// Create a test file with known content we can edit
-	testFileName := "edge_case_test.go"
-	testFilePath := filepath.Join(suite.WorkspaceDir, testFileName)
-
-	initialContent := `package main
+	borderCasesContent := `package main
 
 import "fmt"
 
@@ -227,12 +225,6 @@ func LastFunction() {
 	fmt.Println("Last function")
 }
 `
-
-	// Write the test file using the suite's method
-	err := suite.WriteFile(testFileName, initialContent)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
 
 	tests := []struct {
 		name          string
@@ -311,39 +303,58 @@ func NewFunction() {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, mode := range []struct {
+		name     string
+		headless bool
+	}{{"Subprocess", false}, {"Headless", true}} {
+		t.Run(mode.name, func(t *testing.T) {
+			suite := internal.GetTestSuite(t, mode.headless)
+			ctx, cancel := context.WithTimeout(suite.Context, 10*time.Second)
+			defer cancel()
+
+			testFileName := "edge_case_test.go"
+			testFilePath := filepath.Join(suite.WorkspaceDir, testFileName)
+
 			// Reset the file before each test
-			err := suite.WriteFile(testFileName, initialContent)
+			err := suite.WriteFile(testFileName, borderCasesContent)
 			if err != nil {
-				t.Fatalf("Failed to reset test file: %v", err)
+				t.Fatalf("Failed to create test file: %v", err)
 			}
 
-			// Call the ApplyTextEdits tool
-			result, err := tools.ApplyTextEdits(ctx, suite.Client, testFilePath, tc.edits)
-			if err != nil {
-				t.Fatalf("Failed to apply text edits: %v", err)
-			}
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					err := suite.WriteFile(testFileName, borderCasesContent)
+					if err != nil {
+						t.Fatalf("Failed to reset test file: %v", err)
+					}
 
-			// Verify the result message
-			if !strings.Contains(result, "Successfully applied text edits") {
-				t.Errorf("Result does not contain success message: %s", result)
-			}
+					// Call the ApplyTextEdits tool
+					result, err := tools.ApplyTextEdits(ctx, suite.Client, testFilePath, tc.edits)
+					if err != nil {
+						t.Fatalf("Failed to apply text edits: %v", err)
+					}
 
-			// Read the file content after edits
-			content, err := suite.ReadFile(testFileName)
-			if err != nil {
-				t.Fatalf("Failed to read test file after edits: %v", err)
-			}
+					// Verify the result message
+					if !strings.Contains(result, "Successfully applied text edits") {
+						t.Errorf("Result does not contain success message: %s", result)
+					}
 
-			// Run all verification functions
-			for _, verify := range tc.verifications {
-				verify(t, content)
-			}
+					// Read the file content after edits
+					content, err := suite.ReadFile(testFileName)
+					if err != nil {
+						t.Fatalf("Failed to read test file after edits: %v", err)
+					}
 
-			// Use snapshot testing to verify the exact result
-			snapshotName := strings.ToLower(strings.ReplaceAll(tc.name, " ", "_"))
-			common.SnapshotTest(t, "go", "text_edit", snapshotName, result)
+					// Run all verification functions
+					for _, verify := range tc.verifications {
+						verify(t, content)
+					}
+
+					// Use snapshot testing to verify the exact result
+					snapshotName := strings.ToLower(strings.ReplaceAll(tc.name, " ", "_"))
+					common.SnapshotTest(t, "go", "text_edit", snapshotName, result)
+				})
+			}
 		})
 	}
 }

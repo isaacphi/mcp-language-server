@@ -24,6 +24,7 @@ type config struct {
 	workspaceDir string
 	lspCommand   string
 	lspArgs      []string
+	lspConnect   string // if set, connect to existing LSP at this address (e.g. localhost:6061) instead of starting a process
 }
 
 type mcpServer struct {
@@ -33,12 +34,14 @@ type mcpServer struct {
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	workspaceWatcher *watcher.WorkspaceWatcher
+	headless         bool // true when using -lsp-connect (do not send shutdown/exit on cleanup)
 }
 
 func parseConfig() (*config, error) {
 	cfg := &config{}
 	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory")
 	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (args should be passed after --)")
+	flag.StringVar(&cfg.lspConnect, "lsp-connect", "", "Connect to existing LSP at address (e.g. localhost:6061) instead of starting a process (for gopls use -listen=:PORT)")
 	flag.Parse()
 
 	// Get remaining args after -- as LSP arguments
@@ -59,13 +62,17 @@ func parseConfig() (*config, error) {
 		return nil, fmt.Errorf("workspace directory does not exist: %s", cfg.workspaceDir)
 	}
 
-	// Validate LSP command
-	if cfg.lspCommand == "" {
-		return nil, fmt.Errorf("LSP command is required")
+	// Either lsp-connect or lsp command is required
+	if cfg.lspConnect == "" && cfg.lspCommand == "" {
+		return nil, fmt.Errorf("either -lsp-connect or -lsp is required")
 	}
-
-	if _, err := exec.LookPath(cfg.lspCommand); err != nil {
-		return nil, fmt.Errorf("LSP command not found: %s", cfg.lspCommand)
+	if cfg.lspConnect != "" && cfg.lspCommand != "" {
+		return nil, fmt.Errorf("cannot use both -lsp-connect and -lsp")
+	}
+	if cfg.lspCommand != "" {
+		if _, err := exec.LookPath(cfg.lspCommand); err != nil {
+			return nil, fmt.Errorf("LSP command not found: %s", cfg.lspCommand)
+		}
 	}
 
 	return cfg, nil
@@ -85,12 +92,26 @@ func (s *mcpServer) initializeLSP() error {
 		return fmt.Errorf("failed to change to workspace directory: %v", err)
 	}
 
-	client, err := lsp.NewClient(s.config.lspCommand, s.config.lspArgs...)
-	if err != nil {
-		return fmt.Errorf("failed to create LSP client: %v", err)
+	var client *lsp.Client
+	var err error
+	if s.config.lspConnect != "" {
+		s.headless = true
+		client, err = lsp.NewClientHeadless(s.config.lspConnect)
+		if err != nil {
+			return fmt.Errorf("failed to connect to LSP at %s: %v", s.config.lspConnect, err)
+		}
+	} else {
+		client, err = lsp.NewClient(s.config.lspCommand, s.config.lspArgs...)
+		if err != nil {
+			return fmt.Errorf("failed to create LSP client: %v", err)
+		}
 	}
 	s.lspClient = client
-	s.workspaceWatcher = watcher.NewWorkspaceWatcher(client)
+
+	// In headless mode, disable file watchers to avoid background scanning and fsnotify
+	if !s.headless {
+		s.workspaceWatcher = watcher.NewWorkspaceWatcher(client)
+	}
 
 	initResult, err := client.InitializeLSPClient(s.ctx, s.config.workspaceDir)
 	if err != nil {
@@ -99,7 +120,9 @@ func (s *mcpServer) initializeLSP() error {
 
 	coreLogger.Debug("Server capabilities: %+v", initResult.Capabilities)
 
-	go s.workspaceWatcher.WatchWorkspace(s.ctx, s.config.workspaceDir)
+	if s.workspaceWatcher != nil {
+		go s.workspaceWatcher.WatchWorkspace(s.ctx, s.config.workspaceDir)
+	}
 	return client.WaitForServerReady(s.ctx)
 }
 
@@ -201,31 +224,33 @@ func cleanup(s *mcpServer, done chan struct{}) {
 		coreLogger.Info("Closing open files")
 		s.lspClient.CloseAllFiles(ctx)
 
-		// Create a shorter timeout context for the shutdown request
-		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 500*time.Millisecond)
-		defer shutdownCancel()
+		if !s.headless {
+			// Create a shorter timeout context for the shutdown request
+			shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+			defer shutdownCancel()
 
-		// Run shutdown in a goroutine with timeout to avoid blocking if LSP doesn't respond
-		shutdownDone := make(chan struct{})
-		go func() {
-			coreLogger.Info("Sending shutdown request")
-			if err := s.lspClient.Shutdown(shutdownCtx); err != nil {
-				coreLogger.Error("Shutdown request failed: %v", err)
+			// Run shutdown in a goroutine with timeout to avoid blocking if LSP doesn't respond
+			shutdownDone := make(chan struct{})
+			go func() {
+				coreLogger.Info("Sending shutdown request")
+				if err := s.lspClient.Shutdown(shutdownCtx); err != nil {
+					coreLogger.Error("Shutdown request failed: %v", err)
+				}
+				close(shutdownDone)
+			}()
+
+			// Wait for shutdown with timeout
+			select {
+			case <-shutdownDone:
+				coreLogger.Info("Shutdown request completed")
+			case <-time.After(1 * time.Second):
+				coreLogger.Warn("Shutdown request timed out, proceeding with exit")
 			}
-			close(shutdownDone)
-		}()
 
-		// Wait for shutdown with timeout
-		select {
-		case <-shutdownDone:
-			coreLogger.Info("Shutdown request completed")
-		case <-time.After(1 * time.Second):
-			coreLogger.Warn("Shutdown request timed out, proceeding with exit")
-		}
-
-		coreLogger.Info("Sending exit notification")
-		if err := s.lspClient.Exit(ctx); err != nil {
-			coreLogger.Error("Exit notification failed: %v", err)
+			coreLogger.Info("Sending exit notification")
+			if err := s.lspClient.Exit(ctx); err != nil {
+				coreLogger.Error("Exit notification failed: %v", err)
+			}
 		}
 
 		coreLogger.Info("Closing LSP client")

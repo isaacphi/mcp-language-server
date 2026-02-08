@@ -121,6 +121,10 @@ func (w *WorkspaceWatcher) AddRegistrations(ctx context.Context, id string, watc
 			if err != nil {
 				return err
 			}
+			// Abort scan when context is cancelled so the watcher can exit and the process can terminate
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 
 			// Skip directories that should be excluded
 			if d.IsDir() {
@@ -156,6 +160,11 @@ func (w *WorkspaceWatcher) AddRegistrations(ctx context.Context, id string, watc
 // WatchWorkspace sets up file watching for a workspace
 func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath string) {
 	w.workspacePath = workspacePath
+
+	// Unregister the file watch handler when this watcher exits so the LSP
+	// package does not call into a stopped watcher (avoids hangs/panics in tests
+	// and when running headless without a watcher).
+	defer lsp.RegisterFileWatchHandler(nil)
 
 	// Initialize gitignore matcher
 	gitignore, err := NewGitignoreMatcher(workspacePath)

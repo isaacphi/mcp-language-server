@@ -1,5 +1,5 @@
 ```go
-type SharedStruct struct { // size=56 (0x38)
+type SharedStruct struct { // size=56 (0x38), class=64 (0x40)
 	ID        int
 	Name      string
 	Value     float64

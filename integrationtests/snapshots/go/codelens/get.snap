@@ -5,35 +5,48 @@
     Command: gopls.reset_go_mod_diagnostics
     Arguments:
 /TEST_OUTPUT/workspace/go.mod","DiagnosticSource":""}
+{"source":"codelens"}
 
 [2] Location: Lines 1-1
+    Title: Run govulncheck
+    Command: gopls.run_govulncheck
+    Arguments:
+/TEST_OUTPUT/workspace/go.mod","Pattern":"./..."}
+{"source":"codelens"}
+
+[3] Location: Lines 1-1
     Title: Run go mod tidy
     Command: gopls.tidy
     Arguments:
 /TEST_OUTPUT/workspace/go.mod"]}
+{"source":"codelens"}
 
-[3] Location: Lines 1-1
+[4] Location: Lines 1-1
     Title: Create vendor directory
     Command: gopls.vendor
     Arguments:
 /TEST_OUTPUT/workspace/go.mod"}
+{"source":"codelens"}
 
-[4] Location: Lines 5-5
+[5] Location: Lines 5-5
     Title: Check for upgrades
     Command: gopls.check_upgrades
     Arguments:
 /TEST_OUTPUT/workspace/go.mod","Modules":["github.com/stretchr/testify"]}
+{"source":"codelens"}
 
-[5] Location: Lines 5-5
+[6] Location: Lines 5-5
     Title: Upgrade transitive dependencies
     Command: gopls.upgrade_dependency
     Arguments:
 /TEST_OUTPUT/workspace/go.mod","GoCmdArgs":["-d","-u","-t","./..."],"AddRequire":false}
+{"source":"codelens"}
 
-[6] Location: Lines 5-5
+[7] Location: Lines 5-5
     Title: Upgrade direct dependencies
     Command: gopls.upgrade_dependency
     Arguments:
 /TEST_OUTPUT/workspace/go.mod","GoCmdArgs":["-d","github.com/stretchr/testify"],"AddRequire":false}
+{"source":"codelens"}
 
-Found 6 code lens items.
+Found 7 code lens items.

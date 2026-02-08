@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -18,11 +21,13 @@ import (
 
 // LSPTestConfig defines configuration for a language server test
 type LSPTestConfig struct {
-	Name             string   // Name of the language server
-	Command          string   // Command to run
-	Args             []string // Arguments
-	WorkspaceDir     string   // Template workspace directory
-	InitializeTimeMs int      // Time to wait after initialization in ms
+	Name              string   // Name of the language server
+	Command           string   // Command to run (ignored if ConnectAddr is set)
+	Args              []string // Arguments (ignored if ConnectAddr is set)
+	ConnectAddr       string   // If set, connect to existing LSP at this address (headless) instead of starting Command
+	HeadlessListenArg string   // If set, start LSP with this listen arg (e.g. "-listen=127.0.0.1:6061") and connect via NewClientHeadless
+	WorkspaceDir      string   // Template workspace directory
+	InitializeTimeMs  int      // Time to wait after initialization in ms
 }
 
 // TestSuite contains everything needed for running integration tests
@@ -39,6 +44,8 @@ type TestSuite struct {
 	logFile      string
 	t            *testing.T
 	LanguageName string
+	headless     bool      // true when using ConnectAddr or HeadlessListenArg (affects cleanup)
+	headlessCmd  *exec.Cmd // when we start LSP in listen mode, the process we started (for cleanup)
 }
 
 // NewTestSuite creates a new test suite for the given language server
@@ -52,6 +59,45 @@ func NewTestSuite(t *testing.T, config LSPTestConfig) *TestSuite {
 		t:            t,
 		LanguageName: config.Name,
 	}
+}
+
+// startLSPInListenMode reserves a port, starts the LSP with the same Command/Args plus
+// HeadlessListenArg (with %d replaced by the port), and waits until the server accepts connections.
+// Caller must connect with NewClientHeadless(addr) and is responsible for killing the process on cleanup.
+func (ts *TestSuite) startLSPInListenMode() (addr string, cmd *exec.Cmd, err error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to reserve port: %w", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	if err := listener.Close(); err != nil {
+		return "", nil, fmt.Errorf("failed to close listener: %w", err)
+	}
+	addr = "127.0.0.1:" + strconv.Itoa(port)
+	listenArg := fmt.Sprintf(ts.Config.HeadlessListenArg, port)
+	fullArgs := append(append([]string{}, ts.Config.Args...), listenArg)
+	cmd = exec.Command(ts.Config.Command, fullArgs...)
+	cmd.Env = os.Environ()
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	if err := cmd.Start(); err != nil {
+		return "", nil, fmt.Errorf("failed to start LSP: %w", err)
+	}
+	// Wait for server to accept connections (retry with backoff)
+	const maxWait = 15 * time.Second
+	deadline := time.Now().Add(maxWait)
+	for time.Now().Before(deadline) {
+		conn, dialErr := net.DialTimeout("tcp", addr, 500*time.Millisecond)
+		if dialErr == nil {
+			conn.Close()
+			return addr, cmd, nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if cmd.Process != nil {
+		_ = cmd.Process.Kill()
+	}
+	return "", nil, fmt.Errorf("LSP at %s did not accept connections within %v", addr, maxWait)
 }
 
 // Setup initializes the test suite, copies the workspace, and starts the LSP
@@ -156,12 +202,35 @@ func (ts *TestSuite) Setup() error {
 	ts.t.Logf("Copied workspace from %s to %s", ts.Config.WorkspaceDir, workspaceDir)
 
 	// Create and initialize LSP client
-	client, err := lsp.NewClient(ts.Config.Command, ts.Config.Args...)
-	if err != nil {
-		return fmt.Errorf("failed to create LSP client: %w", err)
+	var client *lsp.Client
+	if ts.Config.HeadlessListenArg != "" {
+		// Start LSP in listen mode (same Command/Args as NewClient), then connect via NewClientHeadless
+		addr, cmd, err := ts.startLSPInListenMode()
+		if err != nil {
+			return err
+		}
+		ts.headlessCmd = cmd
+		ts.headless = true
+		client, err = lsp.NewClientHeadless(addr)
+		if err != nil {
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+			return fmt.Errorf("failed to connect to LSP at %s: %w", addr, err)
+		}
+		ts.Client = client
+		ts.t.Logf("Started LSP in listen mode and connected at %s", addr)
+	} else if ts.Config.ConnectAddr != "" {
+		return fmt.Errorf("headless via ConnectAddr is disabled; use HeadlessListenArg to run headless (start LSP in listen mode and connect)")
+	} else {
+		var err error
+		client, err = lsp.NewClient(ts.Config.Command, ts.Config.Args...)
+		if err != nil {
+			return fmt.Errorf("failed to create LSP client: %w", err)
+		}
+		ts.Client = client
+		ts.t.Logf("Started LSP: %s %v", ts.Config.Command, ts.Config.Args)
 	}
-	ts.Client = client
-	ts.t.Logf("Started LSP: %s %v", ts.Config.Command, ts.Config.Args)
 
 	// Initialize LSP and set up file watcher
 	initResult, err := client.InitializeLSPClient(ts.Context, workspaceDir)
@@ -197,25 +266,50 @@ func (ts *TestSuite) Cleanup() {
 		// Cancel context to stop watchers
 		ts.Cancel()
 
-		// Shutdown LSP
+		// Shutdown LSP: for subprocess we shutdown+exit+close; for headless we only close unless we started the process
 		if ts.Client != nil {
-			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+			if !ts.headless {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
 
-			ts.t.Logf("Shutting down LSP client")
-			err := ts.Client.Shutdown(shutdownCtx)
-			if err != nil {
-				ts.t.Logf("Shutdown failed: %v", err)
+				ts.t.Logf("Shutting down LSP client")
+				if err := ts.Client.Shutdown(shutdownCtx); err != nil {
+					ts.t.Logf("Shutdown failed: %v", err)
+				}
+				if err := ts.Client.Exit(shutdownCtx); err != nil {
+					ts.t.Logf("Exit failed: %v", err)
+				}
+			} else if ts.headlessCmd != nil {
+				// We started the LSP in listen mode; send shutdown/exit so it exits gracefully
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				ts.t.Logf("Shutting down LSP client (headless subprocess)")
+				if err := ts.Client.Shutdown(shutdownCtx); err != nil {
+					ts.t.Logf("Shutdown failed: %v", err)
+				}
+				if err := ts.Client.Exit(shutdownCtx); err != nil {
+					ts.t.Logf("Exit failed: %v", err)
+				}
 			}
-
-			err = ts.Client.Exit(shutdownCtx)
-			if err != nil {
-				ts.t.Logf("Exit failed: %v", err)
-			}
-
-			err = ts.Client.Close()
-			if err != nil {
+			if err := ts.Client.Close(); err != nil {
 				ts.t.Logf("Close failed: %v", err)
+			}
+		}
+		if ts.headlessCmd != nil {
+			done := make(chan struct{})
+			go func() {
+				_ = ts.headlessCmd.Wait()
+				close(done)
+			}()
+			select {
+			case <-done:
+				// process exited
+			case <-time.After(3 * time.Second):
+				if ts.headlessCmd.Process != nil {
+					ts.t.Logf("Killing LSP process after timeout")
+					_ = ts.headlessCmd.Process.Kill()
+					_ = ts.headlessCmd.Wait()
+				}
 			}
 		}
 
