@@ -1,5 +1,19 @@
 ---
 
+/TEST_OUTPUT/workspace/src/main.cpp
+References in File: 1
+At: L11:C3
+
+10|int main() {
+11|  helperFunction();
+12|  return 0;
+13|
+14|  foo_bar();
+15|
+16|  // Intentional error: unreachable code
+
+---
+
 /TEST_OUTPUT/workspace/clangd/src/consumer.cpp
 References in File: 1
 At: L14:C28
