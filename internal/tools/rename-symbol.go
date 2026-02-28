@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -14,26 +15,26 @@ import (
 // RenameSymbol renames a symbol (variable, function, class, etc.) at the specified position
 // It uses the LSP rename functionality to handle all references across files
 func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line, column int, newName string) (string, error) {
-	// Open the file if not already open
-	err := client.OpenFile(ctx, filePath)
+	// Use the same canonical path as OpenFile so the rename request URI matches
+	// the document opened in didOpen (clangd returns "onRename called for non-added file" otherwise).
+	absPath, err := filepath.Abs(filePath)
 	if err != nil {
+		return "", fmt.Errorf("could not resolve path: %v", err)
+	}
+
+	if err := client.OpenFile(ctx, absPath); err != nil {
 		return "", fmt.Errorf("could not open file: %v", err)
 	}
 
-	// Convert 1-indexed line/column to 0-indexed for LSP protocol
-	uri := protocol.DocumentUri("file://" + filePath)
-	position := protocol.Position{
-		Line:      uint32(line - 1),
-		Character: uint32(column - 1),
-	}
+	uri := protocol.URIFromPath(absPath)
 
-	// Create the rename parameters
 	params := protocol.RenameParams{
-		TextDocument: protocol.TextDocumentIdentifier{
-			URI: uri,
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+		Position: protocol.Position{
+			Line:      uint32(line - 1),
+			Character: uint32(column - 1),
 		},
-		Position: position,
-		NewName:  newName,
+		NewName: newName,
 	}
 
 	// Skip the PrepareRename check as it might not be supported by all language servers
