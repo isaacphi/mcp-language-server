@@ -96,22 +96,46 @@ func (s *mcpServer) registerTools() error {
 	})
 
 	readDefinitionTool := mcp.NewTool("definition",
-		mcp.WithDescription("Read the source code definition of a symbol (function, type, constant, etc.) from the codebase. Returns the complete implementation code where the symbol is defined."),
+		mcp.WithDescription("Read the source code definition of a symbol (function, type, constant, etc.) from the codebase. Returns the complete implementation code where the symbol is defined. For clangd (C/C++), prefer providing filePath, line, and character so the definition is resolved at that position; workspace/symbol often returns nothing until the project is indexed."),
 		mcp.WithString("symbolName",
 			mcp.Required(),
 			mcp.Description("The name of the symbol whose definition you want to find (e.g. 'mypackage.MyFunction', 'MyType.MyMethod')"),
 		),
+		mcp.WithString("filePath",
+			mcp.Description("Optional: path to the file where the symbol is used or declared. Preferred for clangd. If provided with line and character, definition is resolved at that position (avoids empty results when the file is not indexed)."),
+		),
+		mcp.WithNumber("line",
+			mcp.Description("Optional: 1-based line number of the symbol. Use with filePath and character for position-based definition lookup."),
+		),
+		mcp.WithNumber("character",
+			mcp.Description("Optional: 1-based character/column of the symbol. Use with filePath and line for position-based definition lookup."),
+		),
 	)
 
 	s.mcpServer.AddTool(readDefinitionTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Extract arguments
 		symbolName, ok := request.Params.Arguments["symbolName"].(string)
 		if !ok {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
+		var position *tools.DefPosition
+		if fp, hasPath := request.Params.Arguments["filePath"].(string); hasPath && fp != "" {
+			line, _ := request.Params.Arguments["line"].(float64)
+			char, _ := request.Params.Arguments["character"].(float64)
+			if line >= 1 {
+				position = &tools.DefPosition{
+					FilePath:  fp,
+					Line:     int(line),
+					Character: int(char),
+				}
+				if position.Character < 1 {
+					position.Character = 1
+				}
+			}
+		}
+
 		coreLogger.Debug("Executing definition for symbol: %s", symbolName)
-		text, err := tools.ReadDefinition(s.ctx, s.lspClient, symbolName)
+		text, err := tools.ReadDefinition(s.ctx, s.lspClient, symbolName, position)
 		if err != nil {
 			coreLogger.Error("Failed to get definition: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get definition: %v", err)), nil
@@ -149,7 +173,7 @@ func (s *mcpServer) registerTools() error {
 			if line >= 1 {
 				position = &tools.RefPosition{
 					FilePath:  fp,
-					Line:     int(line),
+					Line:      int(line),
 					Character: int(char),
 				}
 				if position.Character < 1 {

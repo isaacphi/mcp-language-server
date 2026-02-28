@@ -94,7 +94,7 @@ func TestReadDefinition(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Call the ReadDefinition tool
-			result, err := tools.ReadDefinition(ctx, suite.Client, tc.symbolName)
+			result, err := tools.ReadDefinition(ctx, suite.Client, tc.symbolName, nil)
 			if err != nil {
 				t.Fatalf("Failed to read definition: %v", err)
 			}
@@ -154,7 +154,7 @@ func TestReadDefinitionInAnotherFile(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Call the ReadDefinition tool
-			result, err := tools.ReadDefinition(ctx, suite.Client, tc.symbolName)
+			result, err := tools.ReadDefinition(ctx, suite.Client, tc.symbolName, nil)
 			if err != nil {
 				t.Fatalf("Failed to read definition: %v", err)
 			}

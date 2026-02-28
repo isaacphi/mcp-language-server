@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -286,8 +287,16 @@ type OpenFileInfo struct {
 	URI     protocol.DocumentUri
 }
 
-func (c *Client) OpenFile(ctx context.Context, filepath string) error {
-	uri := fmt.Sprintf("file://%s", filepath)
+func (c *Client) OpenFile(ctx context.Context, path string) error {
+	// Use the same canonical path (absolute, slash form) as protocol.URIFromPath so
+	// that didOpen URI matches the URI used in definition/references requests (clangd
+	// returns "trying to get AST for non-added document" when URIs differ).
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("error resolving path: %w", err)
+	}
+	path = filepath.ToSlash(abs)
+	uri := fmt.Sprintf("file://%s", path)
 
 	c.openFilesMu.Lock()
 	if _, exists := c.openFiles[uri]; exists {
@@ -296,8 +305,8 @@ func (c *Client) OpenFile(ctx context.Context, filepath string) error {
 	}
 	c.openFilesMu.Unlock()
 
-	// Skip files that do not exist or cannot be read
-	content, err := os.ReadFile(filepath)
+	// Read using the original path so relative paths still resolve relative to cwd
+	content, err := os.ReadFile(abs)
 	if err != nil {
 		return fmt.Errorf("error reading file: %w", err)
 	}
@@ -322,7 +331,7 @@ func (c *Client) OpenFile(ctx context.Context, filepath string) error {
 	}
 	c.openFilesMu.Unlock()
 
-	lspLogger.Debug("Opened file: %s", filepath)
+	lspLogger.Debug("Opened file: %s", path)
 
 	return nil
 }
