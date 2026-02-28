@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -12,7 +13,10 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
-// GetDiagnosticsForFile retrieves diagnostics for a specific file from the language server
+// GetDiagnosticsForFile retrieves diagnostics for a specific file from the language server.
+// Diagnostics are read from the cache populated by textDocument/publishDiagnostics after
+// opening the file. textDocument/diagnostic (LSP 3.17 pull) is not used because many
+// servers (e.g. clangd) do not support it.
 func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath string, contextLines int, showLineNumbers bool) (string, error) {
 	// Override with environment variable if specified
 	if envLines := os.Getenv("LSP_CONTEXT_LINES"); envLines != "" {
@@ -21,37 +25,33 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 		}
 	}
 
-	err := client.OpenFile(ctx, filePath)
+	// Use the same canonical path as OpenFile so the cache key (URI) matches
+	// the URI used in textDocument/didOpen and in publishDiagnostics.
+	absPath, err := filepath.Abs(filePath)
+	if err != nil {
+		return "", fmt.Errorf("could not resolve path: %v", err)
+	}
+
+	err = client.OpenFile(ctx, absPath)
 	if err != nil {
 		return "", fmt.Errorf("could not open file: %v", err)
 	}
 
-	// Wait for diagnostics
-	// TODO: wait for notification
+	// Wait for server to send textDocument/publishDiagnostics after didOpen
 	time.Sleep(time.Second * 3)
 
-	// Convert the file path to URI format
-	uri := protocol.DocumentUri("file://" + filePath)
+	uri := protocol.URIFromPath(absPath)
 
-	// Request fresh diagnostics
-	diagParams := protocol.DocumentDiagnosticParams{
-		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
-	}
-	_, err = client.Diagnostic(ctx, diagParams)
-	if err != nil {
-		toolsLogger.Error("Failed to get diagnostics: %v", err)
-	}
-
-	// Get diagnostics from the cache
+	// Get diagnostics from the cache (populated by publishDiagnostics when we opened the file)
 	diagnostics := client.GetFileDiagnostics(uri)
 
 	if len(diagnostics) == 0 {
-		return "No diagnostics found for " + filePath, nil
+		return "No diagnostics found for " + absPath, nil
 	}
 
 	// Format file header
 	fileInfo := fmt.Sprintf("%s\nDiagnostics in File: %d\n",
-		filePath,
+		absPath,
 		len(diagnostics),
 	)
 
@@ -91,7 +91,7 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 	}
 
 	// Format content with context
-	fileContent, err := os.ReadFile(filePath)
+	fileContent, err := os.ReadFile(absPath)
 	if err != nil {
 		return fileInfo + "\nError reading file: " + err.Error(), nil
 	}
