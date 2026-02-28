@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
@@ -11,24 +12,28 @@ import (
 
 // GetHoverInfo retrieves hover information (type, documentation) for a symbol at the specified position
 func GetHoverInfo(ctx context.Context, client *lsp.Client, filePath string, line, column int) (string, error) {
-	// Open the file if not already open
-	err := client.OpenFile(ctx, filePath)
+	// Use the same canonical path as OpenFile so the hover request URI matches
+	// the document opened in didOpen (clangd returns "non-added document" otherwise).
+	absPath, err := filepath.Abs(filePath)
 	if err != nil {
+		return "", fmt.Errorf("could not resolve path: %v", err)
+	}
+
+	if err := client.OpenFile(ctx, absPath); err != nil {
 		return "", fmt.Errorf("could not open file: %v", err)
 	}
 
-	params := protocol.HoverParams{}
+	uri := protocol.URIFromPath(absPath)
 
-	// Convert 1-indexed line/column to 0-indexed for LSP protocol
-	position := protocol.Position{
-		Line:      uint32(line - 1),
-		Character: uint32(column - 1),
+	params := protocol.HoverParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			Position: protocol.Position{
+				Line:      uint32(line - 1),
+				Character: uint32(column - 1),
+			},
+		},
 	}
-	uri := protocol.DocumentUri("file://" + filePath)
-	params.TextDocument = protocol.TextDocumentIdentifier{
-		URI: uri,
-	}
-	params.Position = position
 
 	// Execute the hover request
 	hoverResult, err := client.Hover(ctx, params)
@@ -45,11 +50,11 @@ func GetHoverInfo(ctx context.Context, client *lsp.Client, filePath string, line
 			URI: uri,
 			Range: protocol.Range{
 				Start: protocol.Position{
-					Line:      position.Line,
+					Line:      params.Position.Line,
 					Character: 0,
 				},
 				End: protocol.Position{
-					Line:      position.Line + 1,
+					Line:      params.Position.Line + 1,
 					Character: 0,
 				},
 			},
