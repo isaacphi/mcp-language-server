@@ -120,22 +120,46 @@ func (s *mcpServer) registerTools() error {
 	})
 
 	findReferencesTool := mcp.NewTool("references",
-		mcp.WithDescription("Find all usages and references of a symbol throughout the codebase. Returns a list of all files and locations where the symbol appears."),
+		mcp.WithDescription("Find all usages and references of a symbol throughout the codebase. Returns a list of all files and locations where the symbol appears. For clangd (C/C++), prefer providing filePath, line, and character so references are found at that position; workspace search often returns nothing until the project is indexed."),
 		mcp.WithString("symbolName",
 			mcp.Required(),
 			mcp.Description("The name of the symbol to search for (e.g. 'mypackage.MyFunction', 'MyType')"),
 		),
+		mcp.WithString("filePath",
+			mcp.Description("Optional: path to the file where the symbol appears. Preferred for clangd. If provided with line and character, references are found at that position (avoids empty results when the file is not indexed)."),
+		),
+		mcp.WithNumber("line",
+			mcp.Description("Optional: 1-based line number of the symbol. Use with filePath and character for position-based reference search."),
+		),
+		mcp.WithNumber("character",
+			mcp.Description("Optional: 1-based character/column of the symbol. Use with filePath and line for position-based reference search."),
+		),
 	)
 
 	s.mcpServer.AddTool(findReferencesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Extract arguments
 		symbolName, ok := request.Params.Arguments["symbolName"].(string)
 		if !ok {
 			return mcp.NewToolResultError("symbolName must be a string"), nil
 		}
 
+		var position *tools.RefPosition
+		if fp, hasPath := request.Params.Arguments["filePath"].(string); hasPath && fp != "" {
+			line, _ := request.Params.Arguments["line"].(float64)
+			char, _ := request.Params.Arguments["character"].(float64)
+			if line >= 1 {
+				position = &tools.RefPosition{
+					FilePath:  fp,
+					Line:     int(line),
+					Character: int(char),
+				}
+				if position.Character < 1 {
+					position.Character = 1
+				}
+			}
+		}
+
 		coreLogger.Debug("Executing references for symbol: %s", symbolName)
-		text, err := tools.FindReferences(s.ctx, s.lspClient, symbolName)
+		text, err := tools.FindReferences(s.ctx, s.lspClient, symbolName, position)
 		if err != nil {
 			coreLogger.Error("Failed to find references: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to find references: %v", err)), nil
