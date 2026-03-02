@@ -19,10 +19,12 @@ type MockLSPClient struct {
 	mu             sync.Mutex
 	events         []FileEvent
 	openedFiles    map[string]bool
+	openCalls      int
 	openErrors     map[string]error
 	notifyErrors   map[string]error
 	changeErrors   map[string]error
 	eventsReceived chan struct{}
+	opensReceived  chan struct{}
 }
 
 // NewMockLSPClient creates a new mock LSP client for testing
@@ -34,6 +36,7 @@ func NewMockLSPClient() *MockLSPClient {
 		notifyErrors:   make(map[string]error),
 		changeErrors:   make(map[string]error),
 		eventsReceived: make(chan struct{}, 100), // Buffer to avoid blocking
+		opensReceived:  make(chan struct{}, 100), // Buffer to avoid blocking
 	}
 }
 
@@ -53,7 +56,16 @@ func (m *MockLSPClient) OpenFile(ctx context.Context, path string) error {
 		return err
 	}
 
+	m.openCalls++
 	m.openedFiles[path] = true
+
+	// Signal that an open happened
+	select {
+	case m.opensReceived <- struct{}{}:
+	default:
+		// Channel is full, but we don't want to block
+	}
+
 	return nil
 }
 
@@ -150,6 +162,32 @@ func (m *MockLSPClient) WaitForEvent(ctx context.Context) bool {
 		return true
 	case <-ctx.Done():
 		return false
+	}
+}
+
+// OpenCallCount returns how many times OpenFile has been called.
+func (m *MockLSPClient) OpenCallCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.openCalls
+}
+
+// WaitForOpenCalls waits until at least min OpenFile calls have been observed.
+func (m *MockLSPClient) WaitForOpenCalls(ctx context.Context, min int) bool {
+	for {
+		m.mu.Lock()
+		current := m.openCalls
+		m.mu.Unlock()
+
+		if current >= min {
+			return true
+		}
+
+		select {
+		case <-m.opensReceived:
+		case <-ctx.Done():
+			return false
+		}
 	}
 }
 

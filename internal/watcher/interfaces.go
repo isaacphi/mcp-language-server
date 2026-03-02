@@ -27,6 +27,12 @@ type WatcherConfig struct {
 	// DebounceTime is the duration to wait before sending file change events
 	DebounceTime time.Duration
 
+	// PreopenOnRegistration controls whether AddRegistrations should pre-open matching files.
+	PreopenOnRegistration bool
+
+	// PreopenMaxFiles limits file pre-opening per registration (0 = unlimited).
+	PreopenMaxFiles int
+
 	// ExcludedDirs are directory names that should be excluded from watching
 	ExcludedDirs map[string]bool
 
@@ -43,7 +49,9 @@ type WatcherConfig struct {
 // DefaultWatcherConfig returns a configuration with sensible defaults
 func DefaultWatcherConfig() *WatcherConfig {
 	return &WatcherConfig{
-		DebounceTime: 300 * time.Millisecond,
+		DebounceTime:          300 * time.Millisecond,
+		PreopenOnRegistration: true,
+		PreopenMaxFiles:       0,
 		ExcludedDirs: map[string]bool{
 			".git":         true,
 			"node_modules": true,

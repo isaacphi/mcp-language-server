@@ -433,3 +433,122 @@ func TestRapidChangesDebouncing(t *testing.T) {
 		}
 	})
 }
+
+func TestRegistrationPreopenControls(t *testing.T) {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		t.Skip("Skipping filesystem watcher tests in GitHub Actions environment")
+	}
+
+	t.Run("PreopenDisabledSkipsWorkspaceScan", func(t *testing.T) {
+		openCalls := runPreopenRegistrationScenario(t, func(config *watcher.WatcherConfig) {
+			config.PreopenOnRegistration = false
+			config.PreopenMaxFiles = 0
+		})
+
+		if openCalls != 0 {
+			t.Fatalf("expected 0 opened files with preopen disabled, got %d", openCalls)
+		}
+	})
+
+	t.Run("PreopenEnabledOpensMatchingFiles", func(t *testing.T) {
+		openCalls := runPreopenRegistrationScenario(t, func(config *watcher.WatcherConfig) {
+			config.PreopenOnRegistration = true
+			config.PreopenMaxFiles = 0
+		})
+
+		// Three .swift files should match the watcher pattern.
+		if openCalls != 3 {
+			t.Fatalf("expected 3 opened files with preopen enabled, got %d", openCalls)
+		}
+	})
+
+	t.Run("PreopenMaxFilesCapsOpenedFiles", func(t *testing.T) {
+		openCalls := runPreopenRegistrationScenario(t, func(config *watcher.WatcherConfig) {
+			config.PreopenOnRegistration = true
+			config.PreopenMaxFiles = 2
+		})
+
+		if openCalls != 2 {
+			t.Fatalf("expected opened files to be capped at 2, got %d", openCalls)
+		}
+	})
+}
+
+func runPreopenRegistrationScenario(t *testing.T, configure func(*watcher.WatcherConfig)) int {
+	t.Helper()
+
+	testDir, err := os.MkdirTemp("", "watcher-preopen-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(testDir); err != nil {
+			t.Logf("failed to remove test directory: %v", err)
+		}
+	}()
+
+	srcDir := filepath.Join(testDir, "src")
+	if err := os.MkdirAll(srcDir, 0755); err != nil {
+		t.Fatalf("failed to create src directory: %v", err)
+	}
+
+	matchingFiles := []string{
+		filepath.Join(srcDir, "Alpha.swift"),
+		filepath.Join(srcDir, "Beta.swift"),
+		filepath.Join(srcDir, "Gamma.swift"),
+	}
+	nonMatchingFiles := []string{
+		filepath.Join(srcDir, "Notes.txt"),
+	}
+
+	for _, path := range append(matchingFiles, nonMatchingFiles...) {
+		if err := os.WriteFile(path, []byte("test content"), 0644); err != nil {
+			t.Fatalf("failed to write test file %s: %v", path, err)
+		}
+	}
+
+	mockClient := NewMockLSPClient()
+	config := watcher.DefaultWatcherConfig()
+	config.DebounceTime = 50 * time.Millisecond
+	configure(config)
+
+	testWatcher := watcher.NewWorkspaceWatcherWithConfig(mockClient, config)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	go testWatcher.WatchWorkspace(ctx, testDir)
+	time.Sleep(400 * time.Millisecond)
+
+	watchers := []protocol.FileSystemWatcher{
+		{
+			GlobPattern: protocol.GlobPattern{Value: "**/*.swift"},
+			Kind: func() *protocol.WatchKind {
+				kind := protocol.WatchKind(protocol.WatchCreate | protocol.WatchChange | protocol.WatchDelete)
+				return &kind
+			}(),
+		},
+	}
+
+	testWatcher.AddRegistrations(ctx, "preopen-test", watchers)
+
+	expectedOpenCalls := 0
+	if config.PreopenOnRegistration {
+		expectedOpenCalls = len(matchingFiles)
+		if config.PreopenMaxFiles > 0 && config.PreopenMaxFiles < expectedOpenCalls {
+			expectedOpenCalls = config.PreopenMaxFiles
+		}
+	}
+
+	if expectedOpenCalls > 0 {
+		waitCtx, waitCancel := context.WithTimeout(ctx, 3*time.Second)
+		defer waitCancel()
+
+		if !mockClient.WaitForOpenCalls(waitCtx, expectedOpenCalls) {
+			t.Fatalf("timed out waiting for %d opened files, got %d", expectedOpenCalls, mockClient.OpenCallCount())
+		}
+	}
+
+	time.Sleep(200 * time.Millisecond)
+	return mockClient.OpenCallCount()
+}

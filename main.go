@@ -2,18 +2,26 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/isaacphi/mcp-language-server/internal/logging"
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/watcher"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -21,9 +29,12 @@ import (
 var coreLogger = logging.NewLogger(logging.Core)
 
 type config struct {
-	workspaceDir string
-	lspCommand   string
-	lspArgs      []string
+	workspaceDir             string
+	lspCommand               string
+	lspArgs                  []string
+	watcherPreopenOnRegister bool
+	watcherPreopenMaxFiles   int
+	idleTimeout              time.Duration
 }
 
 type mcpServer struct {
@@ -33,12 +44,22 @@ type mcpServer struct {
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	workspaceWatcher *watcher.WorkspaceWatcher
+	done             chan struct{}
+	shutdownOnce     sync.Once
+	lastActivityNs   atomic.Int64
 }
 
 func parseConfig() (*config, error) {
+	preopenDefault := getEnvBool(true, "WATCHER_PREOPEN_ON_REGISTER", "MCP_WATCHER_PREOPEN_ON_REGISTER")
+	preopenMaxDefault := getEnvInt(0, "WATCHER_PREOPEN_MAX_FILES", "MCP_WATCHER_PREOPEN_MAX_FILES")
+	idleTimeoutDefault := getEnvDuration(0, "IDLE_TIMEOUT", "MCP_IDLE_TIMEOUT")
+
 	cfg := &config{}
 	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory")
 	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (args should be passed after --)")
+	flag.BoolVar(&cfg.watcherPreopenOnRegister, "watcher-preopen-on-register", preopenDefault, "Whether watcher registration should pre-open matching files")
+	flag.IntVar(&cfg.watcherPreopenMaxFiles, "watcher-preopen-max-files", preopenMaxDefault, "Maximum files to pre-open on watcher registration (0 = unlimited)")
+	flag.DurationVar(&cfg.idleTimeout, "idle-timeout", idleTimeoutDefault, "Idle timeout for automatic shutdown (0 = disabled)")
 	flag.Parse()
 
 	// Get remaining args after -- as LSP arguments
@@ -68,16 +89,27 @@ func parseConfig() (*config, error) {
 		return nil, fmt.Errorf("LSP command not found: %s", cfg.lspCommand)
 	}
 
+	if cfg.watcherPreopenMaxFiles < 0 {
+		return nil, fmt.Errorf("watcher-preopen-max-files must be >= 0")
+	}
+
+	if cfg.idleTimeout < 0 {
+		return nil, fmt.Errorf("idle-timeout must be >= 0")
+	}
+
 	return cfg, nil
 }
 
 func newServer(config *config) (*mcpServer, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &mcpServer{
+	s := &mcpServer{
 		config:     *config,
 		ctx:        ctx,
 		cancelFunc: cancel,
-	}, nil
+		done:       make(chan struct{}),
+	}
+	s.touchActivity()
+	return s, nil
 }
 
 func (s *mcpServer) initializeLSP() error {
@@ -90,7 +122,11 @@ func (s *mcpServer) initializeLSP() error {
 		return fmt.Errorf("failed to create LSP client: %v", err)
 	}
 	s.lspClient = client
-	s.workspaceWatcher = watcher.NewWorkspaceWatcher(client)
+
+	watcherConfig := watcher.DefaultWatcherConfig()
+	watcherConfig.PreopenOnRegistration = s.config.watcherPreopenOnRegister
+	watcherConfig.PreopenMaxFiles = s.config.watcherPreopenMaxFiles
+	s.workspaceWatcher = watcher.NewWorkspaceWatcherWithConfig(client, watcherConfig)
 
 	initResult, err := client.InitializeLSPClient(s.ctx, s.config.workspaceDir)
 	if err != nil {
@@ -108,11 +144,17 @@ func (s *mcpServer) start() error {
 		return err
 	}
 
+	hooks := &server.Hooks{}
+	hooks.AddBeforeAny(func(ctx context.Context, id any, method mcp.MCPMethod, message any) {
+		s.touchActivity()
+	})
+
 	s.mcpServer = server.NewMCPServer(
 		"MCP Language Server",
 		"v0.0.2",
 		server.WithLogging(),
 		server.WithRecovery(),
+		server.WithHooks(hooks),
 	)
 
 	err := s.registerTools()
@@ -120,22 +162,28 @@ func (s *mcpServer) start() error {
 		return fmt.Errorf("tool registration failed: %v", err)
 	}
 
-	return server.ServeStdio(s.mcpServer)
+	if s.config.idleTimeout > 0 {
+		coreLogger.Info("Idle timeout enabled: %s", s.config.idleTimeout)
+		go s.monitorIdleTimeout()
+	}
+
+	stdioServer := server.NewStdioServer(s.mcpServer)
+	stdioServer.SetErrorLogger(log.New(os.Stderr, "", log.LstdFlags))
+	return stdioServer.Listen(s.ctx, os.Stdin, os.Stdout)
 }
 
 func main() {
 	coreLogger.Info("MCP Language Server starting")
 
-	done := make(chan struct{})
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	config, err := parseConfig()
+	cfg, err := parseConfig()
 	if err != nil {
 		coreLogger.Fatal("%v", err)
 	}
 
-	server, err := newServer(config)
+	srv, err := newServer(cfg)
 	if err != nil {
 		coreLogger.Fatal("%v", err)
 	}
@@ -148,6 +196,9 @@ func main() {
 	go func() {
 		ppid := os.Getppid()
 		coreLogger.Debug("Monitoring parent process: %d", ppid)
+		if ppid == 1 {
+			coreLogger.Warn("Server started with parent PID 1; parent-death monitoring may be ineffective")
+		}
 
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
@@ -161,7 +212,7 @@ func main() {
 					close(parentDeath)
 					return
 				}
-			case <-done:
+			case <-srv.done:
 				return
 			}
 		}
@@ -172,74 +223,184 @@ func main() {
 		select {
 		case sig := <-sigChan:
 			coreLogger.Info("Received signal %v in PID: %d", sig, os.Getpid())
-			cleanup(server, done)
+			cleanup(srv)
 		case <-parentDeath:
 			coreLogger.Info("Parent death detected, initiating shutdown")
-			cleanup(server, done)
+			cleanup(srv)
+		case <-srv.done:
+			return
 		}
 	}()
 
-	if err := server.start(); err != nil {
-		coreLogger.Error("Server error: %v", err)
-		cleanup(server, done)
-		os.Exit(1)
+	exitCode := 0
+	if err := srv.start(); err != nil {
+		if isClosed(srv.done) || errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) || srv.ctx.Err() != nil {
+			coreLogger.Info("Server exited during shutdown: %v", err)
+		} else {
+			coreLogger.Error("Server error: %v", err)
+			exitCode = 1
+		}
 	}
 
-	<-done
+	// Always run cleanup once the stdio server loop exits. This handles normal EOF
+	// (client disconnected) and prevents lingering processes waiting on srv.done.
+	cleanup(srv)
+
+	<-srv.done
 	coreLogger.Info("Server shutdown complete for PID: %d", os.Getpid())
-	os.Exit(0)
+	os.Exit(exitCode)
 }
 
-func cleanup(s *mcpServer, done chan struct{}) {
-	coreLogger.Info("Cleanup initiated for PID: %d", os.Getpid())
+func (s *mcpServer) touchActivity() {
+	s.lastActivityNs.Store(time.Now().UnixNano())
+}
 
-	// Create a context with timeout for shutdown operations
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (s *mcpServer) monitorIdleTimeout() {
+	checkInterval := s.config.idleTimeout / 4
+	if checkInterval < 5*time.Second {
+		checkInterval = 5 * time.Second
+	}
 
-	if s.lspClient != nil {
-		coreLogger.Info("Closing open files")
-		s.lspClient.CloseAllFiles(ctx)
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
 
-		// Create a shorter timeout context for the shutdown request
-		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 500*time.Millisecond)
-		defer shutdownCancel()
-
-		// Run shutdown in a goroutine with timeout to avoid blocking if LSP doesn't respond
-		shutdownDone := make(chan struct{})
-		go func() {
-			coreLogger.Info("Sending shutdown request")
-			if err := s.lspClient.Shutdown(shutdownCtx); err != nil {
-				coreLogger.Error("Shutdown request failed: %v", err)
-			}
-			close(shutdownDone)
-		}()
-
-		// Wait for shutdown with timeout
+	for {
 		select {
-		case <-shutdownDone:
-			coreLogger.Info("Shutdown request completed")
-		case <-time.After(1 * time.Second):
-			coreLogger.Warn("Shutdown request timed out, proceeding with exit")
-		}
-
-		coreLogger.Info("Sending exit notification")
-		if err := s.lspClient.Exit(ctx); err != nil {
-			coreLogger.Error("Exit notification failed: %v", err)
-		}
-
-		coreLogger.Info("Closing LSP client")
-		if err := s.lspClient.Close(); err != nil {
-			coreLogger.Error("Failed to close LSP client: %v", err)
+		case <-ticker.C:
+			last := time.Unix(0, s.lastActivityNs.Load())
+			idleFor := time.Since(last)
+			if idleFor >= s.config.idleTimeout {
+				coreLogger.Warn("Idle timeout reached (%s >= %s), initiating shutdown", idleFor.Round(time.Second), s.config.idleTimeout)
+				cleanup(s)
+				return
+			}
+		case <-s.done:
+			return
+		case <-s.ctx.Done():
+			return
 		}
 	}
+}
 
-	// Send signal to the done channel
+func cleanup(s *mcpServer) {
+	s.shutdownOnce.Do(func() {
+		coreLogger.Info("Cleanup initiated for PID: %d", os.Getpid())
+
+		// Stop background goroutines tied to server context.
+		s.cancelFunc()
+
+		// Close stdin so mcp-go's stdio loop unblocks and exits.
+		if err := os.Stdin.Close(); err != nil {
+			coreLogger.Debug("Failed to close stdin during cleanup: %v", err)
+		}
+
+		// Create a context with timeout for shutdown operations.
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if s.lspClient != nil {
+			coreLogger.Info("Closing open files")
+			s.lspClient.CloseAllFiles(ctx)
+
+			// Create a shorter timeout context for the shutdown request.
+			shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+			defer shutdownCancel()
+
+			// Run shutdown in a goroutine with timeout to avoid blocking if LSP doesn't respond.
+			shutdownDone := make(chan struct{})
+			go func() {
+				coreLogger.Info("Sending shutdown request")
+				if err := s.lspClient.Shutdown(shutdownCtx); err != nil {
+					coreLogger.Error("Shutdown request failed: %v", err)
+				}
+				close(shutdownDone)
+			}()
+
+			select {
+			case <-shutdownDone:
+				coreLogger.Info("Shutdown request completed")
+			case <-time.After(1 * time.Second):
+				coreLogger.Warn("Shutdown request timed out, proceeding with exit")
+			}
+
+			coreLogger.Info("Sending exit notification")
+			if err := s.lspClient.Exit(ctx); err != nil {
+				coreLogger.Error("Exit notification failed: %v", err)
+			}
+
+			coreLogger.Info("Closing LSP client")
+			if err := s.lspClient.Close(); err != nil {
+				coreLogger.Error("Failed to close LSP client: %v", err)
+			}
+		}
+
+		close(s.done)
+		coreLogger.Info("Cleanup completed for PID: %d", os.Getpid())
+	})
+}
+
+func isClosed(ch <-chan struct{}) bool {
 	select {
-	case <-done: // Channel already closed
+	case <-ch:
+		return true
 	default:
-		close(done)
+		return false
+	}
+}
+
+func getEnvBool(defaultValue bool, keys ...string) bool {
+	for _, key := range keys {
+		value, ok := os.LookupEnv(key)
+		if !ok {
+			continue
+		}
+
+		switch strings.ToLower(strings.TrimSpace(value)) {
+		case "1", "true", "t", "yes", "y", "on":
+			return true
+		case "0", "false", "f", "no", "n", "off":
+			return false
+		default:
+			coreLogger.Warn("Invalid boolean value %q for %s, using default %v", value, key, defaultValue)
+			return defaultValue
+		}
 	}
 
-	coreLogger.Info("Cleanup completed for PID: %d", os.Getpid())
+	return defaultValue
+}
+
+func getEnvInt(defaultValue int, keys ...string) int {
+	for _, key := range keys {
+		value, ok := os.LookupEnv(key)
+		if !ok {
+			continue
+		}
+
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			coreLogger.Warn("Invalid integer value %q for %s, using default %d", value, key, defaultValue)
+			return defaultValue
+		}
+		return parsed
+	}
+
+	return defaultValue
+}
+
+func getEnvDuration(defaultValue time.Duration, keys ...string) time.Duration {
+	for _, key := range keys {
+		value, ok := os.LookupEnv(key)
+		if !ok {
+			continue
+		}
+
+		parsed, err := time.ParseDuration(strings.TrimSpace(value))
+		if err != nil {
+			coreLogger.Warn("Invalid duration value %q for %s, using default %s", value, key, defaultValue)
+			return defaultValue
+		}
+		return parsed
+	}
+
+	return defaultValue
 }

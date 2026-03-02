@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,6 +18,8 @@ import (
 
 // Create a logger for the watcher component
 var watcherLogger = logging.NewLogger(logging.Watcher)
+
+var errPreopenLimitReached = errors.New("preopen limit reached")
 
 // WorkspaceWatcher manages LSP file watching
 type WorkspaceWatcher struct {
@@ -112,9 +115,14 @@ func (w *WorkspaceWatcher) AddRegistrations(ctx context.Context, id string, watc
 	}
 
 	// Find and open all existing files that match the newly registered patterns
-	// TODO: not all language servers require this, but typescript does. Make this configurable
+	if !w.config.PreopenOnRegistration {
+		watcherLogger.Info("Pre-open on registration disabled; skipping workspace scan")
+		return
+	}
+
 	go func() {
 		startTime := time.Now()
+		filesScanned := 0
 		filesOpened := 0
 
 		err := filepath.WalkDir(w.workspacePath, func(path string, d os.DirEntry, err error) error {
@@ -131,11 +139,17 @@ func (w *WorkspaceWatcher) AddRegistrations(ctx context.Context, id string, watc
 				}
 			} else {
 				// Process files
-				w.openMatchingFile(ctx, path)
-				filesOpened++
+				filesScanned++
+				if w.openMatchingFile(ctx, path) {
+					filesOpened++
+				}
+
+				if w.config.PreopenMaxFiles > 0 && filesOpened >= w.config.PreopenMaxFiles {
+					return errPreopenLimitReached
+				}
 
 				// Add a small delay after every 100 files to prevent overwhelming the server
-				if filesOpened%100 == 0 {
+				if filesScanned%100 == 0 {
 					time.Sleep(10 * time.Millisecond)
 				}
 			}
@@ -143,9 +157,14 @@ func (w *WorkspaceWatcher) AddRegistrations(ctx context.Context, id string, watc
 			return nil
 		})
 
+		if errors.Is(err, errPreopenLimitReached) {
+			watcherLogger.Info("Workspace pre-open cap reached at %d files", filesOpened)
+			err = nil
+		}
+
 		elapsedTime := time.Since(startTime)
-		watcherLogger.Info("Workspace scan complete: processed %d files in %.2f seconds",
-			filesOpened, elapsedTime.Seconds())
+		watcherLogger.Info("Workspace scan complete: scanned %d files, opened %d files in %.2f seconds",
+			filesScanned, filesOpened, elapsedTime.Seconds())
 
 		if err != nil {
 			watcherLogger.Error("Error scanning workspace for files to open: %v", err)
@@ -628,24 +647,35 @@ func (w *WorkspaceWatcher) shouldExcludeFile(filePath string) bool {
 	return false
 }
 
-// openMatchingFile opens a file if it matches any of the registered patterns
-func (w *WorkspaceWatcher) openMatchingFile(ctx context.Context, path string) {
+// openMatchingFile opens a file if it matches any of the registered patterns.
+// Returns true when a new file was successfully opened.
+func (w *WorkspaceWatcher) openMatchingFile(ctx context.Context, path string) bool {
 	// Skip directories
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
-		return
+		return false
 	}
 
 	// Skip excluded files
 	if w.shouldExcludeFile(path) {
-		return
+		return false
 	}
 
 	// Check if this path should be watched according to server registrations
 	if watched, _ := w.isPathWatched(path); watched {
-		// Don't need to check if it's already open - the client.OpenFile handles that
-		if err := w.client.OpenFile(ctx, path); err != nil && watcherLogger.IsLevelEnabled(logging.LevelDebug) {
-			watcherLogger.Debug("Error opening file %s: %v", path, err)
+		if w.client.IsFileOpen(path) {
+			return false
 		}
+
+		if err := w.client.OpenFile(ctx, path); err != nil {
+			if watcherLogger.IsLevelEnabled(logging.LevelDebug) {
+				watcherLogger.Debug("Error opening file %s: %v", path, err)
+			}
+			return false
+		}
+
+		return true
 	}
+
+	return false
 }

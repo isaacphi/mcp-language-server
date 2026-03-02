@@ -239,6 +239,37 @@ Rebuild after making changes.
 
 Setting the `LOG_LEVEL` environment variable to DEBUG enables verbose logging to stderr for all components including messages to and from the language server and the language server's logs.
 
+### Runtime Controls
+
+The server keeps existing behavior by default. You can opt in to additional runtime controls with CLI flags or env vars:
+
+- `--watcher-preopen-on-register` (default: `true`)
+  - Env: `WATCHER_PREOPEN_ON_REGISTER` or `MCP_WATCHER_PREOPEN_ON_REGISTER`
+- `--watcher-preopen-max-files` (default: `0`, unlimited)
+  - Env: `WATCHER_PREOPEN_MAX_FILES` or `MCP_WATCHER_PREOPEN_MAX_FILES`
+- `--idle-timeout` (default: `0s`, disabled)
+  - Env: `IDLE_TIMEOUT` or `MCP_IDLE_TIMEOUT`
+
+Codex-specific example (disable registration preopen and auto-clean idle servers):
+
+```json
+{
+  "mcpServers": {
+    "swift-lsp": {
+      "command": "/Users/you/.local/bin/mcp-language-server-codex",
+      "args": [
+        "--workspace",
+        "/path/to/workspace",
+        "--lsp",
+        "sourcekit-lsp",
+        "--watcher-preopen-on-register=false",
+        "--idle-timeout=15m"
+      ]
+    }
+  }
+}
+```
+
 ### LSP interaction
 
 - `internal/lsp/methods.go` contains generated code to make calls to the connected language server.

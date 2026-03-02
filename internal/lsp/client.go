@@ -44,6 +44,12 @@ type Client struct {
 	// Files are currently opened by the LSP
 	openFiles   map[string]*OpenFileInfo
 	openFilesMu sync.RWMutex
+
+	// Idempotent shutdown state
+	closeOnce sync.Once
+	closeErr  error
+	waitOnce  sync.Once
+	waitErr   error
 }
 
 func NewClient(command string, args ...string) (*Client, error) {
@@ -228,6 +234,14 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 }
 
 func (c *Client) Close() error {
+	c.closeOnce.Do(func() {
+		c.closeErr = c.closeInternal()
+	})
+
+	return c.closeErr
+}
+
+func (c *Client) closeInternal() error {
 	// Try to close all open files first
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -236,35 +250,42 @@ func (c *Client) Close() error {
 	c.CloseAllFiles(ctx)
 
 	// Force kill the LSP process if it doesn't exit within timeout
-	forcedKill := make(chan struct{})
+	forcedKillDone := make(chan struct{})
 	go func() {
 		select {
 		case <-time.After(2 * time.Second):
 			lspLogger.Warn("LSP process did not exit within timeout, forcing kill")
-			if c.Cmd.Process != nil {
+			if c.Cmd != nil && c.Cmd.Process != nil {
 				if err := c.Cmd.Process.Kill(); err != nil {
 					lspLogger.Error("Failed to kill process: %v", err)
 				} else {
 					lspLogger.Info("Process killed successfully")
 				}
 			}
-			close(forcedKill)
-		case <-forcedKill:
+		case <-forcedKillDone:
 			// Channel closed from completion path
 			return
 		}
 	}()
 
 	// Close stdin to signal the server
-	if err := c.stdin.Close(); err != nil {
-		lspLogger.Error("Failed to close stdin: %v", err)
+	if c.stdin != nil {
+		if err := c.stdin.Close(); err != nil {
+			lspLogger.Error("Failed to close stdin: %v", err)
+		}
 	}
 
-	// Wait for process to exit
-	err := c.Cmd.Wait()
-	close(forcedKill) // Stop the force kill goroutine
+	// Wait for process to exit once.
+	c.waitOnce.Do(func() {
+		if c.Cmd == nil {
+			return
+		}
+		c.waitErr = c.Cmd.Wait()
+	})
 
-	return err
+	close(forcedKillDone) // Stop the force kill goroutine
+
+	return c.waitErr
 }
 
 type ServerState int
