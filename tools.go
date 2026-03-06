@@ -350,6 +350,55 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
+	getCallHierarchyTool := mcp.NewTool("get_call_hierarchy",
+		mcp.WithDescription("Get the full incoming call hierarchy at the given position: who calls this symbol, and who calls those callers, etc., with cycle detection. The file is opened automatically. Use position-based API (filePath, line, column). For clangd (C/C++), position-based lookup is required."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("Path to the file containing the symbol"),
+		),
+		mcp.WithNumber("line",
+			mcp.Required(),
+			mcp.Description("Line number where the symbol is located (1-indexed)"),
+		),
+		mcp.WithNumber("column",
+			mcp.Required(),
+			mcp.Description("Column number where the symbol is located (1-indexed)"),
+		),
+	)
+
+	s.mcpServer.AddTool(getCallHierarchyTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+
+		var line, column int
+		switch v := request.Params.Arguments["line"].(type) {
+		case float64:
+			line = int(v)
+		case int:
+			line = v
+		default:
+			return mcp.NewToolResultError("line must be a number"), nil
+		}
+		switch v := request.Params.Arguments["column"].(type) {
+		case float64:
+			column = int(v)
+		case int:
+			column = v
+		default:
+			return mcp.NewToolResultError("column must be a number"), nil
+		}
+
+		coreLogger.Debug("Executing get_call_hierarchy for file: %s line: %d column: %d", filePath, line, column)
+		text, err := tools.GetFullCallHierarchy(s.ctx, s.lspClient, filePath, line, column)
+		if err != nil {
+			coreLogger.Error("Failed to get call hierarchy: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get call hierarchy: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
 	renameSymbolTool := mcp.NewTool("rename_symbol",
 		mcp.WithDescription("Rename a symbol (variable, function, class, etc.) at the specified position and update all references throughout the codebase."),
 		mcp.WithString("filePath",
