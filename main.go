@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -81,8 +82,25 @@ func newServer(config *config) (*mcpServer, error) {
 }
 
 func (s *mcpServer) initializeLSP() error {
-	if err := os.Chdir(s.config.workspaceDir); err != nil {
-		return fmt.Errorf("failed to change to workspace directory: %v", err)
+	// For clangd, prefer using the compile-commands-dir (if provided) as the
+	// current working directory. This keeps relative paths consistent with the
+	// compilation database and avoids cache conflicts with an editor instance.
+	if isClangdExecutable(s.config.lspCommand) {
+		baseDir := findCompileCommandsDir(s.config.lspArgs, s.config.workspaceDir)
+		if err := os.Chdir(baseDir); err != nil {
+			return fmt.Errorf("failed to change to clangd compile-commands-dir: %v", err)
+		}
+
+		// Ensure clangd uses a dedicated compile_commands.json symlink in
+		// baseDir/llm_lsp so that its cache is separated from any editor
+		// instance using the original compilation database.
+		if err := s.prepareClangdCompileCommands(baseDir); err != nil {
+			coreLogger.Warn("Failed to prepare clangd compile_commands.json: %v", err)
+		}
+	} else {
+		if err := os.Chdir(s.config.workspaceDir); err != nil {
+			return fmt.Errorf("failed to change to workspace directory: %v", err)
+		}
 	}
 
 	client, err := lsp.NewClient(s.config.lspCommand, s.config.lspArgs...)
@@ -101,6 +119,121 @@ func (s *mcpServer) initializeLSP() error {
 
 	go s.workspaceWatcher.WatchWorkspace(s.ctx, s.config.workspaceDir)
 	return client.WaitForServerReady(s.ctx)
+}
+
+// isClangdExecutable reports whether the given command path refers to clangd.
+func isClangdExecutable(cmd string) bool {
+	base := strings.ToLower(filepath.Base(cmd))
+	return base == "clangd" || strings.HasPrefix(base, "clangd-")
+}
+
+// findCompileCommandsDir returns the directory specified by a
+// --compile-commands-dir flag (if present), otherwise falls back to the
+// workspace directory. Relative paths are resolved against the workspace.
+func findCompileCommandsDir(args []string, workspaceDir string) string {
+	var dir string
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "--compile-commands-dir=") {
+			dir = strings.TrimPrefix(arg, "--compile-commands-dir=")
+			break
+		}
+		if arg == "--compile-commands-dir" && i+1 < len(args) {
+			dir = args[i+1]
+			break
+		}
+	}
+
+	if dir == "" {
+		return workspaceDir
+	}
+
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(workspaceDir, dir)
+	}
+
+	if abs, err := filepath.Abs(dir); err == nil {
+		return abs
+	}
+
+	return dir
+}
+
+// prepareClangdCompileCommands creates workspaceDir/llm_lsp/compile_commands.json
+// as a symlink to the workspace's compile_commands.json (if present) and
+// rewrites the LSP arguments so clangd uses that directory for its compilation
+// database. This keeps the clangd cache used by the MCP server separate from
+// any editor instance using the original compile_commands.json.
+func (s *mcpServer) prepareClangdCompileCommands(baseDir string) error {
+	// Locate compile_commands.json in the base directory (typically the
+	// compile-commands-dir used by clangd).
+	ccPath := filepath.Join(baseDir, "compile_commands.json")
+	info, err := os.Stat(ccPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Nothing to do if there is no compilation database.
+			coreLogger.Debug("No compile_commands.json found in workspace, skipping clangd llm_lsp setup")
+			return nil
+		}
+		return fmt.Errorf("failed to stat compile_commands.json: %w", err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("compile_commands.json exists but is a directory: %s", ccPath)
+	}
+
+	// Create the llm_lsp directory next to the original compile_commands.json.
+	llmDir := filepath.Join(baseDir, "llm_lsp")
+	if err := os.MkdirAll(llmDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create llm_lsp directory: %w", err)
+	}
+
+	// Create (or replace) a symlink to compile_commands.json inside llm_lsp.
+	linkPath := filepath.Join(llmDir, "compile_commands.json")
+	if _, err := os.Lstat(linkPath); err == nil || !os.IsNotExist(err) {
+		// Remove any existing file or symlink at this path.
+		if rmErr := os.Remove(linkPath); rmErr != nil {
+			return fmt.Errorf("failed to remove existing llm_lsp compile_commands.json: %w", rmErr)
+		}
+	}
+	if err := os.Symlink(ccPath, linkPath); err != nil {
+		return fmt.Errorf("failed to create llm_lsp compile_commands.json symlink: %w", err)
+	}
+
+	// Ensure we use an absolute path for the compile-commands-dir argument.
+	llmDirAbs, err := filepath.Abs(llmDir)
+	if err != nil {
+		return fmt.Errorf("failed to resolve llm_lsp directory: %w", err)
+	}
+
+	// Rewrite LSP args to force clangd to use llm_lsp as its compile-commands-dir.
+	var newArgs []string
+	skipNext := false
+	for i := 0; i < len(s.config.lspArgs); i++ {
+		if skipNext {
+			skipNext = false
+			continue
+		}
+		arg := s.config.lspArgs[i]
+
+		// Drop any existing --compile-commands-dir (with or without a value).
+		if strings.HasPrefix(arg, "--compile-commands-dir=") {
+			continue
+		}
+		if arg == "--compile-commands-dir" {
+			// Skip this and its value (if present).
+			skipNext = true
+			continue
+		}
+
+		newArgs = append(newArgs, arg)
+	}
+
+	newArgs = append(newArgs, fmt.Sprintf("--compile-commands-dir=%s", llmDirAbs))
+	s.config.lspArgs = newArgs
+
+	coreLogger.Debug("Configured clangd to use compile_commands.json symlink at %s", linkPath)
+	return nil
 }
 
 func (s *mcpServer) start() error {
