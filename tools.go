@@ -399,6 +399,29 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
+	documentSymbolTool := mcp.NewTool("document_symbol",
+		mcp.WithDescription("Get the document outline (symbols) for a file: functions, classes, methods, variables, etc. The file is opened automatically. Returns a hierarchical outline with name, kind, and range for each symbol."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("Path to the file to get document symbols (outline) for"),
+		),
+	)
+
+	s.mcpServer.AddTool(documentSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+
+		coreLogger.Debug("Executing document_symbol for file: %s", filePath)
+		text, err := tools.DocumentSymbolOutline(s.ctx, s.lspClient, filePath)
+		if err != nil {
+			coreLogger.Error("Failed to get document symbols: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get document symbols: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
 	renameSymbolTool := mcp.NewTool("rename_symbol",
 		mcp.WithDescription("Rename a symbol (variable, function, class, etc.) at the specified position and update all references throughout the codebase."),
 		mcp.WithString("filePath",
