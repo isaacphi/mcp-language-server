@@ -460,6 +460,29 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
+	workspaceSymbolTool := mcp.NewTool("workspace_symbol",
+		mcp.WithDescription("Search for project-wide symbols matching a query string (LSP workspace/symbol). Returns a list of symbols with name, kind, and location. For best results with clangd (C/C++), open relevant files first so the project is indexed."),
+		mcp.WithString("query",
+			mcp.Required(),
+			mcp.Description("Query string to filter symbols by (e.g. function name, type name). Can be empty to request all symbols."),
+		),
+	)
+
+	s.mcpServer.AddTool(workspaceSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		query, ok := request.Params.Arguments["query"].(string)
+		if !ok {
+			return mcp.NewToolResultError("query must be a string"), nil
+		}
+
+		coreLogger.Debug("Executing workspace_symbol for query: %s", query)
+		text, err := tools.WorkspaceSymbol(s.ctx, s.lspClient, query)
+		if err != nil {
+			coreLogger.Error("Failed to get workspace symbols: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get workspace symbols: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
 	coreLogger.Info("Successfully registered all MCP tools")
 	return nil
 }
