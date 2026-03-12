@@ -126,3 +126,27 @@ func HandleDiagnostics(client *Client, params json.RawMessage) {
 
 	lspLogger.Info("Received diagnostics for %s: %d items", diagParams.URI, len(diagParams.Diagnostics))
 }
+
+// InactiveRegionsParams describes the payload of textDocument/inactiveRegions (clangd extension).
+// See: https://clang.llvm.org/extra/doxygen/structclang_1_1clangd_1_1InactiveRegionsParams.html
+type InactiveRegionsParams struct {
+	TextDocument    protocol.TextDocumentIdentifier `json:"textDocument"`
+	Regions         []protocol.Range                `json:"regions"`
+}
+
+// HandleInactiveRegions processes textDocument/inactiveRegions notifications (clangd extension).
+func HandleInactiveRegions(client *Client, params json.RawMessage) {
+	var irParams InactiveRegionsParams
+	if err := json.Unmarshal(params, &irParams); err != nil {
+		lspLogger.Error("Error unmarshaling inactive regions params: %v", err)
+		return
+	}
+
+	uri := irParams.TextDocument.URI
+
+	client.inactiveRegionsMu.Lock()
+	client.inactiveRegions[uri] = irParams.Regions
+	client.inactiveRegionsMu.Unlock()
+
+	lspLogger.Info("Received inactive regions for %s: %d regions", uri, len(irParams.Regions))
+}

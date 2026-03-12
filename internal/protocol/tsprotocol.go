@@ -5332,6 +5332,11 @@ type TextDocumentClientCapabilities struct {
 	// @since 3.18.0
 	// @proposed
 	InlineCompletion *InlineCompletionClientCapabilities `json:"inlineCompletion,omitempty"`
+	// clangd extension: support for textDocument/inactiveRegions notifications.
+	// See: https://clangd.llvm.org/extensions#inactive-regions
+	InactiveRegionsCapabilities *struct {
+		InactiveRegions bool `json:"inactiveRegions,omitempty"`
+	} `json:"inactiveRegionsCapabilities,omitempty"`
 }
 
 // An event describing a change to a text document. If only a text is provided

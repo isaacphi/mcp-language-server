@@ -125,7 +125,7 @@ func (s *mcpServer) registerTools() error {
 			if line >= 1 {
 				position = &tools.DefPosition{
 					FilePath:  fp,
-					Line:     int(line),
+					Line:      int(line),
 					Character: int(char),
 				}
 				if position.Character < 1 {
@@ -502,6 +502,97 @@ func (s *mcpServer) registerTools() error {
 		if err != nil {
 			coreLogger.Error("Failed to get workspace symbols: %v", err)
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get workspace symbols: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
+	clangdInactiveRegionsTool := mcp.NewTool("clangd_inactive_regions",
+		mcp.WithDescription("Show inactive preprocessor regions (e.g. #if 0 blocks) for a C/C++ file using clangd's textDocument/inactiveRegions extension."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("Path to the C/C++ source file to inspect"),
+		),
+	)
+
+	s.mcpServer.AddTool(clangdInactiveRegionsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+
+		coreLogger.Debug("Executing clangd_inactive_regions for file: %s", filePath)
+		text, err := tools.GetInactiveRegions(s.ctx, s.lspClient, filePath)
+		if err != nil {
+			coreLogger.Error("Failed to get inactive regions: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get inactive regions: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
+	clangdASTTool := mcp.NewTool("clangd_ast",
+		mcp.WithDescription("Dump the clangd AST for a C/C++ source range using the textDocument/ast extension."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("Path to the C/C++ source file to inspect"),
+		),
+		mcp.WithNumber("startLine",
+			mcp.Required(),
+			mcp.Description("1-based start line of the range to fetch the AST for"),
+		),
+		mcp.WithNumber("startColumn",
+			mcp.Required(),
+			mcp.Description("1-based start column of the range to fetch the AST for"),
+		),
+		mcp.WithNumber("endLine",
+			mcp.Required(),
+			mcp.Description("1-based end line of the range to fetch the AST for"),
+		),
+		mcp.WithNumber("endColumn",
+			mcp.Required(),
+			mcp.Description("1-based end column of the range to fetch the AST for"),
+		),
+	)
+
+	s.mcpServer.AddTool(clangdASTTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+
+		getInt := func(name string) (int, error) {
+			raw, ok := request.Params.Arguments[name]
+			if !ok {
+				return 0, fmt.Errorf("%s is required", name)
+			}
+			v, ok := raw.(float64)
+			if !ok {
+				return 0, fmt.Errorf("%s must be a number", name)
+			}
+			return int(v), nil
+		}
+
+		startLine, err := getInt("startLine")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		startColumn, err := getInt("startColumn")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		endLine, err := getInt("endLine")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		endColumn, err := getInt("endColumn")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		coreLogger.Debug("Executing clangd_ast for file: %s range: L%d:C%d - L%d:C%d", filePath, startLine, startColumn, endLine, endColumn)
+		text, err := tools.GetAST(s.ctx, s.lspClient, filePath, startLine, startColumn, endLine, endColumn)
+		if err != nil {
+			coreLogger.Error("Failed to get AST: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get AST: %v", err)), nil
 		}
 		return mcp.NewToolResultText(text), nil
 	})

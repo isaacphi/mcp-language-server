@@ -1,0 +1,4 @@
+/TEST_OUTPUT/workspace/src/another_consumer.cpp
+Inactive regions: 1
+Region 1: L7:C1 - L8:C50
+  Line 7: // This block is intentionally inactive for testing clangd inactiveRegions.

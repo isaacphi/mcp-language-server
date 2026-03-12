@@ -42,9 +42,17 @@ type Client struct {
 	diagnostics   map[protocol.DocumentUri][]protocol.Diagnostic
 	diagnosticsMu sync.RWMutex
 
+	// Inactive regions cache (clangd extension: textDocument/inactiveRegions)
+	inactiveRegions   map[protocol.DocumentUri][]protocol.Range
+	inactiveRegionsMu sync.RWMutex
+
 	// Files are currently opened by the LSP
 	openFiles   map[string]*OpenFileInfo
 	openFilesMu sync.RWMutex
+
+	// PathResolver, if set, rewrites file paths before opening (e.g. from build dir to workspace).
+	// Used when the LSP returns URIs rooted at compile-commands-dir and the file lives under the workspace.
+	PathResolver func(path string) string
 }
 
 func NewClient(command string, args ...string) (*Client, error) {
@@ -76,6 +84,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 		notificationHandlers:  make(map[string]NotificationHandler),
 		serverRequestHandlers: make(map[string]ServerRequestHandler),
 		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),
+		inactiveRegions:       make(map[protocol.DocumentUri][]protocol.Range),
 		openFiles:             make(map[string]*OpenFileInfo),
 	}
 
@@ -175,6 +184,11 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 						TokenModifiers: []string{},
 						Formats:        []protocol.TokenFormat{},
 					},
+					InactiveRegionsCapabilities: &struct {
+						InactiveRegions bool `json:"inactiveRegions,omitempty"`
+					}{
+						InactiveRegions: true,
+					},
 				},
 				Window: protocol.WindowClientCapabilities{},
 			},
@@ -208,6 +222,9 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 	c.RegisterNotificationHandler("window/showMessage", HandleServerMessage)
 	c.RegisterNotificationHandler("textDocument/publishDiagnostics",
 		func(params json.RawMessage) { HandleDiagnostics(c, params) })
+	// clangd extension: textDocument/inactiveRegions
+	c.RegisterNotificationHandler("textDocument/inactiveRegions",
+		func(params json.RawMessage) { HandleInactiveRegions(c, params) })
 
 	// Notify the LSP server
 	err := c.Initialized(ctx, protocol.InitializedParams{})
@@ -288,6 +305,9 @@ type OpenFileInfo struct {
 }
 
 func (c *Client) OpenFile(ctx context.Context, path string) error {
+	if c.PathResolver != nil {
+		path = c.PathResolver(path)
+	}
 	// Use the same canonical path (absolute, slash form) as protocol.URIFromPath so
 	// that didOpen URI matches the URI used in definition/references requests (clangd
 	// returns "trying to get AST for non-added document" when URIs differ).
@@ -439,4 +459,12 @@ func (c *Client) GetFileDiagnostics(uri protocol.DocumentUri) []protocol.Diagnos
 	defer c.diagnosticsMu.RUnlock()
 
 	return c.diagnostics[uri]
+}
+
+// GetInactiveRegions returns the last known inactive regions for a document URI (clangd extension).
+func (c *Client) GetInactiveRegions(uri protocol.DocumentUri) []protocol.Range {
+	c.inactiveRegionsMu.RLock()
+	defer c.inactiveRegionsMu.RUnlock()
+
+	return c.inactiveRegions[uri]
 }

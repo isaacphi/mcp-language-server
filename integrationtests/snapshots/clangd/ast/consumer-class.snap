@@ -1,0 +1,31 @@
+/TEST_OUTPUT/workspace/src/consumer.cpp in L7:C1 - L15:C2
+
+CXXRecord [declaration] - TestClass (L7:C1 - L15:C2)
+/TEST_OUTPUT/workspace/src/consumer.cpp:7:1, line:15:1> line:7:7 class TestClass definitionDefinitionData pass_in_registers empty aggregate standard_layout trivially_copyable pod trivial literal has_constexpr_non_copy_move_ctor can_const_default_init
+|-DefaultConstructor exists trivial constexpr needs_implicit defaulted_is_constexpr
+|-CopyConstructor simple trivial has_const_param needs_implicit implicit_has_const_param
+|-MoveConstructor exists simple trivial needs_implicit
+|-CopyAssignment simple trivial has_const_param needs_implicit implicit_has_const_param
+|-MoveAssignment exists simple trivial needs_implicit
+`-Destructor simple irrelevant trivial needs_implicit
+
+  AccessSpec [declaration] (L8:C2 - L8:C9)
+/TEST_OUTPUT/workspace/src/consumer.cpp:8:2, col:8> col:2 public
+  CXXMethod [declaration] - method (L14:C3 - L14:C47)
+/TEST_OUTPUT/workspace/src/consumer.cpp:14:3, col:46> col:8 method 'void (int)' implicit-inline
+    FunctionProto [type] (L14:C3 - L14:C25)
+      QualType 0xPOINTER 'void (int)' 
+      Builtin [type] - void (L14:C3 - L14:C7)
+        QualType 0xPOINTER 'void' 
+      ParmVar [declaration] - param (L14:C15 - L14:C24)
+/TEST_OUTPUT/workspace/src/consumer.cpp:14:15, col:19> col:19 param 'int'
+        Builtin [type] - int (L14:C15 - L14:C18)
+          QualType 0xPOINTER 'int' 
+    Compound [statement] (L14:C26 - L14:C47)
+/TEST_OUTPUT/workspace/src/consumer.cpp:14:26, col:46>
+      Call [expression] (L14:C28 - L14:C44)
+/TEST_OUTPUT/workspace/src/consumer.cpp:14:28, col:43> 'void'
+        ImplicitCast [expression] - FunctionToPointerDecay (L14:C28 - L14:C42)
+/TEST_OUTPUT/workspace/src/consumer.cpp:14:28> 'void (*)()' <FunctionToPointerDecay>
+          DeclRef [expression] - helperFunction (L14:C28 - L14:C42)
+/TEST_OUTPUT/workspace/src/consumer.cpp:14:28> 'void ()' lvalue Function 0xPOINTER 'helperFunction' 'void ()'
