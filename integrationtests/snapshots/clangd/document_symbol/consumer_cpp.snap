@@ -1,0 +1,5 @@
+/TEST_OUTPUT/workspace/src/consumer.cpp
+
+consume (Function) L5:C1 - L5:C65
+TestClass (Class) L7:C1 - L15:C2
+method (Method) L14:C3 - L14:C47

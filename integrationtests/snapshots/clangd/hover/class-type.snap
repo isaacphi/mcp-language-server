@@ -1,5 +1,5 @@
 class TestClass
 
-Size: 1 byte
+Size: 1 byte, alignment 1 byte
 
 class TestClass {}
