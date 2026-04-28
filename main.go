@@ -33,6 +33,8 @@ type mcpServer struct {
 	ctx              context.Context
 	cancelFunc       context.CancelFunc
 	workspaceWatcher *watcher.WorkspaceWatcher
+	lspReady         chan struct{} // closed when LSP is fully initialized
+	lspInitErr       error        // set if LSP initialization failed
 }
 
 func parseConfig() (*config, error) {
@@ -77,7 +79,18 @@ func newServer(config *config) (*mcpServer, error) {
 		config:     *config,
 		ctx:        ctx,
 		cancelFunc: cancel,
+		lspReady:   make(chan struct{}),
 	}, nil
+}
+
+// waitForLSP blocks until the LSP is initialized or the context is done.
+func (s *mcpServer) waitForLSP(ctx context.Context) error {
+	select {
+	case <-s.lspReady:
+		return s.lspInitErr
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled while waiting for LSP: %w", ctx.Err())
+	}
 }
 
 func (s *mcpServer) initializeLSP() error {
@@ -104,9 +117,18 @@ func (s *mcpServer) initializeLSP() error {
 }
 
 func (s *mcpServer) start() error {
-	if err := s.initializeLSP(); err != nil {
-		return err
-	}
+	// Initialize LSP in the background so ServeStdio can start immediately.
+	// Tool calls will block via waitForLSP until initialization completes.
+	go func() {
+		err := s.initializeLSP()
+		s.lspInitErr = err
+		close(s.lspReady)
+		if err != nil {
+			coreLogger.Error("LSP initialization failed: %v", err)
+		} else {
+			coreLogger.Info("LSP initialized successfully")
+		}
+	}()
 
 	s.mcpServer = server.NewMCPServer(
 		"MCP Language Server",
