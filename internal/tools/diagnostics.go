@@ -26,20 +26,23 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 		return "", fmt.Errorf("could not open file: %v", err)
 	}
 
-	// Wait for diagnostics
-	// TODO: wait for notification
-	time.Sleep(time.Second * 3)
-
 	// Convert the file path to URI format
 	uri := protocol.DocumentUri("file://" + filePath)
 
-	// Request fresh diagnostics
+	// Wait for the LSP to publish diagnostics for this URI (push mode).
+	// 3s upper bound matches the previous hardcoded sleep; settle window
+	// (150ms) absorbs follow-up republishes some servers send after a
+	// project-wide rescan.
+	client.WaitForDiagnostics(ctx, uri, 3*time.Second, 150*time.Millisecond)
+
+	// Also attempt pull-mode (textDocument/diagnostic) for servers that
+	// support it. Push-only servers (e.g. Civet) return -32601; that's
+	// fine since the cache is already populated from publishDiagnostics.
 	diagParams := protocol.DocumentDiagnosticParams{
 		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
 	}
-	_, err = client.Diagnostic(ctx, diagParams)
-	if err != nil {
-		toolsLogger.Error("Failed to get diagnostics: %v", err)
+	if _, err = client.Diagnostic(ctx, diagParams); err != nil {
+		toolsLogger.Debug("Pull-mode diagnostic unavailable (server likely push-only): %v", err)
 	}
 
 	// Get diagnostics from the cache

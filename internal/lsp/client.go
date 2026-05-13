@@ -41,6 +41,11 @@ type Client struct {
 	diagnostics   map[protocol.DocumentUri][]protocol.Diagnostic
 	diagnosticsMu sync.RWMutex
 
+	// Per-URI waiters fired when textDocument/publishDiagnostics arrives.
+	// Used by WaitForDiagnostics to replace the old 3s sleep.
+	diagnosticWaiters   map[protocol.DocumentUri][]chan struct{}
+	diagnosticWaitersMu sync.Mutex
+
 	// Files are currently opened by the LSP
 	openFiles   map[string]*OpenFileInfo
 	openFilesMu sync.RWMutex
@@ -75,6 +80,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 		notificationHandlers:  make(map[string]NotificationHandler),
 		serverRequestHandlers: make(map[string]ServerRequestHandler),
 		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),
+		diagnosticWaiters:     make(map[protocol.DocumentUri][]chan struct{}),
 		openFiles:             make(map[string]*OpenFileInfo),
 	}
 
@@ -279,6 +285,54 @@ func (c *Client) WaitForServerReady(ctx context.Context) error {
 	// TODO: wait for specific messages or poll workspace/symbol
 	time.Sleep(time.Second * 1)
 	return nil
+}
+
+// WaitForDiagnostics blocks until the LSP publishes diagnostics for uri or
+// timeout expires, whichever comes first. After the first publish, sleeps
+// settle to coalesce follow-up updates (e.g. project-wide rescans). The
+// caller reads from the diagnostic cache after this returns.
+func (c *Client) WaitForDiagnostics(ctx context.Context, uri protocol.DocumentUri, timeout, settle time.Duration) {
+	ch := make(chan struct{}, 1)
+
+	c.diagnosticWaitersMu.Lock()
+	c.diagnosticWaiters[uri] = append(c.diagnosticWaiters[uri], ch)
+	c.diagnosticWaitersMu.Unlock()
+
+	defer func() {
+		c.diagnosticWaitersMu.Lock()
+		waiters := c.diagnosticWaiters[uri]
+		for i, w := range waiters {
+			if w == ch {
+				c.diagnosticWaiters[uri] = append(waiters[:i], waiters[i+1:]...)
+				break
+			}
+		}
+		if len(c.diagnosticWaiters[uri]) == 0 {
+			delete(c.diagnosticWaiters, uri)
+		}
+		c.diagnosticWaitersMu.Unlock()
+	}()
+
+	// If diagnostics already cached (file was opened earlier), fire immediately.
+	c.diagnosticsMu.RLock()
+	_, hasExisting := c.diagnostics[uri]
+	c.diagnosticsMu.RUnlock()
+	if hasExisting {
+		return
+	}
+
+	select {
+	case <-ch:
+		// First publish arrived. Sleep settle to absorb redundant follow-ups
+		// (Civet republishes after a ~100ms project-wide propagation pass).
+		select {
+		case <-time.After(settle):
+		case <-ctx.Done():
+		}
+	case <-time.After(timeout):
+		lspLogger.Debug("WaitForDiagnostics timed out for %s after %s", uri, timeout)
+	case <-ctx.Done():
+	}
 }
 
 type OpenFileInfo struct {

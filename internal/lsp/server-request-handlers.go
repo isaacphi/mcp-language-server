@@ -124,5 +124,16 @@ func HandleDiagnostics(client *Client, params json.RawMessage) {
 	client.diagnostics[diagParams.URI] = diagParams.Diagnostics
 	client.diagnosticsMu.Unlock()
 
+	// Signal any WaitForDiagnostics callers blocked on this URI.
+	client.diagnosticWaitersMu.Lock()
+	waiters := client.diagnosticWaiters[diagParams.URI]
+	client.diagnosticWaitersMu.Unlock()
+	for _, w := range waiters {
+		select {
+		case w <- struct{}{}:
+		default:
+		}
+	}
+
 	lspLogger.Info("Received diagnostics for %s: %d items", diagParams.URI, len(diagParams.Diagnostics))
 }
