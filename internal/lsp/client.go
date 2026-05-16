@@ -366,6 +366,18 @@ func (c *Client) NotifyChange(ctx context.Context, filepath string) error {
 	return c.Notify(ctx, "textDocument/didChange", params)
 }
 
+func (c *Client) NotifySave(ctx context.Context, filepath string) error {
+	uri := fmt.Sprintf("file://%s", filepath)
+
+	params := protocol.DidSaveTextDocumentParams{
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: protocol.DocumentUri(uri),
+		},
+	}
+
+	return c.Notify(ctx, "textDocument/didSave", params)
+}
+
 func (c *Client) CloseFile(ctx context.Context, filepath string) error {
 	uri := fmt.Sprintf("file://%s", filepath)
 

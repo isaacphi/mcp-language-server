@@ -82,6 +82,11 @@ func (m *MockLSPClient) NotifyChange(ctx context.Context, path string) error {
 	return nil
 }
 
+// NotifySave mocks notifying the server that a file was saved
+func (m *MockLSPClient) NotifySave(ctx context.Context, path string) error {
+	return nil
+}
+
 // DidChangeWatchedFiles mocks sending watched file events to the server
 func (m *MockLSPClient) DidChangeWatchedFiles(ctx context.Context, params protocol.DidChangeWatchedFilesParams) error {
 	m.mu.Lock()
