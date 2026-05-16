@@ -111,8 +111,11 @@ func (w *WorkspaceWatcher) AddRegistrations(ctx context.Context, id string, watc
 		}
 	}
 
-	// Find and open all existing files that match the newly registered patterns
-	// TODO: not all language servers require this, but typescript does. Make this configurable
+	// Find and open all existing files that match the newly registered patterns.
+	// Only enabled for language servers that require it (e.g. typescript-language-server).
+	if !w.config.OpenFilesOnRegistration {
+		return
+	}
 	go func() {
 		startTime := time.Now()
 		filesOpened := 0
@@ -531,17 +534,37 @@ func (w *WorkspaceWatcher) debounceHandleFileEvent(ctx context.Context, uri stri
 
 // handleFileEvent sends file change notifications
 func (w *WorkspaceWatcher) handleFileEvent(ctx context.Context, uri string, changeType protocol.FileChangeType) {
-	// If the file is open and it's a change event, use didChange notification
 	filePath := uri[7:] // Remove "file://" prefix
-	if changeType == protocol.FileChangeType(protocol.Changed) && w.client.IsFileOpen(filePath) {
-		err := w.client.NotifyChange(ctx, filePath)
-		if err != nil {
-			watcherLogger.Error("Error notifying change: %v", err)
+
+	// Atomic writes (write-to-temp, rename) appear as Created events, so Changed and
+	// Created need the same treatment.
+	if changeType == protocol.FileChangeType(protocol.Changed) ||
+		changeType == protocol.FileChangeType(protocol.Created) {
+		if w.client.IsFileOpen(filePath) {
+			// didChange: delivers the new file content to the server so it can update
+			// its in-memory document and run incremental analysis (syntax, basic linting).
+			if err := w.client.NotifyChange(ctx, filePath); err != nil {
+				watcherLogger.Error("Error notifying change: %v", err)
+				return
+			}
+			// didSave: signals that the content was persisted to disk, triggering
+			// expensive server-side work such as type checking and full diagnostics.
+			// An external tool writing a file is act like a save,
+			// so this should be semantically correct.
+			if err := w.client.NotifySave(ctx, filePath); err != nil {
+				watcherLogger.Error("Error notifying save: %v", err)
+			}
+			return
+		}
+		// File is not open: use workspace/didChangeWatchedFiles so the server
+		// reloads from disk.
+		if err := w.notifyFileEvent(ctx, uri, changeType); err != nil {
+			watcherLogger.Error("Error notifying LSP server about file event: %v", err)
 		}
 		return
 	}
 
-	// Notify LSP server about the file event using didChangeWatchedFiles
+	// For delete events, use workspace/didChangeWatchedFiles
 	if err := w.notifyFileEvent(ctx, uri, changeType); err != nil {
 		watcherLogger.Error("Error notifying LSP server about file event: %v", err)
 	}

@@ -80,6 +80,17 @@ func newServer(config *config) (*mcpServer, error) {
 	}, nil
 }
 
+// requiresOpenFilesOnRegistration returns true for language servers that need all
+// workspace files opened via didOpen before they can provide correct results.
+func requiresOpenFilesOnRegistration(serverName string) bool {
+	switch serverName {
+	case "typescript-language-server":
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *mcpServer) initializeLSP() error {
 	if err := os.Chdir(s.config.workspaceDir); err != nil {
 		return fmt.Errorf("failed to change to workspace directory: %v", err)
@@ -90,7 +101,6 @@ func (s *mcpServer) initializeLSP() error {
 		return fmt.Errorf("failed to create LSP client: %v", err)
 	}
 	s.lspClient = client
-	s.workspaceWatcher = watcher.NewWorkspaceWatcher(client)
 
 	initResult, err := client.InitializeLSPClient(s.ctx, s.config.workspaceDir)
 	if err != nil {
@@ -98,6 +108,12 @@ func (s *mcpServer) initializeLSP() error {
 	}
 
 	coreLogger.Debug("Server capabilities: %+v", initResult.Capabilities)
+
+	watcherConfig := watcher.DefaultWatcherConfig()
+	if initResult.ServerInfo != nil {
+		watcherConfig.OpenFilesOnRegistration = requiresOpenFilesOnRegistration(initResult.ServerInfo.Name)
+	}
+	s.workspaceWatcher = watcher.NewWorkspaceWatcherWithConfig(client, watcherConfig)
 
 	go s.workspaceWatcher.WatchWorkspace(s.ctx, s.config.workspaceDir)
 	return client.WaitForServerReady(s.ctx)

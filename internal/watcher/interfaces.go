@@ -18,6 +18,9 @@ type LSPClient interface {
 	// NotifyChange notifies the server of a file change
 	NotifyChange(ctx context.Context, path string) error
 
+	// NotifySave notifies the server that a file was saved (triggers diagnostics re-run)
+	NotifySave(ctx context.Context, path string) error
+
 	// DidChangeWatchedFiles sends watched file events to the server
 	DidChangeWatchedFiles(ctx context.Context, params protocol.DidChangeWatchedFilesParams) error
 }
@@ -26,6 +29,11 @@ type LSPClient interface {
 type WatcherConfig struct {
 	// DebounceTime is the duration to wait before sending file change events
 	DebounceTime time.Duration
+
+	// OpenFilesOnRegistration controls whether all matching workspace files are opened
+	// via textDocument/didOpen when file watchers are registered. Required for some
+	// language servers (e.g. typescript-language-server).
+	OpenFilesOnRegistration bool
 
 	// ExcludedDirs are directory names that should be excluded from watching
 	ExcludedDirs map[string]bool
