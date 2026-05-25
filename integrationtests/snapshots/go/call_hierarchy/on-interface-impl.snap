@@ -1,0 +1,3 @@
+caller[0]: 19:15-19:22 in /TEST_OUTPUT/workspace/another_consumer.go:6:6 from AnotherConsumer in /TEST_OUTPUT/workspace/another_consumer.go:6:6
+caller[1]: 24:20-24:27 in /TEST_OUTPUT/workspace/consumer.go:6:6 from ConsumerFunction in /TEST_OUTPUT/workspace/consumer.go:6:6
+identifier: Function GetName in /TEST_OUTPUT/workspace/types.go:37:24

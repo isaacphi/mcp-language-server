@@ -1,0 +1,8 @@
+/TEST_OUTPUT/workspace/types.go:6:6 SharedStruct Struct (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:7:2 SharedStruct.ID Field (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:8:2 SharedStruct.Name Field (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:9:2 SharedStruct.Value Field (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:14:24 SharedStruct.Method Method (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:37:24 SharedStruct.GetName Method (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:31:24 SharedStruct.Process Method (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:10:2 SharedStruct.Constants Field (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)

@@ -91,34 +91,66 @@ func CleanupTestSuites(suites ...*TestSuite) {
 	}
 }
 
-// normalizePaths replaces absolute paths in the result with placeholder paths for consistent snapshots
+// normalizePaths replaces absolute paths in the result with placeholder paths for consistent snapshots.
+//
+// Handles multi-occurrence lines correctly — call_hierarchy and
+// some clangd outputs embed the same workspace path twice (once
+// per LSP location field), and the previous Split-based approach
+// silently dropped every occurrence after the first while leaving
+// the runner's filesystem layout between them in plain text. This
+// rewrites each "<prefix>/workspace/<rest>" occurrence to
+// "/TEST_OUTPUT/workspace/<rest>" by scanning forward through the
+// line, so a snapshot built on one developer's machine is byte-
+// equal to one built on a CI runner regardless of where the test
+// output directory lives on either filesystem.
 func normalizePaths(_ *testing.T, input string) string {
-	// No need to get the repo root - we're just looking for patterns
-
-	// Simple approach: just replace any path segments that contain workspace/
 	lines := strings.Split(input, "\n")
 	for i, line := range lines {
-		// Any line containing a path to a workspace file needs normalization
-		if strings.Contains(line, "/workspace/") {
-			// Extract everything after /workspace/
-			parts := strings.Split(line, "/workspace/")
-			if len(parts) > 1 {
-				// Replace with a simple placeholder path
-				lines[i] = "/TEST_OUTPUT/workspace/" + parts[1]
-			}
-		}
-		// Some tests, e.g. clangd, may include fully qualified paths to the base /workspaces/ directory
-		if strings.Contains(line, "/workspaces/") {
-			// Extract everything after /workspace/
-			parts := strings.Split(line, "/workspaces/")
-			if len(parts) > 1 {
-				// Replace with a simple placeholder path
-				lines[i] = "/TEST_OUTPUT/workspace/" + parts[1]
-			}
-		}
+		lines[i] = normalizeWorkspaceMarker(normalizeWorkspaceMarker(line, "/workspaces/"), "/workspace/")
 	}
-
 	return strings.Join(lines, "\n")
+}
+
+// normalizeWorkspaceMarker walks a single line and replaces every
+// `<absolute path>/workspace/<rest-of-path>` segment with
+// `/TEST_OUTPUT/workspace/<rest-of-path>`. The marker arg is
+// either `/workspace/` or `/workspaces/` (clangd's convention).
+//
+// The replacement starts at each marker occurrence and walks
+// backwards to the nearest path-segment boundary (a space, tab,
+// open paren, comma, or start-of-line) to determine where the
+// absolute-path prefix begins. That keeps the line's non-path
+// content intact while stripping the per-machine prefix. We
+// advance past the freshly-written placeholder before scanning
+// for the next occurrence so an idempotent re-match (the
+// placeholder ITSELF ends in `/workspace/`) doesn't infinite-loop.
+func normalizeWorkspaceMarker(line, marker string) string {
+	const placeholder = "/TEST_OUTPUT/workspace/"
+	out := line
+	cursor := 0 // resume scanning from here on each iteration
+	for cursor < len(out) {
+		rel := strings.Index(out[cursor:], marker)
+		if rel < 0 {
+			return out
+		}
+		idx := cursor + rel
+		// Walk backwards from the marker until we hit a path-segment
+		// boundary (or the start of the cursor — we don't rewind past
+		// previously-normalized text).
+		start := idx
+		for start > cursor {
+			c := out[start-1]
+			if c == ' ' || c == '\t' || c == '(' || c == '[' || c == ',' {
+				break
+			}
+			start--
+		}
+		out = out[:start] + placeholder + out[idx+len(marker):]
+		// Resume past the freshly-written placeholder so the
+		// trailing `/workspace/` doesn't re-match.
+		cursor = start + len(placeholder)
+	}
+	return out
 }
 
 // FindRepoRoot locates the repository root by looking for specific indicators

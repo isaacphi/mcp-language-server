@@ -363,6 +363,135 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
+	// ───────────────────────────────────────────────────────────────
+	// Fuzzy + structural navigation tools — workspace_symbol,
+	// implementation, call_hierarchy. These wrap LSP methods the
+	// upstream client already exposed (client.Symbol /
+	// client.Implementation / client.PrepareCallHierarchy /
+	// IncomingCalls / OutgoingCalls) but never surfaced as MCP
+	// tools. The existing `definition` and `references` tools
+	// require an exact symbol name; these three let the agent
+	// search by query and ask structural questions ("who
+	// implements this interface", "who calls this function")
+	// that grep cannot answer.
+	// ───────────────────────────────────────────────────────────────
+
+	workspaceSymbolTool := mcp.NewTool("workspace_symbol",
+		mcp.WithDescription("Search the entire workspace for symbols matching a query. Wraps the LSP `workspace/symbol` method, so matching semantics depend on the language server: gopls / tsserver / clangd support fuzzy matching. Returns one match per line: `<file>:<line>:<column> <name> <Kind>[ (in <ContainerName>)]`. Use BEFORE `definition` / `references` when you don't know which file a symbol lives in — one call replaces a grep-the-codebase scan."),
+		mcp.WithString("query",
+			mcp.Required(),
+			mcp.Description("The symbol name to search for. Empty / whitespace-only queries are rejected."),
+		),
+	)
+
+	s.mcpServer.AddTool(workspaceSymbolTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		query, ok := request.Params.Arguments["query"].(string)
+		if !ok {
+			return mcp.NewToolResultError("query must be a string"), nil
+		}
+		coreLogger.Debug("Executing workspace_symbol for query: %s", query)
+		text, err := tools.WorkspaceSymbol(s.ctx, s.lspClient, query)
+		if err != nil {
+			coreLogger.Error("Failed to search workspace symbols: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to search workspace symbols: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
+	implementationTool := mcp.NewTool("implementation",
+		mcp.WithDescription("Find every type or method that implements the interface (or interface method) at the given position. Wraps `textDocument/implementation`. Critical for Go and TypeScript: structural typing has no `implements` keyword for grep to match, so this is the only reliable way to enumerate an interface's satisfaction set. Returns one location per line: `<file>:<line>:<column>`."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("Path to the file containing the interface or method"),
+		),
+		mcp.WithNumber("line",
+			mcp.Required(),
+			mcp.Description("Line number of the interface/method name (1-indexed)"),
+		),
+		mcp.WithNumber("column",
+			mcp.Required(),
+			mcp.Description("Column number of the interface/method name (1-indexed)"),
+		),
+	)
+
+	s.mcpServer.AddTool(implementationTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+		var line, column int
+		switch v := request.Params.Arguments["line"].(type) {
+		case float64:
+			line = int(v)
+		case int:
+			line = v
+		default:
+			return mcp.NewToolResultError("line must be a number"), nil
+		}
+		switch v := request.Params.Arguments["column"].(type) {
+		case float64:
+			column = int(v)
+		case int:
+			column = v
+		default:
+			return mcp.NewToolResultError("column must be a number"), nil
+		}
+		coreLogger.Debug("Executing implementation for file: %s line: %d column: %d", filePath, line, column)
+		text, err := tools.FindImplementations(s.ctx, s.lspClient, filePath, line, column)
+		if err != nil {
+			coreLogger.Error("Failed to find implementations: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to find implementations: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
+	callHierarchyTool := mcp.NewTool("call_hierarchy",
+		mcp.WithDescription("List direct callers AND callees of a function or method. Wraps the 3-call LSP dance: `textDocument/prepareCallHierarchy` → `callHierarchy/incomingCalls` + `callHierarchy/outgoingCalls`. Output mirrors `gopls call_hierarchy`: `caller[N]: …` lines (incoming), an `identifier: …` line (target), and `callee[N]: …` lines (outgoing). Use for refactor impact analysis (who calls X before I change X's signature) and data-flow tracing. Cursor MUST be on the function / method NAME — not its body — or the LSP server rejects prepareCallHierarchy."),
+		mcp.WithString("filePath",
+			mcp.Required(),
+			mcp.Description("Path to the file containing the function"),
+		),
+		mcp.WithNumber("line",
+			mcp.Required(),
+			mcp.Description("Line number of the function name (1-indexed)"),
+		),
+		mcp.WithNumber("column",
+			mcp.Required(),
+			mcp.Description("Column number of the function name (1-indexed)"),
+		),
+	)
+
+	s.mcpServer.AddTool(callHierarchyTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		filePath, ok := request.Params.Arguments["filePath"].(string)
+		if !ok {
+			return mcp.NewToolResultError("filePath must be a string"), nil
+		}
+		var line, column int
+		switch v := request.Params.Arguments["line"].(type) {
+		case float64:
+			line = int(v)
+		case int:
+			line = v
+		default:
+			return mcp.NewToolResultError("line must be a number"), nil
+		}
+		switch v := request.Params.Arguments["column"].(type) {
+		case float64:
+			column = int(v)
+		case int:
+			column = v
+		default:
+			return mcp.NewToolResultError("column must be a number"), nil
+		}
+		coreLogger.Debug("Executing call_hierarchy for file: %s line: %d column: %d", filePath, line, column)
+		text, err := tools.GetCallHierarchy(s.ctx, s.lspClient, filePath, line, column)
+		if err != nil {
+			coreLogger.Error("Failed to compute call hierarchy: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to compute call hierarchy: %v", err)), nil
+		}
+		return mcp.NewToolResultText(text), nil
+	})
+
 	coreLogger.Info("Successfully registered all MCP tools")
 	return nil
 }

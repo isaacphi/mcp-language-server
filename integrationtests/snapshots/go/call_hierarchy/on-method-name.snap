@@ -1,0 +1,2 @@
+caller[0]: 19:16-19:22 in /TEST_OUTPUT/workspace/consumer.go:6:6 from ConsumerFunction in /TEST_OUTPUT/workspace/consumer.go:6:6
+identifier: Function Method in /TEST_OUTPUT/workspace/types.go:14:24
