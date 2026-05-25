@@ -1,0 +1,3 @@
+/TEST_OUTPUT/workspace/types.go:19:6 SharedInterface Interface (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:21:2 SharedInterface.GetName Method (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)
+/TEST_OUTPUT/workspace/types.go:20:2 SharedInterface.Process Method (in github.com/isaacphi/mcp-language-server/integrationtests/test-output/go/workspace)

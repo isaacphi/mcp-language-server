@@ -1,0 +1,4 @@
+/TEST_OUTPUT/workspace/another_consumer.go:6:6 from AnotherConsumer in /tmp/upstream-pr/mcp-language-server/integrationtests/test-output/go/TestCallHierarchy_OnInterfaceImpl
+/TEST_OUTPUT/workspace/consumer.go:6:6 from ConsumerFunction in /tmp/upstream-pr/mcp-language-server/integrationtests/test-output/go/TestCallHierarchy_OnInterfaceImpl
+/TEST_OUTPUT/workspace/types.go:31:24
+callee[0]: Function Printf in /opt/homebrew/Cellar/go/1.26.2/libexec/src/fmt/print.go:232:6
