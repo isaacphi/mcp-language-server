@@ -41,14 +41,16 @@ func TestWorkspaceSymbol(t *testing.T) {
 			snapshotName: "exact-constant",
 		},
 		{
-			// `TestStruct` is unique to the test workspace, so this
-			// query is stable across machines / Go versions (a bare
-			// `Method` query would also match every `Method` in
-			// reflect / abi / runtime and the snapshot would flap
-			// across Go releases).
+			// `AnotherConsumer` exists only in the test workspace
+			// fixture and has no substring overlap with any Go stdlib
+			// symbol. A `TestStruct` or `Method` query would fuzzy-
+			// match `stringStruct` / `Method` in runtime/reflect/abi,
+			// so the snapshot would include Go-version-specific paths
+			// like `/opt/homebrew/Cellar/go/1.26.2/...` that break on
+			// any other machine.
 			name:         "WorkspaceUniqueType",
-			query:        "TestStruct",
-			expectedText: "TestStruct",
+			query:        "AnotherConsumer",
+			expectedText: "AnotherConsumer",
 			snapshotName: "workspace-unique-type",
 		},
 		{

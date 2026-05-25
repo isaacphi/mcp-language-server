@@ -38,11 +38,18 @@ func TestCallHierarchy(t *testing.T) {
 			snapshotName: "on-method-name",
 		},
 		{
-			// Cursor on `Process` (SharedStruct.Process name) —
-			// a method that satisfies the SharedInterface contract.
+			// Cursor on `GetName` (SharedStruct.GetName) — a method
+			// that satisfies the SharedInterface contract. Picked
+			// over `Process` because the latter calls fmt.Printf, and
+			// gopls's call_hierarchy then surfaces a `callee[0]:` row
+			// pointing at the Go stdlib (`/usr/local/go/src/fmt/...`
+			// on Linux, `/opt/homebrew/Cellar/go/.../fmt/...` on
+			// macOS). Either path would make the snapshot non-
+			// portable across CI runners. GetName has no callees so
+			// the snapshot only contains workspace paths.
 			name:         "OnInterfaceImpl",
 			file:         "types.go",
-			line:         31,
+			line:         37,
 			column:       24,
 			expectedText: "identifier:",
 			snapshotName: "on-interface-impl",
