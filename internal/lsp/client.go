@@ -22,6 +22,12 @@ type Client struct {
 	stdout *bufio.Reader
 	stderr io.ReadCloser
 
+	// stdinMu serializes writes to stdin. A single LSP message is framed as a
+	// Content-Length header followed by the body in two separate Write calls, so
+	// concurrent senders (request/response, notifications, the workspace watcher)
+	// must not interleave or the wire framing is corrupted.
+	stdinMu sync.Mutex
+
 	// Request ID counter
 	nextID atomic.Int32
 
@@ -44,6 +50,32 @@ type Client struct {
 	// Files are currently opened by the LSP
 	openFiles   map[string]*OpenFileInfo
 	openFilesMu sync.RWMutex
+
+	// closed is closed exactly once, the moment the transport starts going away —
+	// either because Close() began tearing it down, or because handleMessages
+	// stopped reading (LSP server died: stdout EOF or crash). An in-flight Call
+	// selects on it so a request whose response can no longer arrive does not
+	// block forever, whether the shutdown was initiated by us or forced on us by a
+	// dead server. It is a best-effort fast-fail for new Call/Notify, not a write
+	// barrier: stdinMu serializes the actual writes, and a write that loses the
+	// race with stdin.Close() simply returns an error.
+	//
+	// closedOnce guards the channel close so the Close() path and the
+	// handleMessages-exit path can both signal it without a double-close panic.
+	// It is distinct from closeOnce, which serializes the full teardown (stdin
+	// close + Cmd.Wait) and must run only from Close(), never from the read
+	// goroutine.
+	closeOnce  sync.Once
+	closedOnce sync.Once
+	closed     chan struct{}
+}
+
+// signalClosed marks the transport as going away, unblocking any in-flight Call.
+// Safe to call from multiple goroutines and more than once.
+func (c *Client) signalClosed() {
+	c.closedOnce.Do(func() {
+		close(c.closed)
+	})
 }
 
 func NewClient(command string, args ...string) (*Client, error) {
@@ -76,6 +108,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 		serverRequestHandlers: make(map[string]ServerRequestHandler),
 		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),
 		openFiles:             make(map[string]*OpenFileInfo),
+		closed:                make(chan struct{}),
 	}
 
 	// Start the LSP server process
@@ -228,15 +261,38 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 }
 
 func (c *Client) Close() error {
-	// Try to close all open files first
+	var err error
+	// Guard against a double Close: closing c.closed (and stdin) twice would
+	// panic, and Close can race in from more than one shutdown trigger.
+	c.closeOnce.Do(func() {
+		err = c.closeLocked()
+	})
+	return err
+}
+
+func (c *Client) closeLocked() error {
+	// Try to close all open files first (graceful didClose notifications still
+	// need the transport, so do this before signalling c.closed below).
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Attempt to close files but continue shutdown regardless
 	c.CloseAllFiles(ctx)
 
-	// Force kill the LSP process if it doesn't exit within timeout
-	forcedKill := make(chan struct{})
+	// From here the transport is going away. Unblock any in-flight Call waiting
+	// on a response and make new Call/Notify fail fast instead of writing to a
+	// pipe we are about to close. handleMessages may have already signalled this
+	// if the server died first, so go through the once-guarded helper.
+	c.signalClosed()
+
+	// Force kill the LSP process if it doesn't exit within timeout.
+	// killDone is closed exactly once, by this function, after Cmd.Wait
+	// returns. The kill goroutine only ever *reads* it (never closes it), so
+	// the two paths can never double-close the same channel: when the process
+	// exits on its own we close killDone and the goroutine takes its <-killDone
+	// arm; when it hangs the goroutine kills it and then observes killDone
+	// closing once Wait returns.
+	killDone := make(chan struct{})
 	go func() {
 		select {
 		case <-time.After(2 * time.Second):
@@ -248,23 +304,36 @@ func (c *Client) Close() error {
 					lspLogger.Info("Process killed successfully")
 				}
 			}
-			close(forcedKill)
-		case <-forcedKill:
-			// Channel closed from completion path
-			return
+		case <-killDone:
+			// Process exited on its own before the timeout; nothing to do.
 		}
 	}()
 
-	// Close stdin to signal the server
+	// Close stdin to signal the server. Deliberately NOT under stdinMu: a writer
+	// blocked on a full pipe holds that lock, and closing the fd here is what
+	// unblocks it (the in-flight write then returns an error). os.File guards
+	// concurrent Write/Close internally, so this is a fast-fail, not a race.
 	if err := c.stdin.Close(); err != nil {
 		lspLogger.Error("Failed to close stdin: %v", err)
 	}
 
 	// Wait for process to exit
 	err := c.Cmd.Wait()
-	close(forcedKill) // Stop the force kill goroutine
+	close(killDone) // Stop the force kill goroutine
 
 	return err
+}
+
+// isClosed reports whether the transport is going away — either Close() began
+// tearing it down or the read loop exited because the server died. It mirrors
+// the broadened semantics of the closed channel (see field comment above).
+func (c *Client) isClosed() bool {
+	select {
+	case <-c.closed:
+		return true
+	default:
+		return false
+	}
 }
 
 type ServerState int
