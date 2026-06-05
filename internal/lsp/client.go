@@ -151,6 +151,11 @@ func (c *Client) InitializeLSPClient(ctx context.Context, workspaceDir string) (
 					Completion: protocol.CompletionClientCapabilities{
 						CompletionItem: protocol.ClientCompletionItemOptions{},
 					},
+					Hover: &protocol.HoverClientCapabilities{
+						// Prefer MarkupContent over deprecated MarkedString
+						// responses (e.g. from jdtls).
+						ContentFormat: []protocol.MarkupKind{protocol.Markdown, protocol.PlainText},
+					},
 					CodeLens: &protocol.CodeLensClientCapabilities{
 						DynamicRegistration: true,
 					},

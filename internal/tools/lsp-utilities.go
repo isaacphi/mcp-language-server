@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
@@ -59,10 +58,12 @@ func GetFullDefinition(ctx context.Context, client *lsp.Client, startLocation pr
 	found = searchSymbols(symbols)
 
 	if found {
-		// Convert URI to filesystem path
-		filePath, err := url.PathUnescape(strings.TrimPrefix(string(startLocation.URI), "file://"))
+		// Convert URI to filesystem path. Use the shared uriToPath helper so
+		// percent-decoding and non-file URI handling stay consistent with the
+		// definition/references tools (and never panics on a jdt:// URI).
+		filePath, err := uriToPath(startLocation.URI)
 		if err != nil {
-			return "", protocol.Location{}, fmt.Errorf("failed to unescape URI: %w", err)
+			return "", protocol.Location{}, err
 		}
 
 		// Read the file to get the full lines of the definition
