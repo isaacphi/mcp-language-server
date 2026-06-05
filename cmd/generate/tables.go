@@ -67,8 +67,11 @@ var renameProp = map[prop]string{
 
 	{"ExecuteCommandParams", "arguments"}: "[]json.RawMessage",
 	{"FoldingRange", "kind"}:              "string",
-	{"Hover", "contents"}:                 "MarkupContent",
-	{"InlayHint", "label"}:                "[]InlayHintLabelPart",
+	// Hover.contents intentionally has no override: the generator emits the
+	// spec union (Or_Hover_contents) so MarkedString / []MarkedString (both
+	// deprecated, still sent by e.g. jdtls) decode alongside MarkupContent.
+	// Forcing "MarkupContent" here would make jdtls hover decode to empty.
+	{"InlayHint", "label"}: "[]InlayHintLabelPart",
 
 	{"RelatedFullDocumentDiagnosticReport", "relatedDocuments"}:      "map[DocumentUri]interface{}",
 	{"RelatedUnchangedDocumentDiagnosticReport", "relatedDocuments"}: "map[DocumentUri]interface{}",
