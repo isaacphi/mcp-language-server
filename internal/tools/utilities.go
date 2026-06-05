@@ -10,8 +10,32 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
+// uriToPath converts a DocumentUri to a filesystem path. It is a non-panicking
+// wrapper around DocumentUri.Path(), which panics on non-"file://" URIs (e.g.
+// the "jdt://" URIs jdtls returns for symbols inside JARs). Returning an error
+// lets callers degrade gracefully instead of crashing the tool. Behavior for
+// ordinary file:// URIs is identical to calling Path() directly, including the
+// percent-decoding that makes os.ReadFile find paths with encoded characters.
+func uriToPath(uri protocol.DocumentUri) (path string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("unsupported document URI %q: %v", uri, r)
+		}
+	}()
+	// An empty URI yields ("", nil): Path() maps "" to "" without panicking,
+	// and an absent URI is a benign no-op for callers, not an error.
+	return uri.Path(), nil
+}
+
 func ExtractTextFromLocation(loc protocol.Location) (string, error) {
-	path := strings.TrimPrefix(string(loc.URI), "file://")
+	// Use uriToPath rather than trimming the "file://" prefix: it
+	// percent-decodes the path (e.g. "%20" -> space) so os.ReadFile finds
+	// files whose paths contain encoded characters, consistent with the
+	// definition and references tools, and degrades gracefully on non-file URIs.
+	path, err := uriToPath(loc.URI)
+	if err != nil {
+		return "", err
+	}
 
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -68,6 +92,30 @@ func ExtractTextFromLocation(loc protocol.Location) (string, error) {
 	return result.String(), nil
 }
 
+// extractLineText returns the full text of the given 0-indexed line in the
+// file referenced by uri. It builds a single-line Location range (start and end
+// on the same line) covering the whole line, which works for every line
+// including the last one in the file. Returns an error if the line is out of
+// range or the file cannot be read.
+func extractLineText(uri protocol.DocumentUri, line uint32) (string, error) {
+	path, err := uriToPath(uri)
+	if err != nil {
+		return "", err
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file: %w", err)
+	}
+
+	lines := strings.Split(string(content), "\n")
+	idx := int(line)
+	if idx < 0 || idx >= len(lines) {
+		return "", fmt.Errorf("line %d out of range (%d lines)", line, len(lines))
+	}
+	return lines[idx], nil
+}
+
 func containsPosition(r protocol.Range, p protocol.Position) bool {
 	if r.Start.Line > p.Line || r.End.Line < p.Line {
 		return false
@@ -84,8 +132,11 @@ func containsPosition(r protocol.Range, p protocol.Position) bool {
 // addLineNumbers adds line numbers to each line of text with proper padding, starting from startLine
 func addLineNumbers(text string, startLine int) string {
 	lines := strings.Split(text, "\n")
-	// Calculate padding width based on the number of digits in the last line number
-	lastLineNum := startLine + len(lines)
+	// Calculate padding width based on the number of digits in the last line
+	// number. The last line printed is startLine+len(lines)-1 (the loop below
+	// prints startLine+i for i in [0, len(lines))), so subtract one here to
+	// avoid over-padding by a digit at power-of-ten boundaries.
+	lastLineNum := startLine + len(lines) - 1
 	padding := len(strconv.Itoa(lastLineNum))
 
 	var result strings.Builder

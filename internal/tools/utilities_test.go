@@ -191,6 +191,31 @@ func TestExtractTextFromLocation_FileError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestExtractLineText(t *testing.T) {
+	dir := t.TempDir()
+	// No trailing newline: the final line is the last index after splitting.
+	path := dir + "/sample.txt"
+	if err := os.WriteFile(path, []byte("first\nsecond\nlast"), 0o600); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+	uri := protocol.DocumentUri("file://" + path)
+
+	// Middle line.
+	got, err := extractLineText(uri, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, "second", got)
+
+	// Last line: this is the case that previously failed because the hover
+	// fallback spanned to Line+1 and tripped the bounds check.
+	got, err = extractLineText(uri, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, "last", got)
+
+	// Out of range.
+	_, err = extractLineText(uri, 3)
+	assert.Error(t, err)
+}
+
 func TestContainsPosition(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -329,6 +354,15 @@ func TestAddLineNumbers(t *testing.T) {
 			text:      "",
 			startLine: 1,
 			expected:  "1|\n",
+		},
+		{
+			// Last printed line number is 99 (startLine 97 + 3 lines - 1),
+			// so padding must be 2 wide, not 3. Guards against an off-by-one
+			// where lastLineNum was computed as startLine+len(lines).
+			name:      "Padding does not over-pad at power-of-ten boundary",
+			text:      "line1\nline2\nline3",
+			startLine: 97,
+			expected:  "97|line1\n98|line2\n99|line3\n",
 		},
 	}
 
