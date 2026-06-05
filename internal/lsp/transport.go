@@ -94,8 +94,22 @@ func ReadMessage(r *bufio.Reader) (*Message, error) {
 	return &msg, nil
 }
 
+// writeMessage serializes a single LSP message onto stdin. The lock prevents
+// concurrent senders from interleaving one message's header with another's body.
+func (c *Client) writeMessage(msg *Message) error {
+	c.stdinMu.Lock()
+	defer c.stdinMu.Unlock()
+	return WriteMessage(c.stdin, msg)
+}
+
 // handleMessages reads and dispatches messages in a loop
 func (c *Client) handleMessages() {
+	// Once this loop returns, no further responses can be delivered to waiting
+	// Calls. Signal c.closed so any in-flight Call unblocks instead of parking
+	// forever — covers the case where the LSP server dies on its own (stdout EOF
+	// or crash) and nobody calls Close(). Idempotent and safe to race with
+	// Close(), which signals the same channel through the same once.
+	defer c.signalClosed()
 	for {
 		msg, err := ReadMessage(c.stdout)
 		if err != nil {
@@ -150,7 +164,7 @@ func (c *Client) handleMessages() {
 			}
 
 			// Send response back to server
-			if err := WriteMessage(c.stdin, response); err != nil {
+			if err := c.writeMessage(response); err != nil {
 				lspLogger.Error("Error sending response to server: %v", err)
 			}
 
@@ -193,6 +207,10 @@ func (c *Client) handleMessages() {
 
 // Call makes a request and waits for the response
 func (c *Client) Call(ctx context.Context, method string, params any, result any) error {
+	if c.isClosed() {
+		return fmt.Errorf("LSP client is closed")
+	}
+
 	id := c.nextID.Add(1)
 
 	lspLogger.Debug("Making call: method=%s id=%v", method, id)
@@ -217,14 +235,39 @@ func (c *Client) Call(ctx context.Context, method string, params any, result any
 	}()
 
 	// Send request
-	if err := WriteMessage(c.stdin, msg); err != nil {
+	if err := c.writeMessage(msg); err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
 	lspLogger.Debug("Waiting for response to request ID: %v", msg.ID)
 
-	// Wait for response
-	resp := <-ch
+	// Wait for the response, but don't block forever if no response can arrive.
+	// c.closed is signalled both when Close() tears the transport down and when
+	// handleMessages stops reading because the LSP server died on its own (stdout
+	// EOF or crash). Either way, once it is closed no response will ever arrive on
+	// ch, so we bail out instead of parking forever.
+	//
+	// NOTE: deliberately not selecting on ctx.Done() here. Several callers
+	// (e.g. the diagnostics/definition tools) sleep and then issue calls on a
+	// context whose deadline may already have elapsed, relying on the response
+	// still being delivered as long as the LSP is alive. Aborting on ctx here
+	// would change that long-standing contract. Shutdown bounding is handled by
+	// the caller-side timeouts in cleanup() plus c.closed, not by ctx.
+	//
+	// Prefer an already-delivered response: when both ch and c.closed are ready,
+	// a bare select picks pseudo-randomly and would discard a valid result. So we
+	// check ch first, and only fall back to the closed-aware wait if nothing has
+	// arrived yet.
+	var resp *Message
+	select {
+	case resp = <-ch:
+	default:
+		select {
+		case resp = <-ch:
+		case <-c.closed:
+			return fmt.Errorf("LSP client closed while awaiting response to %s", method)
+		}
+	}
 
 	lspLogger.Debug("Received response for request ID: %v", msg.ID)
 
@@ -251,6 +294,10 @@ func (c *Client) Call(ctx context.Context, method string, params any, result any
 
 // Notify sends a notification (a request without an ID that doesn't expect a response)
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
+	if c.isClosed() {
+		return fmt.Errorf("LSP client is closed")
+	}
+
 	lspLogger.Debug("Sending notification: method=%s", method)
 
 	msg, err := NewNotification(method, params)
@@ -258,7 +305,7 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 		return fmt.Errorf("failed to create notification: %w", err)
 	}
 
-	if err := WriteMessage(c.stdin, msg); err != nil {
+	if err := c.writeMessage(msg); err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
 
