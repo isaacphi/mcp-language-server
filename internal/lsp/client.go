@@ -366,6 +366,27 @@ func (c *Client) NotifyChange(ctx context.Context, filepath string) error {
 	return c.Notify(ctx, "textDocument/didChange", params)
 }
 
+// SyncOpenFiles re-sends every open file's current on-disk content to the server
+// via didChange. Callers that plan edits from the server's view of a document
+// must call this first (see RenameSymbol).
+func (c *Client) SyncOpenFiles(ctx context.Context) {
+	c.openFilesMu.RLock()
+	uris := make([]string, 0, len(c.openFiles))
+	for uri := range c.openFiles {
+		uris = append(uris, uri)
+	}
+	c.openFilesMu.RUnlock()
+
+	for _, uri := range uris {
+		path := strings.TrimPrefix(uri, "file://")
+		if err := c.NotifyChange(ctx, path); err != nil {
+			// Unreadable (e.g. deleted): leave it stale. ApplyWorkspaceEdit will
+			// then error on it rather than corrupt it.
+			lspLogger.Debug("SyncOpenFiles: skipping %s: %v", path, err)
+		}
+	}
+}
+
 func (c *Client) CloseFile(ctx context.Context, filepath string) error {
 	uri := fmt.Sprintf("file://%s", filepath)
 

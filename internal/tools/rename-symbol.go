@@ -39,6 +39,11 @@ func RenameSymbol(ctx context.Context, client *lsp.Client, filePath string, line
 	// Skip the PrepareRename check as it might not be supported by all language servers
 	// Execute the rename directly
 
+	// Sync the server's view of every open file to disk before planning the
+	// rename: an out-of-band on-disk edit after the file was opened otherwise
+	// leaves a stale buffer, and the rename's ranges land at stale positions.
+	client.SyncOpenFiles(ctx)
+
 	// Execute the rename operation
 	workspaceEdit, err := client.Rename(ctx, params)
 	if err != nil {
