@@ -20,6 +20,14 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
 3. **Install a language server**: _follow one of the guides below_
 4. **Configure your MCP client**: _follow one of the guides below_
 
+For example, after installing `gopls`, register it for the current project with [Autohand Code](https://github.com/autohandai/code-cli/):
+
+```bash
+autohand mcp add --scope project language-server mcp-language-server --workspace /path/to/project --lsp gopls
+```
+
+Replace the workspace path and language server command for your project.
+
 <details>
   <summary>Go (gopls)</summary>
   <div>
