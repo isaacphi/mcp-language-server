@@ -38,6 +38,14 @@ type WatcherConfig struct {
 
 	// MaxFileSize is the maximum size of a file to open
 	MaxFileSize int64
+
+	// MaxWatchFDs bounds the number of file descriptors that filesystem
+	// watches may consume. The kqueue backend used on macOS and the BSDs
+	// needs one descriptor per watched path, and watching a directory also
+	// watches every file in it, so a recursive watch of a large workspace
+	// costs roughly one descriptor per file. Zero derives a limit from the
+	// process descriptor limit; a negative value disables the bound.
+	MaxWatchFDs int
 }
 
 // DefaultWatcherConfig returns a configuration with sensible defaults
@@ -93,5 +101,6 @@ func DefaultWatcherConfig() *WatcherConfig {
 			".wasm": true,
 		},
 		MaxFileSize: 5 * 1024 * 1024, // 5MB
+		MaxWatchFDs: 0,               // derived from the process descriptor limit
 	}
 }
