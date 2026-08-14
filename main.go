@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -24,6 +25,7 @@ type config struct {
 	workspaceDir string
 	lspCommand   string
 	lspArgs      []string
+	maxWatchFDs  int
 }
 
 type mcpServer struct {
@@ -39,6 +41,8 @@ func parseConfig() (*config, error) {
 	cfg := &config{}
 	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory")
 	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (args should be passed after --)")
+	flag.IntVar(&cfg.maxWatchFDs, "max-watch-fds", 0,
+		"Maximum file descriptors to spend on file watches (0 derives a limit from ulimit -n, -1 disables the bound)")
 	flag.Parse()
 
 	// Get remaining args after -- as LSP arguments
@@ -90,7 +94,10 @@ func (s *mcpServer) initializeLSP() error {
 		return fmt.Errorf("failed to create LSP client: %v", err)
 	}
 	s.lspClient = client
-	s.workspaceWatcher = watcher.NewWorkspaceWatcher(client)
+
+	watcherConfig := watcher.DefaultWatcherConfig()
+	watcherConfig.MaxWatchFDs = s.config.maxWatchFDs
+	s.workspaceWatcher = watcher.NewWorkspaceWatcherWithConfig(client, watcherConfig)
 
 	initResult, err := client.InitializeLSPClient(s.ctx, s.config.workspaceDir)
 	if err != nil {
@@ -172,11 +179,17 @@ func main() {
 		select {
 		case sig := <-sigChan:
 			coreLogger.Info("Received signal %v in PID: %d", sig, os.Getpid())
-			cleanup(server, done)
 		case <-parentDeath:
 			coreLogger.Info("Parent death detected, initiating shutdown")
-			cleanup(server, done)
 		}
+		cleanup(server, done)
+
+		// main is blocked in ServeStdio, which only returns once stdin closes.
+		// That can never happen if another process inherited the write end of
+		// the pipe, so exit here rather than leaving an orphan behind holding
+		// its watch descriptors open.
+		coreLogger.Info("Server shutdown complete for PID: %d", os.Getpid())
+		os.Exit(0)
 	}()
 
 	if err := server.start(); err != nil {
@@ -185,12 +198,45 @@ func main() {
 		os.Exit(1)
 	}
 
+	// ServeStdio returned, so stdin is closed and no more requests can arrive.
+	// Shut down instead of waiting for a signal that may never come.
+	cleanup(server, done)
+
 	<-done
 	coreLogger.Info("Server shutdown complete for PID: %d", os.Getpid())
 	os.Exit(0)
 }
 
+// cleanupTimeout bounds the whole shutdown sequence. A language server that
+// has stopped reading its stdin blocks cleanup indefinitely, and a server
+// process that never finishes shutting down holds its workspace watch
+// descriptors for as long as it stays alive.
+const cleanupTimeout = 10 * time.Second
+
+// cleanupOnce guards cleanup: it can be reached both from the shutdown
+// goroutine and from main once ServeStdio returns.
+var cleanupOnce sync.Once
+
 func cleanup(s *mcpServer, done chan struct{}) {
+	cleanupOnce.Do(func() {
+		finished := make(chan struct{})
+		go func() {
+			doCleanup(s)
+			close(finished)
+		}()
+
+		select {
+		case <-finished:
+			coreLogger.Info("Cleanup completed for PID: %d", os.Getpid())
+		case <-time.After(cleanupTimeout):
+			coreLogger.Warn("Cleanup did not finish within %s, shutting down anyway", cleanupTimeout)
+		}
+
+		close(done)
+	})
+}
+
+func doCleanup(s *mcpServer) {
 	coreLogger.Info("Cleanup initiated for PID: %d", os.Getpid())
 
 	// Create a context with timeout for shutdown operations
@@ -233,13 +279,4 @@ func cleanup(s *mcpServer, done chan struct{}) {
 			coreLogger.Error("Failed to close LSP client: %v", err)
 		}
 	}
-
-	// Send signal to the done channel
-	select {
-	case <-done: // Channel already closed
-	default:
-		close(done)
-	}
-
-	coreLogger.Info("Cleanup completed for PID: %d", os.Getpid())
 }

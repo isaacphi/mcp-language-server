@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -181,33 +182,61 @@ func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath str
 		}
 	}()
 
-	// Watch the workspace recursively
+	// Watch the workspace recursively, spending no more descriptors on watches
+	// than the budget allows
+	budget := w.watchFDBudget()
+	perFile := fdsPerWatchedFile()
+	usedFDs := 0
+	watchedDirs := 0
+	budgetExhausted := false
+
 	err = filepath.WalkDir(workspacePath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip excluded directories (except workspace root)
-		if d.IsDir() && path != workspacePath {
-			if w.shouldExcludeDir(path) {
-				watcherLogger.Debug("Skipping watching excluded directory: %s", path)
-				return filepath.SkipDir
+		if !d.IsDir() {
+			// The kqueue backend watches every file in a watched directory,
+			// whether or not this watcher is interested in it
+			usedFDs += perFile
+			if budget > 0 && usedFDs >= budget {
+				budgetExhausted = true
+				return filepath.SkipAll
 			}
+			return nil
 		}
 
-		// Add directories to watcher
-		if d.IsDir() {
-			err = watcher.Add(path)
-			if err != nil {
-				watcherLogger.Error("Error watching path %s: %v", path, err)
-			}
+		// Skip excluded directories (except workspace root)
+		if path != workspacePath && w.shouldExcludeDir(path) {
+			watcherLogger.Debug("Skipping watching excluded directory: %s", path)
+			return filepath.SkipDir
 		}
+
+		if budget > 0 && usedFDs+1 > budget {
+			budgetExhausted = true
+			return filepath.SkipAll
+		}
+
+		if err := watcher.Add(path); err != nil {
+			watcherLogger.Error("Error watching path %s: %v", path, err)
+			return nil
+		}
+		usedFDs++
+		watchedDirs++
 
 		return nil
 	})
 
 	if err != nil {
 		watcherLogger.Fatal("Error walking workspace: %v", err)
+	}
+
+	if budgetExhausted {
+		watcherLogger.Warn("Watch budget of %d file descriptors reached after %d directories; "+
+			"changes outside the watched set will not be reported. Narrow --workspace, "+
+			"exclude more directories, or raise --max-watch-fds.", budget, watchedDirs)
+	} else {
+		watcherLogger.Info("Watching %d directories (~%d file descriptors)", watchedDirs, usedFDs)
 	}
 
 	// Event loop
@@ -247,9 +276,11 @@ func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath str
 				if info, err := os.Stat(event.Name); err == nil {
 					if info.IsDir() {
 						// Skip excluded directories
-						if !w.shouldExcludeDir(event.Name) {
+						if !w.shouldExcludeDir(event.Name) && (budget <= 0 || usedFDs < budget) {
 							if err := watcher.Add(event.Name); err != nil {
 								watcherLogger.Error("Error watching new directory: %v", err)
+							} else {
+								usedFDs++
 							}
 						}
 					} else {
@@ -312,6 +343,60 @@ func (w *WorkspaceWatcher) WatchWorkspace(ctx context.Context, workspacePath str
 			watcherLogger.Error("Watcher error: %v", err)
 		}
 	}
+}
+
+const (
+	// watchFDShare is the fraction of the process descriptor limit that
+	// filesystem watches may consume when no explicit budget is configured.
+	watchFDShare = 4
+
+	// Bounds for the derived watch budget. The ceiling is deliberately well
+	// below what a single process could hold: hosts start one server per
+	// session, and enough of them will exhaust the system-wide descriptor
+	// limit even though each one is within its own.
+	minAutoWatchFDs = 512
+	maxAutoWatchFDs = 4096
+)
+
+// fdsPerWatchedFile returns the number of file descriptors fsnotify consumes
+// for each regular file inside a watched directory. The kqueue backend used on
+// macOS and the BSDs opens one descriptor per file so that it can report
+// changes with inotify's semantics, which makes a recursive workspace watch
+// cost roughly one descriptor per file. inotify and ReadDirectoryChangesW
+// watch the directory itself and cost nothing per file.
+func fdsPerWatchedFile() int {
+	retval := 0
+
+	switch runtime.GOOS {
+	case "darwin", "dragonfly", "freebsd", "netbsd", "openbsd":
+		retval = 1
+	}
+
+	return retval
+}
+
+// watchFDBudget returns the number of file descriptors that filesystem watches
+// may consume, or 0 for no bound.
+func (w *WorkspaceWatcher) watchFDBudget() int {
+	retval := maxAutoWatchFDs
+
+	switch {
+	case w.config.MaxWatchFDs < 0:
+		retval = 0
+	case w.config.MaxWatchFDs > 0:
+		retval = w.config.MaxWatchFDs
+	default:
+		if limit := processFDLimit(); limit > 0 {
+			if share := limit / watchFDShare; share < uint64(maxAutoWatchFDs) {
+				retval = int(share)
+			}
+			if retval < minAutoWatchFDs {
+				retval = minAutoWatchFDs
+			}
+		}
+	}
+
+	return retval
 }
 
 // isPathWatched checks if a path should be watched based on server registrations

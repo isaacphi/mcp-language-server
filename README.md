@@ -167,6 +167,12 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   </div>
 </details>
 
+## File watching
+
+The server watches the workspace so it can tell the language server about changes on disk. On macOS and the BSDs every watched path costs a file descriptor, and watching a directory also watches each file inside it, so watching a large workspace can otherwise cost tens of thousands of descriptors per server process. Hosts start one server per session, so enough of them will exhaust the system-wide descriptor limit even while each one stays within its own.
+
+By default the watcher spends at most a quarter of the process descriptor limit on watches, capped at 4096, and logs a warning when it stops adding them. Pass `--max-watch-fds N` to set the budget explicitly, or `--max-watch-fds -1` to remove the bound.
+
 ## Tools
 
 - `definition`: Retrieves the complete source code definition of any symbol (function, type, constant, etc.) from your codebase.

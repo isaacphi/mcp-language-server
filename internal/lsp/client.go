@@ -83,15 +83,24 @@ func NewClient(command string, args ...string) (*Client, error) {
 		return nil, fmt.Errorf("failed to start LSP server: %w", err)
 	}
 
-	// Handle stderr in a separate goroutine with proper logging
+	// Handle stderr in a separate goroutine with proper logging. This has to
+	// keep draining the pipe for as long as the server runs: a server that
+	// fills the pipe blocks on write, stops reading its own stdin, and then
+	// every request made to it hangs. bufio.Scanner used to give up here on
+	// the first over-long line, which is exactly how that happens.
 	go func() {
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			line := scanner.Text()
-			processLogger.Info("%s", line)
-		}
-		if err := scanner.Err(); err != nil {
-			lspLogger.Error("Error reading LSP server stderr: %v", err)
+		reader := bufio.NewReader(stderr)
+		for {
+			line, err := reader.ReadString('\n')
+			if line != "" {
+				processLogger.Info("%s", strings.TrimSuffix(line, "\n"))
+			}
+			if err != nil {
+				if err != io.EOF {
+					lspLogger.Error("Error reading LSP server stderr: %v", err)
+				}
+				return
+			}
 		}
 	}()
 
