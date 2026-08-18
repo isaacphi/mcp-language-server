@@ -150,7 +150,10 @@ func (c *Client) handleMessages() {
 			}
 
 			// Send response back to server
-			if err := WriteMessage(c.stdin, response); err != nil {
+			c.stdinMu.Lock()
+			err := WriteMessage(c.stdin, response)
+			c.stdinMu.Unlock()
+			if err != nil {
 				lspLogger.Error("Error sending response to server: %v", err)
 			}
 
@@ -217,7 +220,10 @@ func (c *Client) Call(ctx context.Context, method string, params any, result any
 	}()
 
 	// Send request
-	if err := WriteMessage(c.stdin, msg); err != nil {
+	c.stdinMu.Lock()
+	err = WriteMessage(c.stdin, msg)
+	c.stdinMu.Unlock()
+	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
@@ -258,7 +264,10 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 		return fmt.Errorf("failed to create notification: %w", err)
 	}
 
-	if err := WriteMessage(c.stdin, msg); err != nil {
+	c.stdinMu.Lock()
+	err = WriteMessage(c.stdin, msg)
+	c.stdinMu.Unlock()
+	if err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
 
