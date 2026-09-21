@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,9 +22,10 @@ import (
 var coreLogger = logging.NewLogger(logging.Core)
 
 type config struct {
-	workspaceDir string
-	lspCommand   string
-	lspArgs      []string
+	workspaceDir  string
+	lspCommand    string
+	lspArgs       []string
+	excludedTools string
 }
 
 type mcpServer struct {
@@ -39,10 +41,14 @@ func parseConfig() (*config, error) {
 	cfg := &config{}
 	flag.StringVar(&cfg.workspaceDir, "workspace", "", "Path to workspace directory")
 	flag.StringVar(&cfg.lspCommand, "lsp", "", "LSP command to run (args should be passed after --)")
+	flag.StringVar(&cfg.excludedTools, "exclude-tools", "", "Comma-separated MCP tools to retire from this server")
 	flag.Parse()
 
 	// Get remaining args after -- as LSP arguments
 	cfg.lspArgs = flag.Args()
+	if _, err := excludedToolNames(cfg.excludedTools); err != nil {
+		return nil, err
+	}
 
 	// Validate workspace directory
 	if cfg.workspaceDir == "" {
@@ -69,6 +75,22 @@ func parseConfig() (*config, error) {
 	}
 
 	return cfg, nil
+}
+
+func excludedToolNames(value string) ([]string, error) {
+	if value == "" {
+		return nil, nil
+	}
+	allowed := map[string]bool{"edit_file": true, "definition": true, "references": true, "diagnostics": true, "hover": true, "rename_symbol": true}
+	var names []string
+	for _, name := range strings.Split(value, ",") {
+		name = strings.TrimSpace(name)
+		if !allowed[name] {
+			return nil, fmt.Errorf("unknown excluded tool: %q", name)
+		}
+		names = append(names, name)
+	}
+	return names, nil
 }
 
 func newServer(config *config) (*mcpServer, error) {

@@ -363,6 +363,11 @@ func (s *mcpServer) registerTools() error {
 		return mcp.NewToolResultText(text), nil
 	})
 
-	coreLogger.Info("Successfully registered all MCP tools")
+	excluded, err := excludedToolNames(s.config.excludedTools)
+	if err != nil {
+		return err
+	}
+	s.mcpServer.DeleteTools(excluded...)
+	coreLogger.Info("Successfully registered configured MCP tools")
 	return nil
 }
