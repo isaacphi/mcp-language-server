@@ -125,4 +125,6 @@ func HandleDiagnostics(client *Client, params json.RawMessage) {
 	client.diagnosticsMu.Unlock()
 
 	lspLogger.Info("Received diagnostics for %s: %d items", diagParams.URI, len(diagParams.Diagnostics))
+	// Notify any callers waiting for diagnostics for this URI.
+	client.notifyDiagWaiters(diagParams.URI)
 }

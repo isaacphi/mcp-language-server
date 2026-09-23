@@ -40,6 +40,9 @@ type Client struct {
 	// Diagnostic cache
 	diagnostics   map[protocol.DocumentUri][]protocol.Diagnostic
 	diagnosticsMu sync.RWMutex
+	// Diagnostic notification channels: per-URI subscribers waiting for publishDiagnostics
+	diagWaiters   map[protocol.DocumentUri][]chan struct{}
+	diagWaitersMu sync.Mutex
 
 	// Files are currently opened by the LSP
 	openFiles   map[string]*OpenFileInfo
@@ -75,6 +78,7 @@ func NewClient(command string, args ...string) (*Client, error) {
 		notificationHandlers:  make(map[string]NotificationHandler),
 		serverRequestHandlers: make(map[string]ServerRequestHandler),
 		diagnostics:           make(map[protocol.DocumentUri][]protocol.Diagnostic),
+		diagWaiters:           make(map[protocol.DocumentUri][]chan struct{}),
 		openFiles:             make(map[string]*OpenFileInfo),
 	}
 
@@ -430,4 +434,26 @@ func (c *Client) GetFileDiagnostics(uri protocol.DocumentUri) []protocol.Diagnos
 	defer c.diagnosticsMu.RUnlock()
 
 	return c.diagnostics[uri]
+}
+
+// SubscribeDiagnostics returns a channel that is closed once publishDiagnostics
+// is received for the given URI. Subscribe BEFORE calling OpenFile so the
+// notification is never missed. The channel is buffered so the sender never blocks.
+func (c *Client) SubscribeDiagnostics(uri protocol.DocumentUri) <-chan struct{} {
+	ch := make(chan struct{}, 1)
+	c.diagWaitersMu.Lock()
+	c.diagWaiters[uri] = append(c.diagWaiters[uri], ch)
+	c.diagWaitersMu.Unlock()
+	return ch
+}
+
+// notifyDiagWaiters closes (and removes) all channels waiting for diagnostics on uri.
+func (c *Client) notifyDiagWaiters(uri protocol.DocumentUri) {
+	c.diagWaitersMu.Lock()
+	waiters := c.diagWaiters[uri]
+	delete(c.diagWaiters, uri)
+	c.diagWaitersMu.Unlock()
+	for _, ch := range waiters {
+		close(ch)
+	}
 }

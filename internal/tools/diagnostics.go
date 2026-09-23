@@ -12,6 +12,11 @@ import (
 	"github.com/isaacphi/mcp-language-server/internal/protocol"
 )
 
+// diagWaitTimeout is the maximum time to wait for publishDiagnostics from the LSP server.
+// Language servers like tsserver load the project lazily after the first textDocument/didOpen,
+// which can take 30-60s for large projects on first call after startup.
+const diagWaitTimeout = 60 * time.Second
+
 // GetDiagnosticsForFile retrieves diagnostics for a specific file from the language server
 func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath string, contextLines int, showLineNumbers bool) (string, error) {
 	// Override with environment variable if specified
@@ -21,25 +26,38 @@ func GetDiagnosticsForFile(ctx context.Context, client *lsp.Client, filePath str
 		}
 	}
 
+	// Convert the file path to URI format
+	uri := protocol.DocumentUri("file://" + filePath)
+
+	// Subscribe BEFORE opening the file so we never miss the publishDiagnostics notification.
+	diagCh := client.SubscribeDiagnostics(uri)
+
 	err := client.OpenFile(ctx, filePath)
 	if err != nil {
 		return "", fmt.Errorf("could not open file: %v", err)
 	}
 
-	// Wait for diagnostics
-	// TODO: wait for notification
-	time.Sleep(time.Second * 3)
-
-	// Convert the file path to URI format
-	uri := protocol.DocumentUri("file://" + filePath)
-
-	// Request fresh diagnostics
+	// Try pull diagnostics (LSP 3.17+). Most language servers (tsserver, gopls, pyright)
+	// do not support this and will return -32601. In that case fall through to waiting
+	// for the push (publishDiagnostics) notification.
 	diagParams := protocol.DocumentDiagnosticParams{
 		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
 	}
-	_, err = client.Diagnostic(ctx, diagParams)
-	if err != nil {
-		toolsLogger.Error("Failed to get diagnostics: %v", err)
+	_, pullErr := client.Diagnostic(ctx, diagParams)
+	if pullErr != nil {
+		toolsLogger.Error("Failed to get diagnostics: %v", pullErr)
+	}
+
+	// If pull diagnostics failed (unsupported), wait for the push notification.
+	if pullErr != nil {
+		waitCtx, cancel := context.WithTimeout(ctx, diagWaitTimeout)
+		defer cancel()
+		select {
+		case <-diagCh:
+			// publishDiagnostics received, cache is populated
+		case <-waitCtx.Done():
+			toolsLogger.Warn("Timed out waiting for diagnostics for %s", filePath)
+		}
 	}
 
 	// Get diagnostics from the cache
